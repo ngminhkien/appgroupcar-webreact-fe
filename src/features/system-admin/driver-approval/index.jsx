@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import DriverApprovalTable from '../../components/AdminSysLayout/PendingDriver/PendingDriver';
+import DriverApprovalTable from '../../../components/AdminSysLayout/PendingDriver/PendingDriver';
 
 const FAKE_DRIVERS = [
   { id: 1, name: 'Nguyễn Văn An', licenseClass: 'Hạng B2', submissionDate: '12/10/2023', status: 'pending', avatarUrl: 'https://i.pravatar.cc/150?u=1' },
@@ -8,7 +8,7 @@ const FAKE_DRIVERS = [
   { id: 4, name: 'Hoàng Long', licenseClass: 'Hạng B2', submissionDate: '09/10/2023', status: 'approved', avatarUrl: 'https://i.pravatar.cc/150?u=4' },
 ];
 
-const PendingDriversPage = () => {
+const DriverApprovalPage = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchKeyword, setSearchKeyword] = useState('');
 
@@ -30,6 +30,12 @@ const PendingDriversPage = () => {
             Quản lý và xem xét các hồ sơ đăng ký mới trong hệ thống.
           </p>
         </div>
+        <button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg shadow-sm hover:shadow transition duration-200 font-medium font-['Inter'] flex items-center space-x-2">
+           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          <span>Thêm tài xế (Nội bộ)</span>
+        </button>
       </div>
 
       {/* Stats Section */}
@@ -73,6 +79,45 @@ const PendingDriversPage = () => {
         </div>
       </div>
 
+      {/* Toolbar */}
+      <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+        <div className="relative w-full md:w-96">
+          <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+          </span>
+          <input
+            type="text"
+            className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-lg leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm font-['Inter'] transition-colors"
+            placeholder="Tìm kiếm tài xế..."
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+          />
+        </div>
+
+        <div className="flex space-x-2 w-full md:w-auto overflow-x-auto">
+          {[
+            { id: 'all', label: 'Tất cả' },
+            { id: 'pending', label: 'Chờ duyệt' },
+            { id: 'approved', label: 'Đã duyệt' },
+            { id: 'rejected', label: 'Từ chối' },
+          ].map(filter => (
+             <button
+               key={filter.id}
+               onClick={() => setActiveFilter(filter.id)}
+               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors font-['Inter'] whitespace-nowrap ${
+                 activeFilter === filter.id 
+                 ? 'bg-slate-800 text-white' 
+                 : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+               }`}
+             >
+               {filter.label}
+             </button>
+          ))}
+        </div>
+      </div>
+
       {/* Table Content */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
          <DriverApprovalTable drivers={filteredDrivers} />
@@ -81,4 +126,4 @@ const PendingDriversPage = () => {
   );
 };
 
-export default PendingDriversPage;
+export default DriverApprovalPage;

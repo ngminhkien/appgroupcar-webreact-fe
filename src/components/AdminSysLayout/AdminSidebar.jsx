@@ -149,7 +149,7 @@ const AdminSidebar = () => {
       </nav>
 
       <div className="sidebar-footer">
-        <div className="sidebar-user">
+        <div className="sidebar-user" onClick={() => navigate('/admin/profile')} style={{ cursor: 'pointer' }}>
           <div className="sidebar-user-avatar">QT</div>
           <div className="sidebar-user-info">
             <span className="sidebar-user-name">Quản trị viên</span>
