@@ -1,0 +1,179 @@
+/* ──────────────────────────────────────────────
+   RegisterPage — Split-Panel Layout
+   ────────────────────────────────────────────── */
+.register-page {
+  display: flex;
+  min-height: 100vh;
+  background: var(--surface);
+}
+
+/* Right panel — Form */
+.register-form-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 48px 60px;
+  position: relative;
+  overflow-y: auto;
+  min-height: 100vh;
+}
+
+.register-mobile-brand {
+  display: none;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--primary-container);
+  letter-spacing: -0.5px;
+  margin-bottom: 32px;
+}
+
+.register-form-container {
+  width: 100%;
+  max-width: 520px;
+}
+
+/* Header */
+.register-form-header {
+  margin-bottom: 32px;
+}
+
+.register-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--primary-container);
+  letter-spacing: -0.5px;
+  margin: 0 0 8px;
+}
+
+.register-subtitle {
+  font-size: 0.95rem;
+  color: var(--on-surface-variant);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Form */
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Two-column row */
+.register-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Terms */
+.register-terms {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.register-terms-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  user-select: none;
+  line-height: 1.5;
+}
+
+.register-terms-label input[type="checkbox"] {
+  display: none;
+}
+
+.register-terms-label .checkmark {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  border-radius: 4px;
+  background: var(--surface-container-low);
+  border: 2px solid var(--surface-container-highest);
+  transition: var(--transition-fluid);
+  position: relative;
+  margin-top: 1px;
+}
+
+.register-terms-label input[type="checkbox"]:checked + .checkmark {
+  background: var(--primary-container);
+  border-color: var(--primary-container);
+}
+
+.register-terms-label input[type="checkbox"]:checked + .checkmark::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--on-primary);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.register-terms.has-error .checkmark {
+  border-color: #ba1a1a;
+}
+
+.terms-link {
+  color: var(--primary-container);
+  font-weight: 600;
+  text-decoration: none;
+  transition: var(--transition-fluid);
+}
+
+.terms-link:hover {
+  opacity: 0.7;
+}
+
+/* Sign in prompt */
+.register-login-prompt {
+  text-align: center;
+  margin-top: 28px;
+  font-size: 0.9rem;
+  color: var(--on-surface-variant);
+}
+
+.register-login-link {
+  color: var(--primary-container);
+  font-weight: 700;
+  text-decoration: none;
+  transition: var(--transition-fluid);
+}
+
+.register-login-link:hover {
+  opacity: 0.7;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .register-mobile-brand {
+    display: block;
+  }
+
+  .register-form-panel {
+    padding: 40px 24px;
+  }
+}
+
+@media (max-width: 600px) {
+  .register-row {
+    grid-template-columns: 1fr;
+  }
+
+  .register-title {
+    font-size: 1.6rem;
+  }
+
+  .register-form-container {
+    max-width: 100%;
+  }
+}

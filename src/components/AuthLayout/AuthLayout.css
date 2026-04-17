@@ -1,0 +1,8 @@
+/* ──────────────────────────────────────────────
+   AuthLayout — Full-bleed container for Login/Register
+   ────────────────────────────────────────────── */
+.auth-layout {
+  min-height: 100vh;
+  /* display: flex; */
+  background: var(--surface);
+}

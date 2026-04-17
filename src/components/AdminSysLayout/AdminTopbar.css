@@ -1,0 +1,111 @@
+/* ══════════════════════════════════════════════
+   Admin Topbar
+   ══════════════════════════════════════════════ */
+.admin-topbar {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  background: var(--surface-container-lowest);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+/* Search */
+.topbar-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface-container-low);
+  border-radius: 8px;
+  padding: 10px 16px;
+  min-width: 320px;
+  color: var(--on-surface-variant);
+  transition: var(--transition-fluid);
+}
+
+.topbar-search:focus-within {
+  background: var(--surface-container-lowest);
+  box-shadow: 0 0 0 2px var(--primary-container);
+}
+
+.topbar-search-input {
+  border: none;
+  background: none;
+  outline: none;
+  font-size: 0.88rem;
+  font-family: var(--font-family);
+  color: var(--on-surface);
+  width: 100%;
+}
+
+.topbar-search-input::placeholder {
+  color: var(--on-surface-variant);
+  opacity: 0.5;
+}
+
+/* Right section */
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar-icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: none;
+  background: none;
+  color: var(--on-surface-variant);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-fluid);
+  position: relative;
+}
+
+.topbar-icon-btn:hover {
+  background: var(--surface-container-low);
+  color: var(--primary-container);
+}
+
+.topbar-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ba1a1a;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.topbar-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--primary-container), var(--primary));
+  color: var(--on-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-left: 8px;
+}
+
+@media (max-width: 768px) {
+  .topbar-search {
+    min-width: auto;
+    flex: 1;
+  }
+}

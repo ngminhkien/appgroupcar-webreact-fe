@@ -1,0 +1,116 @@
+/* ══════════════════════════════════════════════
+   Header — Glass Navigation
+   ══════════════════════════════════════════════ */
+.glass-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 72px;
+  background: transparent;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  transition: var(--transition-fluid);
+}
+
+.glass-nav--scrolled {
+  background: rgba(0, 6, 19, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+}
+
+.nav-content {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.brand-logo {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--on-primary);
+  letter-spacing: -0.5px;
+  text-decoration: none;
+  transition: var(--transition-fluid);
+}
+
+.brand-logo:hover {
+  opacity: 0.85;
+}
+
+.nav-links {
+  display: flex;
+  gap: 32px;
+}
+
+.nav-links a {
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--on-primary);
+  opacity: 0.7;
+  transition: var(--transition-fluid);
+}
+
+.nav-links a:hover {
+  opacity: 1;
+  color: var(--secondary-container);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.nav-login-link {
+  color: var(--on-primary);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  opacity: 0.8;
+  transition: var(--transition-fluid);
+}
+
+.nav-login-link:hover {
+  opacity: 1;
+  color: var(--secondary-container);
+}
+
+.btn-nav-primary {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, var(--secondary-container), #4ae183);
+  color: var(--primary);
+  border: none;
+  padding: 10px 22px;
+  border-radius: var(--radius-full);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: var(--transition-fluid);
+  text-decoration: none;
+  font-family: var(--font-family);
+}
+
+.btn-nav-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(107, 254, 156, 0.25);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .nav-links {
+    display: none;
+  }
+
+  .nav-login-link {
+    display: none;
+  }
+}

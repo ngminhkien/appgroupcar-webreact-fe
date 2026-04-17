@@ -1,0 +1,125 @@
+/* ──────────────────────────────────────────────
+   AuthFormInput — Luxury Input Styling
+   ────────────────────────────────────────────── */
+.auth-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.auth-input-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--on-surface);
+  letter-spacing: 0.01em;
+}
+
+.auth-required {
+  color: #ba1a1a;
+  margin-left: 2px;
+}
+
+.auth-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-input-icon {
+  position: absolute;
+  left: 16px;
+  color: var(--on-surface-variant);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 0.95rem;
+  font-family: var(--font-family);
+  color: var(--on-surface);
+  background: var(--surface-container-low);
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: var(--transition-fluid);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.auth-input-icon + .auth-input,
+.auth-input-icon ~ .auth-input {
+  padding-left: 44px;
+}
+
+.auth-input::placeholder {
+  color: var(--on-surface-variant);
+  opacity: 0.5;
+}
+
+.auth-input:focus {
+  background: var(--surface-container-lowest);
+  border-color: var(--primary-container);
+  box-shadow: 0 0 0 4px rgba(0, 31, 63, 0.08);
+}
+
+.auth-input:hover:not(:focus) {
+  background: var(--surface-container);
+}
+
+/* Select */
+.auth-select {
+  cursor: pointer;
+  padding-right: 40px;
+}
+
+.auth-select-chevron {
+  position: absolute;
+  right: 14px;
+  color: var(--on-surface-variant);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+/* Password toggle */
+.auth-password-toggle {
+  position: absolute;
+  right: 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--on-surface-variant);
+  opacity: 0.6;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  transition: var(--transition-fluid);
+}
+
+.auth-password-toggle:hover {
+  opacity: 1;
+  color: var(--primary-container);
+}
+
+/* Error state */
+.has-error .auth-input {
+  border-color: #ba1a1a;
+  background: #fdf0ef;
+}
+
+.has-error .auth-input:focus {
+  box-shadow: 0 0 0 4px rgba(186, 26, 26, 0.08);
+}
+
+.auth-input-error {
+  font-size: 0.78rem;
+  color: #ba1a1a;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}

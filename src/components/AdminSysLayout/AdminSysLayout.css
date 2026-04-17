@@ -1,0 +1,76 @@
+/* ══════════════════════════════════════════════
+   Admin System Layout
+   ══════════════════════════════════════════════ */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--surface);
+}
+
+.admin-main {
+  flex: 1;
+  margin-left: 240px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.admin-content {
+  flex: 1;
+  padding: 28px 32px;
+  overflow-y: auto;
+}
+
+/* Footer status bar */
+.admin-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 32px;
+  background: var(--surface-container-lowest);
+  font-size: 0.72rem;
+  color: var(--on-surface-variant);
+  opacity: 0.7;
+}
+
+.admin-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.footer-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.footer-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--secondary-container);
+}
+
+.admin-footer-right {
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .admin-main {
+    margin-left: 72px;
+  }
+
+  .admin-content {
+    padding: 20px 16px;
+  }
+
+  .admin-footer {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+}
