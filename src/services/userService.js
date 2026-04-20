@@ -43,3 +43,11 @@ export const deleteUserApi = async (id) => {
   const response = await axiosInstance.delete(`/user/${id}`);
   return response.data;
 };
+
+/**
+ * Get current logged in user profile.
+ */
+export const getUserProfileApi = async () => {
+  const response = await axiosInstance.get('/user/me');
+  return response.data;
+};

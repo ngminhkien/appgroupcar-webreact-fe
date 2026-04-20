@@ -1,6 +1,61 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
+import { getUserProfileApi } from '@/services/userService';
 
 const AdminProfilePage = () => {
+  const [profileInfo, setProfileInfo] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchProfile = async () => {
+      try {
+        const response = await getUserProfileApi();
+        const data = response?.data || response;
+        if (!cancelled) setProfileInfo(data);
+      } catch (error) {
+        if (!cancelled) {
+          toast.error(error.response?.data?.message || 'Không thể tải thông tin cá nhân.');
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    fetchProfile();
+    return () => { cancelled = true; };
+  }, []);
+
+  const formatDate = (value) => {
+    if (!value || value.startsWith('0001-01-01')) return '--';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '--';
+    return date.toLocaleDateString('vi-VN', { year: 'numeric', month: 'long', day: 'numeric' });
+  };
+
+  const getFullImageUrl = (url) => {
+    if (!url) return 'https://a.storyblok.com/f/191576/1200x800/215e59568f/round_profil_picture_after_.webp';
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    let baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    baseUrl = baseUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
+    const formattedUrl = url.startsWith('/') ? url : `/${url}`;
+    return `${baseUrl}${formattedUrl}`;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 md:p-10 bg-[#F8FAFC] min-h-screen flex items-center justify-center">
+         <div className="flex flex-col items-center">
+            <svg className="animate-spin h-10 w-10 text-emerald-600 mb-4" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            <span className="text-slate-500 font-medium">Đang tải hồ sơ...</span>
+         </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 md:p-10 bg-[#F8FAFC] min-h-screen font-['Inter']">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -10,9 +65,10 @@ const AdminProfilePage = () => {
           {/* Avatar Area */}
           <div className="relative shrink-0 flex items-center justify-center p-3 rounded-full bg-[#F4F6F8]">
              <img 
-               src="https://a.storyblok.com/f/191576/1200x800/215e59568f/round_profil_picture_after_.webp" 
+               src={getFullImageUrl(profileInfo?.avatarUrl)} 
                alt="Admin Avatar" 
                className="w-32 h-32 rounded-full object-cover"
+               onError={(e) => { e.target.src = 'https://a.storyblok.com/f/191576/1200x800/215e59568f/round_profil_picture_after_.webp'; }}
              />
              <div className="absolute bottom-2 right-2 w-8 h-8 bg-[#52F091] border-2 border-white rounded-full flex items-center justify-center shadow-sm">
                 <svg className="w-5 h-5 text-emerald-900" fill="currentColor" viewBox="0 0 20 20">
@@ -23,10 +79,10 @@ const AdminProfilePage = () => {
           
           {/* Top Info */}
           <div className="flex-1 mt-2">
-             <h1 className="text-[1.75rem] font-black text-[#0A1A2F] tracking-tight">Nguyễn Văn Admin</h1>
+             <h1 className="text-[1.75rem] font-black text-[#0A1A2F] tracking-tight">{profileInfo?.fullName || "Người dùng"}</h1>
              <div className="mt-2">
                <span className="inline-block px-5 py-1.5 bg-[#0A1A2F] text-blue-50 text-[0.65rem] font-bold rounded-full tracking-widest uppercase">
-                  Quản trị viên hệ thống
+                  {profileInfo?.roles?.length > 0 ? profileInfo.roles.join(', ') : 'Quản trị viên hệ thống'}
                </span>
              </div>
              <p className="text-slate-500 mt-5 leading-relaxed max-w-xl text-sm font-medium">
@@ -57,7 +113,7 @@ const AdminProfilePage = () => {
                  </div>
                  <div>
                     <p className="text-[0.65rem] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Email</p>
-                    <p className="text-[#0A1A2F] font-bold text-[0.95rem] w-full">admin@nexusride.vn</p>
+                    <p className="text-[#0A1A2F] font-bold text-[0.95rem] w-full">{profileInfo?.email || '--'}</p>
                  </div>
               </div>
 
@@ -67,7 +123,7 @@ const AdminProfilePage = () => {
                  </div>
                  <div>
                     <p className="text-[0.65rem] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Số điện thoại</p>
-                    <p className="text-[#0A1A2F] font-bold text-[0.95rem] w-full">090 123 4567</p>
+                    <p className="text-[#0A1A2F] font-bold text-[0.95rem] w-full">{profileInfo?.phoneNumber || '--'}</p>
                  </div>
               </div>
 
@@ -77,7 +133,7 @@ const AdminProfilePage = () => {
                  </div>
                  <div>
                     <p className="text-[0.65rem] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Ngày tham gia</p>
-                    <p className="text-[#0A1A2F] font-bold text-[0.95rem] w-full">15 Tháng 03, 2023</p>
+                    <p className="text-[#0A1A2F] font-bold text-[0.95rem] w-full">{formatDate(profileInfo?.createAt)}</p>
                  </div>
               </div>
 
@@ -103,16 +159,19 @@ const AdminProfilePage = () => {
                  <h2 className="text-xl font-bold text-[#0A1A2F]">Phân quyền & Bảo mật</h2>
               </div>
               <span className="px-4 py-1.5 bg-[#52F091] text-emerald-900 rounded-full text-[0.65rem] font-bold tracking-widest uppercase">
-                 Mức độ: Cao nhất
+                 Mức độ: {profileInfo?.roles?.includes('Admin') ? 'Cao nhất' : 'Cơ bản'}
               </span>
            </div>
            
            <div className="flex flex-wrap gap-4 pb-2">
-              {['Quản lý người dùng', 'Quản lý tài xế', 'Báo cáo tài chính', 'Cấu hình hệ thống', 'Xác thực giao dịch'].map(permission => (
-                 <span key={permission} className="bg-slate-100 text-slate-700 px-5 py-2 rounded-xl font-semibold text-[0.8rem]">
-                   {permission}
+              {profileInfo?.roles?.map((role, idx) => (
+                 <span key={idx} className="bg-slate-100 text-slate-700 px-5 py-2 rounded-xl font-semibold text-[0.8rem]">
+                   {role}
                  </span>
               ))}
+              {(!profileInfo?.roles || profileInfo.roles.length === 0) && (
+                 <span className="text-slate-500 italic text-sm">Chưa có quyền nào</span>
+              )}
            </div>
         </div>
 

@@ -9,7 +9,9 @@ import {
   PendingCompaniesPage,
   PendingDriversPage,
   PendingVehiclesPage,
-  AdminProfilePage
+  AdminProfilePage,
+  DriversPage,
+  VehiclesPage
 } from '@/features/system-admin';
 import { PublicLayout } from '@/components/PublicLayout';
 import { AuthLayout } from '@/components/AuthLayout';
@@ -38,9 +40,9 @@ const AppRoutes = () => {
             <Route path="/admin/companies" element={<CompaniesPage />} />
             <Route path="/admin/companies/pending" element={<PendingCompaniesPage />} />
             <Route path="/admin/users" element={<UsersPage />} />
-            <Route path="/admin/drivers" element={<div style={{ padding: 40 }}>Tài xế (Quản lý)</div>} />
+            <Route path="/admin/drivers" element={<DriversPage />} />
             <Route path="/admin/drivers/pending" element={<PendingDriversPage />} />
-            <Route path="/admin/vehicles" element={<div style={{ padding: 40 }}>Phương tiện (Quản lý)</div>} />
+            <Route path="/admin/vehicles" element={<VehiclesPage />} />
             <Route path="/admin/vehicles/pending" element={<PendingVehiclesPage />} />
             <Route path="/admin/profile" element={<AdminProfilePage />} />
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />

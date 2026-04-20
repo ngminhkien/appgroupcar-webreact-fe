@@ -1,23 +1,118 @@
-import React, { useState } from 'react';
-import DriverApprovalTable from '../../components/AdminSysLayout/PendingDriver/PendingDriver';
+import React, { useState, useEffect, useCallback } from 'react';
+import DriverApprovalTable from '../../components/AdminSysLayout/PendingDriver/PendingDriverTable';
+import DriverDetailModal from '../../components/AdminSysLayout/PendingDriver/DriverDetailModal';
+import { getMarketDriversApi } from '../../services/driverService';
 
-const FAKE_DRIVERS = [
-  { id: 1, name: 'Nguyễn Văn An', licenseClass: 'Hạng B2', submissionDate: '12/10/2023', status: 'pending', avatarUrl: 'https://i.pravatar.cc/150?u=1' },
-  { id: 2, name: 'Trần Minh Tâm', licenseClass: 'Hạng C', submissionDate: '11/10/2023', status: 'pending', avatarUrl: 'https://i.pravatar.cc/150?u=2' },
-  { id: 3, name: 'Lê Thị Mai', licenseClass: 'Hạng B1', submissionDate: '10/10/2023', status: 'rejected', avatarUrl: 'https://i.pravatar.cc/150?u=3' },
-  { id: 4, name: 'Hoàng Long', licenseClass: 'Hạng B2', submissionDate: '09/10/2023', status: 'approved', avatarUrl: 'https://i.pravatar.cc/150?u=4' },
-];
+const DEFAULT_PAGE_SIZE = 10;
+
+const formatDate = (value) => {
+  if (!value || value.startsWith('0001-01-01')) return '--';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '--';
+  return date.toLocaleDateString('vi-VN');
+};
+
+const mapStatus = (statusValue) => {
+  if (statusValue === 1) return 'pending';
+  if (statusValue === 2) return 'approved';
+  if (statusValue === 3) return 'rejected';
+  return 'pending';
+};
 
 const PendingDriversPage = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchKeyword, setSearchKeyword] = useState('');
-
-  const filteredDrivers = FAKE_DRIVERS.filter(driver => {
-    const matchesSearch = driver.name.toLowerCase().includes(searchKeyword.toLowerCase());
-    if (activeFilter === 'all') return matchesSearch;
-    return matchesSearch && driver.status === activeFilter;
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [drivers, setDrivers] = useState([]);
+  const [pagination, setPagination] = useState({
+    totalCount: 0,
+    pageNumber: 1,
+    pageSize: DEFAULT_PAGE_SIZE,
+    totalPages: 1,
   });
 
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedDriver, setSelectedDriver] = useState(null);
+
+  const handleOpenDetailModal = (driver) => {
+    setSelectedDriver(driver);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleCloseDetailModal = () => {
+    setIsDetailModalOpen(false);
+    setSelectedDriver(null);
+  };
+
+  const handleDriverUpdated = () => {
+    fetchDrivers();
+  };
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedKeyword(searchKeyword.trim());
+    }, 350);
+    return () => clearTimeout(timeoutId);
+  }, [searchKeyword]);
+
+  const fetchDrivers = useCallback(async (ignore = false) => {
+    setIsLoading(true);
+    try {
+      const response = await getMarketDriversApi({
+        search: debouncedKeyword || undefined,
+        pageNumber: pagination.pageNumber,
+        pageSize: pagination.pageSize,
+        VerificationStatus: 1, // Always fetch Pending
+      });
+      const pageData = response?.data ?? {};
+      const items = Array.isArray(pageData.items) ? pageData.items : [];
+
+      if (ignore) return;
+
+      const mappedDrivers = items.map((item) => ({
+        ...item,
+        name: item.name || '--',
+        licenseClass: item.licenseClass || '--',
+        identityNumber: item.identityNumber || '--',
+        submissionDate: formatDate(item.createdAt),
+        status: mapStatus(item.verificationStatus),
+        avatarUrl: item.user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name || 'NA')}&background=random`,
+      }));
+
+      setDrivers(mappedDrivers);
+      setPagination(prev => ({
+        ...prev,
+        totalCount: pageData.totalCount ?? 0,
+        pageNumber: pageData.pageNumber ?? 1,
+        pageSize: pageData.pageSize ?? DEFAULT_PAGE_SIZE,
+        totalPages: pageData.totalPages ?? 1,
+      }));
+    } catch (error) {
+      if (ignore) return;
+      console.error("Failed to fetch drivers", error);
+      setDrivers([]);
+    } finally {
+      if (!ignore) setIsLoading(false);
+    }
+  }, [debouncedKeyword, pagination.pageNumber, pagination.pageSize]);
+
+  useEffect(() => {
+    let ignore = false;
+    fetchDrivers(ignore);
+    return () => { ignore = true; };
+  }, [fetchDrivers]);
+
+  const filteredDrivers = drivers.filter(driver => {
+    if (activeFilter === 'all') return true;
+    return driver.status === activeFilter;
+  });
+
+  const goToPage = (nextPage) => {
+    if (nextPage < 1 || nextPage > pagination.totalPages || nextPage === pagination.pageNumber) return;
+    setPagination(prev => ({ ...prev, pageNumber: nextPage }));
+  };
+  console.log(filteredDrivers)
   return (
     <div className="p-6 md:p-8 space-y-8 bg-[#F8FAFC] min-h-screen">
       {/* Header Section */}
@@ -32,51 +127,30 @@ const PendingDriversPage = () => {
         </div>
       </div>
 
-      {/* Stats Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-             </svg>
-          </div>
-          <div>
-            <p className="text-slate-500 font-medium font-['Inter'] text-sm">Tổng hồ sơ</p>
-            <p className="text-2xl font-bold text-slate-800">{FAKE_DRIVERS.length}</p>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
-          <div className="p-3 bg-amber-50 text-amber-500 rounded-xl">
-             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-             </svg>
-          </div>
-          <div>
-            <p className="text-slate-500 font-medium font-['Inter'] text-sm">Chờ duyệt</p>
-             <p className="text-2xl font-bold text-slate-800">
-               {FAKE_DRIVERS.filter(d => d.status === 'pending').length}
-             </p>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
-          <div className="p-3 bg-emerald-50 text-emerald-500 rounded-xl">
-             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-             </svg>
-          </div>
-          <div>
-            <p className="text-slate-500 font-medium font-['Inter'] text-sm">Đã Phê duyệt</p>
-             <p className="text-2xl font-bold text-slate-800">
-               {FAKE_DRIVERS.filter(d => d.status === 'approved').length}
-             </p>
-          </div>
-        </div>
-      </div>
+      
 
       {/* Table Content */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-         <DriverApprovalTable drivers={filteredDrivers} />
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden relative">
+         {isLoading && (
+           <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] flex items-center justify-center z-10">
+             <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+           </div>
+         )}
+         <DriverApprovalTable 
+           drivers={filteredDrivers} 
+           isLoading={isLoading}
+           pagination={pagination}
+           onGoToPage={goToPage}
+           onViewDetail={handleOpenDetailModal}
+         />
       </div>
+
+      <DriverDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={handleCloseDetailModal}
+        driver={selectedDriver}
+        onUpdated={handleDriverUpdated}
+      />
     </div>
   );
 };

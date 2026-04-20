@@ -4,9 +4,10 @@ export const VehicleType = Object.freeze({
 });
 
 export const VehicleStatus = Object.freeze({
-  Active: 1,
-  Inactive: 2,
-  Maintenance: 3,
+  Pending: 1,
+  Active: 2,
+  Inactive: 3,
+  Maintenance: 4,
 });
 
 export const ShipmentRequestStatus = Object.freeze({

@@ -1,23 +1,83 @@
-import React, { useState } from 'react';
-import PendingVehicleTable from '../../components/AdminSysLayout/PendingVehicle/PendingVehicleTable';
+import React, { useState, useEffect, useCallback } from 'react';
+import VehicleTable from '@/components/AdminSysLayout/Vehicle/VehicleTable';
+import VehicleDetailModal from '@/components/AdminSysLayout/PendingVehicle/VehicleDetailModal';
+import { getVehiclesApi } from '@/services/vehicleService';
 
-const FAKE_VEHICLES = [
-  { id: 1, plate: '30A-123.45', type: 'Sedan 4 chỗ', brand: 'Toyota Vios', year: '2022', status: 'pending', imageUrl: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=150&q=80' },
-  { id: 2, plate: '51G-567.89', type: 'SUV 7 chỗ', brand: 'Hyundai SantaFe', year: '2023', status: 'pending', imageUrl: 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=150&q=80' },
-  { id: 3, plate: '29C-999.99', type: 'Bán tải', brand: 'Ford Ranger', year: '2021', status: 'rejected', imageUrl: 'https://images.unsplash.com/photo-1559404223-911ce6518a22?auto=format&fit=crop&w=150&q=80' },
-  { id: 4, plate: '60B-333.33', type: 'Sedan 4 chỗ', brand: 'Kia K3', year: '2024', status: 'approved', imageUrl: 'https://images.unsplash.com/photo-1550355291-bbee04a92027?auto=format&fit=crop&w=150&q=80' },
-];
+const DEFAULT_PAGE_SIZE = 10;
 
 const PendingVehiclesPage = () => {
-  const [activeFilter, setActiveFilter] = useState('all');
   const [searchKeyword, setSearchKeyword] = useState('');
-
-  const filteredVehicles = FAKE_VEHICLES.filter(vehicle => {
-    const matchesSearch = vehicle.plate.toLowerCase().includes(searchKeyword.toLowerCase()) || 
-                          vehicle.brand.toLowerCase().includes(searchKeyword.toLowerCase());
-    if (activeFilter === 'all') return matchesSearch;
-    return matchesSearch && vehicle.status === activeFilter;
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [vehicles, setVehicles] = useState([]);
+  const [pagination, setPagination] = useState({
+    totalCount: 0,
+    pageNumber: 1,
+    pageSize: DEFAULT_PAGE_SIZE,
+    totalPages: 1,
   });
+
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+
+  const handleOpenDetailModal = (vehicle) => {
+    setSelectedVehicle(vehicle);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleCloseDetailModal = () => {
+    setIsDetailModalOpen(false);
+    setSelectedVehicle(null);
+  };
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedKeyword(searchKeyword.trim());
+    }, 350);
+    return () => clearTimeout(timeoutId);
+  }, [searchKeyword]);
+
+  const fetchVehicles = useCallback(async (ignore = false) => {
+    setIsLoading(true);
+    try {
+      const response = await getVehiclesApi({
+        Search: debouncedKeyword || undefined,
+        PageNumber: pagination.pageNumber,
+        PageSize: pagination.pageSize,
+        Status: 1, // Status = Pending (1)
+      });
+      const pageData = response?.data ?? {};
+      const items = Array.isArray(pageData.items) ? pageData.items : [];
+
+      if (ignore) return;
+
+      setVehicles(items);
+      setPagination(prev => ({
+        ...prev,
+        totalCount: pageData.totalCount ?? 0,
+        pageNumber: pageData.pageNumber ?? 1,
+        pageSize: pageData.pageSize ?? DEFAULT_PAGE_SIZE,
+        totalPages: pageData.totalPages ?? 1,
+      }));
+    } catch (error) {
+      if (ignore) return;
+      console.error("Failed to fetch vehicles", error);
+      setVehicles([]);
+    } finally {
+      if (!ignore) setIsLoading(false);
+    }
+  }, [debouncedKeyword, pagination.pageNumber, pagination.pageSize]);
+
+  useEffect(() => {
+    let ignore = false;
+    fetchVehicles(ignore);
+    return () => { ignore = true; };
+  }, [fetchVehicles]);
+
+  const goToPage = (nextPage) => {
+    if (nextPage < 1 || nextPage > pagination.totalPages || nextPage === pagination.pageNumber) return;
+    setPagination(prev => ({ ...prev, pageNumber: nextPage }));
+  };
 
   return (
     <div className="p-6 md:p-8 space-y-8 bg-[#F8FAFC] min-h-screen">
@@ -33,53 +93,28 @@ const PendingVehiclesPage = () => {
         </div>
       </div>
 
-      {/* Stats Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10l2-4h14l2 4v7h-2v2h-2v-2H7v2H5v-2H3v-7z"></path>
-                <circle cx="7" cy="14" r="1.5" fill="currentColor"></circle>
-                <circle cx="17" cy="14" r="1.5" fill="currentColor"></circle>
-             </svg>
-          </div>
-          <div>
-            <p className="text-slate-500 font-medium font-['Inter'] text-sm">Tổng phương tiện</p>
-            <p className="text-2xl font-bold text-slate-800">{FAKE_VEHICLES.length}</p>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
-          <div className="p-3 bg-amber-50 text-amber-500 rounded-xl">
-             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-             </svg>
-          </div>
-          <div>
-            <p className="text-slate-500 font-medium font-['Inter'] text-sm">Chờ duyệt</p>
-             <p className="text-2xl font-bold text-slate-800">
-               {FAKE_VEHICLES.filter(v => v.status === 'pending').length}
-             </p>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
-          <div className="p-3 bg-emerald-50 text-emerald-500 rounded-xl">
-             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-             </svg>
-          </div>
-          <div>
-            <p className="text-slate-500 font-medium font-['Inter'] text-sm">Đã Phê duyệt</p>
-             <p className="text-2xl font-bold text-slate-800">
-               {FAKE_VEHICLES.filter(v => v.status === 'approved').length}
-             </p>
-          </div>
-        </div>
+      {/* Table Content */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden relative">
+         {isLoading && (
+           <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] flex items-center justify-center z-10">
+             <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+           </div>
+         )}
+         <VehicleTable 
+           vehicles={vehicles} 
+           isLoading={isLoading}
+           pagination={pagination}
+           onGoToPage={goToPage}
+           onViewDetail={handleOpenDetailModal}
+         />
       </div>
 
-      {/* Table Content */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-         <PendingVehicleTable vehicles={filteredVehicles} />
-      </div>
+      <VehicleDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={handleCloseDetailModal}
+        vehicle={selectedVehicle}
+        onUpdated={fetchVehicles}
+      />
     </div>
   );
 };

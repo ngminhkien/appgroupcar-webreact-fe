@@ -81,9 +81,7 @@ const UsersPage = () => {
 
       const mappedUsers = items.map((item) => {
         const displayName = item.fullName || item.userName || item.email || 'N/A';
-        const status = typeof item.isActive === 'boolean'
-          ? (item.isActive ? 'active' : 'locked')
-          : 'active';
+        const status = item.deleteAt === null ? 'active' : 'locked';
 
         return {
           id: item.id,
