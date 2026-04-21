@@ -65,10 +65,13 @@ const DriverDetailModal = ({ isOpen, onClose, driver, onUpdated }) => {
   };
 
   const renderStatus = (statusValue) => {
-    if (statusValue === 1) return 'Chờ duyệt';
-    if (statusValue === 2) return 'Đã duyệt';
-    if (statusValue === 3) return 'Bị từ chối';
-    return 'Không xác định';
+    switch (statusValue) {
+      case 1: return 'Chờ duyệt';
+      case 2: return 'Hoạt động';
+      case 3: return 'Tạm dừng';
+      case 4: return 'Bị từ chối';
+      default: return 'Không xác định';
+    }
   };
 
   return (

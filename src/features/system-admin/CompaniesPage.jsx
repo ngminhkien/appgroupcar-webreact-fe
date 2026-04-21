@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import '@/components/AdminSysLayout/AdminShared.css';
+import { useQuery } from '@tanstack/react-query';
 import DetailModal from '@/components/AdminSysLayout/Company/DetailModal';
 import DeleteModal from '@/components/AdminSysLayout/Company/DeleteModal';
+import CompanyTable from '@/components/AdminSysLayout/Company/CompanyTable';
 import { getCompaniesApi, deleteCompanyApi } from '@/services/companyService';
 import { CompanyStatus } from '@/types/enums';
 import toast from 'react-hot-toast';
@@ -23,30 +25,11 @@ const getStatusMeta = (status) => {
   }
 };
 
-const buildPageList = (currentPage, totalPages) => {
-  if (totalPages <= 1) return [1];
-  const start = Math.max(1, currentPage - 2);
-  const end = Math.min(totalPages, start + 4);
-  const adjustedStart = Math.max(1, end - 4);
-
-  return Array.from({ length: end - adjustedStart + 1 }, (_, index) => adjustedStart + index);
-};
-
 const CompaniesPage = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchKeyword, setSearchKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
-  const [companies, setCompanies] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [pagination, setPagination] = useState({
-    totalCount: 0,
-    pageNumber: 1,
-    pageSize: DEFAULT_PAGE_SIZE,
-    totalPages: 1,
-    hasPreviousPage: false,
-    hasNextPage: false,
-  });
+  const [pageNumber, setPageNumber] = useState(1);
 
   // Detail modal state
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -60,97 +43,71 @@ const CompaniesPage = () => {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedKeyword(searchKeyword.trim());
+      setPageNumber(1);
     }, 350);
 
     return () => clearTimeout(timeoutId);
   }, [searchKeyword]);
 
-  const fetchCompanies = async (ignore = false) => {
-    const isActive = activeFilter === 'all' ? undefined : activeFilter === 'active';
-
-    const params = {
-      search: debouncedKeyword || undefined,
-      pageNumber: pagination.pageNumber,
-      pageSize: pagination.pageSize,
-      isActive,
-    };
-
-    setIsLoading(true);
-    setErrorMessage('');
-
-    try {
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ['companies', debouncedKeyword, pageNumber, activeFilter],
+    queryFn: async () => {
+      const isActive = activeFilter === 'all' ? undefined : activeFilter === 'active';
+      const params = {
+        search: debouncedKeyword || undefined,
+        pageNumber: pageNumber,
+        pageSize: DEFAULT_PAGE_SIZE,
+        isActive,
+      };
       const response = await getCompaniesApi(params);
-      const pageData = response?.data ?? {};
-      const items = Array.isArray(pageData.items) ? pageData.items : [];
+      return response?.data ?? {};
+    },
+    staleTime: 3 * 60 * 1000,
+    placeholderData: (prev) => prev,
+  });
 
-      if (ignore) return;
+  const companies = useMemo(() => {
+    const items = Array.isArray(data?.items) ? data.items : [];
+    return items.map((item) => {
+      const statusMeta = getStatusMeta(item.status);
+      return {
+        id: item.id,
+        companyName: item.companyName || '--',
+        companyCode: item.companyCode || '--',
+        phone: item.phone || '--',
+        email: item.email || '--',
+        status: statusMeta.key,
+        statusLabel: statusMeta.label,
+      };
+    });
+  }, [data]);
 
-      const mappedCompanies = items.map((item) => {
-        const statusMeta = getStatusMeta(item.status);
-        return {
-          id: item.id,
-          companyName: item.companyName || '--',
-          companyCode: item.companyCode || '--',
-          phone: item.phone || '--',
-          email: item.email || '--',
-          status: statusMeta.key,
-          statusLabel: statusMeta.label,
-        };
-      });
-
-      setCompanies(mappedCompanies);
-      setPagination({
-        totalCount: pageData.totalCount ?? 0,
-        pageNumber: pageData.pageNumber ?? 1,
-        pageSize: pageData.pageSize ?? DEFAULT_PAGE_SIZE,
-        totalPages: pageData.totalPages ?? 1,
-        hasPreviousPage: Boolean(pageData.hasPreviousPage),
-        hasNextPage: Boolean(pageData.hasNextPage),
-      });
-    } catch (error) {
-      if (ignore) return;
-      setCompanies([]);
-      setErrorMessage(error.response?.data?.message || 'Không tải được danh sách công ty.');
-    } finally {
-      if (!ignore) {
-        setIsLoading(false);
-      }
-    }
+  const pagination = {
+    totalCount: data?.totalCount ?? 0,
+    pageNumber: data?.pageNumber ?? pageNumber,
+    pageSize: data?.pageSize ?? DEFAULT_PAGE_SIZE,
+    totalPages: data?.totalPages ?? 1,
+    hasPreviousPage: Boolean(data?.hasPreviousPage),
+    hasNextPage: Boolean(data?.hasNextPage),
   };
 
-  useEffect(() => {
-    let ignore = false;
-    fetchCompanies(ignore);
-    return () => {
-      ignore = true;
-    };
-  }, [activeFilter, debouncedKeyword, pagination.pageNumber, pagination.pageSize]);
-
-  const currentStart = pagination.totalCount === 0
-    ? 0
-    : (pagination.pageNumber - 1) * pagination.pageSize + 1;
-  const currentEnd = Math.min(pagination.pageNumber * pagination.pageSize, pagination.totalCount);
-  const pageNumbers = useMemo(
-    () => buildPageList(pagination.pageNumber, pagination.totalPages),
-    [pagination.pageNumber, pagination.totalPages]
-  );
+  const errorMessage = isError ? (error.response?.data?.message || 'Không tải được danh sách công ty.') : '';
 
   const approvedCount = companies.filter((company) => company.statusLabel === 'Đã duyệt').length;
   const pendingCount = companies.filter((company) => company.statusLabel === 'Chờ duyệt').length;
 
   const onChangeFilter = (nextFilter) => {
     setActiveFilter(nextFilter);
-    setPagination((prev) => ({ ...prev, pageNumber: 1 }));
+    setPageNumber(1);
   };
 
   const onSearchChange = (event) => {
     setSearchKeyword(event.target.value);
-    setPagination((prev) => ({ ...prev, pageNumber: 1 }));
+    setPageNumber(1);
   };
 
   const goToPage = (nextPage) => {
-    if (nextPage < 1 || nextPage > pagination.totalPages || nextPage === pagination.pageNumber) return;
-    setPagination((prev) => ({ ...prev, pageNumber: nextPage }));
+    setPageNumber(nextPage);
   };
 
   const openCompanyDetailModal = (companyId) => {
@@ -164,7 +121,7 @@ const CompaniesPage = () => {
   };
 
   const handleCompanyUpdated = () => {
-    fetchCompanies();
+    refetch();
   };
 
   const handleOpenDeleteModal = (company) => {
@@ -186,7 +143,7 @@ const CompaniesPage = () => {
       toast.success(response?.message || 'Xóa công ty thành công!');
       setIsDeleteModalOpen(false);
       setSelectedCompany(null);
-      fetchCompanies();
+      refetch();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi xóa công ty.');
     } finally {
@@ -195,12 +152,12 @@ const CompaniesPage = () => {
   };
 
   return (
-    <div className="companies-page">
+    <div className="companies-page p-6 md:p-8 space-y-8 bg-[#F8FAFC] min-h-screen">
       <div className="admin-page-header">
         <div className="admin-page-header-row">
           <div>
-            <h1 className="admin-page-title">Danh sách công ty</h1>
-            <p className="admin-page-desc">Quản lý danh sách công ty trong hệ thống.</p>
+            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight font-['Inter'] uppercase">Danh sách công ty</h2>
+            <p className="text-slate-500 mt-2 font-medium font-['Inter']">Quản lý danh sách công ty trong hệ thống.</p>
           </div>
         </div>
       </div>
@@ -272,119 +229,17 @@ const CompaniesPage = () => {
         >
           Tạm dừng
         </button>
-        <span className="admin-table-info">
-          Hiển thị {currentStart}-{currentEnd} trên {pagination.totalCount} công ty
-        </span>
       </div>
 
-      <div className="admin-data-table-wrapper">
-        <table className="admin-data-table">
-          <thead>
-            <tr>
-              <th>Tên công ty</th>
-              <th>Mã công ty</th>
-              <th>Số điện thoại</th>
-              <th>Email</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading && (
-              <tr>
-                <td colSpan={6}>Đang tải dữ liệu...</td>
-              </tr>
-            )}
-
-            {!isLoading && errorMessage && (
-              <tr>
-                <td colSpan={6}>{errorMessage}</td>
-              </tr>
-            )}
-
-            {!isLoading && !errorMessage && companies.length === 0 && (
-              <tr>
-                <td colSpan={6}>Không có dữ liệu phù hợp.</td>
-              </tr>
-            )}
-
-            {!isLoading && !errorMessage && companies.map((company) => (
-              <tr key={company.id}>
-                <td>{company.companyName}</td>
-                <td>{company.companyCode}</td>
-                <td>{company.phone}</td>
-                <td>{company.email}</td>
-                <td>
-                  <span className={`status-badge status-badge--${company.status}`}>
-                    <span className="status-badge-dot" />
-                    {company.statusLabel}
-                  </span>
-                </td>
-                <td>
-                  <div className="table-actions">
-                    <button
-                      className="table-action-btn"
-                      aria-label="Xem chi tiết & Chỉnh sửa"
-                      type="button"
-                      onClick={() => openCompanyDetailModal(company.id)}
-                      title="Xem chi tiết & Chỉnh sửa"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                      </svg>
-                    </button>
-                    <button 
-                      className="table-action-btn" 
-                      aria-label="Xóa" 
-                      type="button"
-                      onClick={() => handleOpenDeleteModal(company)}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                      </svg>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <div className="admin-pagination">
-          <span className="pagination-info">
-            Trang {pagination.pageNumber} / {pagination.totalPages}
-          </span>
-          <div className="pagination-controls">
-            <button
-              className="pagination-btn pagination-btn--nav"
-              onClick={() => goToPage(pagination.pageNumber - 1)}
-              disabled={!pagination.hasPreviousPage || isLoading}
-              type="button"
-            >
-              Trước
-            </button>
-            {pageNumbers.map((page) => (
-              <button
-                key={page}
-                className={`pagination-btn ${page === pagination.pageNumber ? 'pagination-btn--active' : ''}`}
-                onClick={() => goToPage(page)}
-                disabled={isLoading}
-                type="button"
-              >
-                {page}
-              </button>
-            ))}
-            <button
-              className="pagination-btn pagination-btn--nav"
-              onClick={() => goToPage(pagination.pageNumber + 1)}
-              disabled={!pagination.hasNextPage || isLoading}
-              type="button"
-            >
-              Tiếp
-            </button>
-          </div>
-        </div>
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden relative">
+         <CompanyTable
+            companies={companies}
+            isLoading={isLoading}
+            pagination={pagination}
+            onGoToPage={goToPage}
+            onViewDetail={openCompanyDetailModal}
+            onDelete={handleOpenDeleteModal}
+         />
       </div>
 
       <DetailModal

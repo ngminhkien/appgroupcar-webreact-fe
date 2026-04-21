@@ -1,30 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import toast from 'react-hot-toast';
+import { useQuery } from '@tanstack/react-query';
 import { getUserProfileApi } from '@/services/userService';
 
 const AdminProfilePage = () => {
-  const [profileInfo, setProfileInfo] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: profileInfo, isLoading, isError, error } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: async () => {
+      const response = await getUserProfileApi();
+      return response?.data || response;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes cache
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-    const fetchProfile = async () => {
-      try {
-        const response = await getUserProfileApi();
-        const data = response?.data || response;
-        if (!cancelled) setProfileInfo(data);
-      } catch (error) {
-        if (!cancelled) {
-          toast.error(error.response?.data?.message || 'Không thể tải thông tin cá nhân.');
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    };
-
-    fetchProfile();
-    return () => { cancelled = true; };
-  }, []);
+  React.useEffect(() => {
+    if (isError) {
+      toast.error(error.response?.data?.message || 'Không thể tải thông tin cá nhân.');
+    }
+  }, [isError, error]);
 
   const formatDate = (value) => {
     if (!value || value.startsWith('0001-01-01')) return '--';
@@ -51,6 +44,22 @@ const AdminProfilePage = () => {
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
             <span className="text-slate-500 font-medium">Đang tải hồ sơ...</span>
+         </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="p-6 md:p-10 bg-[#F8FAFC] min-h-screen flex items-center justify-center">
+         <div className="text-center">
+            <p className="text-red-500 font-bold mb-4">Lỗi: {error.message || 'Không thể tải dữ liệu'}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-slate-900 text-white rounded-lg"
+            >
+              Thử lại
+            </button>
          </div>
       </div>
     );

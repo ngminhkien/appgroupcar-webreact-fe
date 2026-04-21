@@ -58,7 +58,16 @@ export const AuthProvider = ({ children }) => {
   /**
    * Logout — clear everything.
    */
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (refreshToken) {
+      try {
+        const { logoutApi } = await import('../services/authService');
+        await logoutApi(refreshToken);
+      } catch (error) {
+        console.error('Logout API failed:', error);
+      }
+    }
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     setUser(null);

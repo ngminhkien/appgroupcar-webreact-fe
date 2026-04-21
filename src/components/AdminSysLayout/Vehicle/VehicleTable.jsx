@@ -40,6 +40,13 @@ const VehicleTable = ({ vehicles, isLoading, pagination, onGoToPage, onViewDetai
             Bảo trì
           </span>
         );
+      case VehicleStatus.Rejected:
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            <span className="w-1.5 h-1.5 bg-red-600 rounded-full mr-1.5"></span>
+            Từ chối
+          </span>
+        );
       default:
         return null;
     }

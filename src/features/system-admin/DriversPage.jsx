@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import '@/components/AdminSysLayout/AdminShared.css';
+import { useQuery } from '@tanstack/react-query';
 import DriverTable from '../../components/AdminSysLayout/Driver/DriverTable';
 import DriverDetailModal from '../../components/AdminSysLayout/PendingDriver/DriverDetailModal';
 import { getMarketDriversApi } from '../../services/driverService';
@@ -15,9 +16,10 @@ const formatDate = (value) => {
 
 const mapStatus = (statusValue) => {
   if (statusValue === 1) return 'pending';
-  if (statusValue === 2) return 'approved';
-  if (statusValue === 3) return 'rejected';
-  return 'pending'; // or unknown
+  if (statusValue === 2) return 'active';
+  if (statusValue === 3) return 'inactive';
+  if (statusValue === 4) return 'rejected';
+  return 'pending';
 };
 
 const DriversPage = () => {
@@ -25,14 +27,7 @@ const DriversPage = () => {
   const [activeLicenseFilter, setActiveLicenseFilter] = useState(''); // '' means all
   const [searchKeyword, setSearchKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [drivers, setDrivers] = useState([]);
-  const [pagination, setPagination] = useState({
-    totalCount: 0,
-    pageNumber: 1,
-    pageSize: DEFAULT_PAGE_SIZE,
-    totalPages: 1,
-  });
+  const [pageNumber, setPageNumber] = useState(1);
 
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState(null);
@@ -47,81 +42,69 @@ const DriversPage = () => {
     setSelectedDriver(null);
   };
 
-  const handleDriverUpdated = () => {
-    fetchDrivers();
-  };
-
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedKeyword(searchKeyword.trim());
+      setPageNumber(1);
     }, 500);
     return () => clearTimeout(timeoutId);
   }, [searchKeyword]);
 
-  const fetchDrivers = useCallback(async (ignore = false) => {
-    setIsLoading(true);
-    let verifyParam = undefined;
-    if (activeStatusFilter === 'pending') verifyParam = 1;
-    if (activeStatusFilter === 'approved') verifyParam = 2;
-    if (activeStatusFilter === 'rejected') verifyParam = 3;
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['drivers', debouncedKeyword, pageNumber, activeStatusFilter, activeLicenseFilter],
+    queryFn: async () => {
+      let verifyParam = undefined;
+      if (activeStatusFilter === 'pending') verifyParam = 1;
+      if (activeStatusFilter === 'active') verifyParam = 2;
+      if (activeStatusFilter === 'inactive') verifyParam = 3;
+      if (activeStatusFilter === 'rejected') verifyParam = 4;
 
-    try {
       const response = await getMarketDriversApi({
         search: debouncedKeyword || undefined,
-        pageNumber: pagination.pageNumber,
-        pageSize: pagination.pageSize,
+        pageNumber: pageNumber,
+        pageSize: DEFAULT_PAGE_SIZE,
         VerificationStatus: verifyParam,
         LicenseClass: activeLicenseFilter || undefined,
       });
-      const pageData = response?.data ?? {};
-      const items = Array.isArray(pageData.items) ? pageData.items : [];
+      return response?.data ?? {};
+    },
+    staleTime: 3 * 60 * 1000,
+    placeholderData: (prev) => prev,
+  });
 
-      if (ignore) return;
+  const drivers = useMemo(() => {
+    const items = Array.isArray(data?.items) ? data.items : [];
+    return items.map((item) => ({
+      ...item,
+      name: item.name || '--',
+      licenseClass: item.licenseClass || '--',
+      identityNumber: item.identityNumber || '--',
+      submissionDate: formatDate(item.createdAt),
+      status: mapStatus(item.verificationStatus),
+      avatarUrl: item.user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name || 'NA')}&background=random`,
+    }));
+  }, [data]);
 
-      const mappedDrivers = items.map((item) => ({
-        ...item,
-        name: item.name || '--',
-        licenseClass: item.licenseClass || '--',
-        identityNumber: item.identityNumber || '--',
-        submissionDate: formatDate(item.createdAt),
-        status: mapStatus(item.verificationStatus),
-        avatarUrl: item.user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name || 'NA')}&background=random`,
-      }));
-
-      setDrivers(mappedDrivers);
-      setPagination(prev => ({
-        ...prev,
-        totalCount: pageData.totalCount ?? 0,
-        pageNumber: pageData.pageNumber ?? 1,
-        pageSize: pageData.pageSize ?? DEFAULT_PAGE_SIZE,
-        totalPages: pageData.totalPages ?? 1,
-      }));
-    } catch (error) {
-      if (ignore) return;
-      console.error("Failed to fetch drivers", error);
-      setDrivers([]);
-    } finally {
-      if (!ignore) setIsLoading(false);
-    }
-  }, [debouncedKeyword, pagination.pageNumber, pagination.pageSize, activeStatusFilter, activeLicenseFilter]);
-
-  // Reset pagination when filters change
-  useEffect(() => {
-      setPagination(prev => ({ ...prev, pageNumber: 1 }));
-  }, [debouncedKeyword, activeStatusFilter, activeLicenseFilter]);
-
-  useEffect(() => {
-    let ignore = false;
-    fetchDrivers(ignore);
-    return () => { ignore = true; };
-  }, [fetchDrivers]);
-
-  const goToPage = (nextPage) => {
-    if (nextPage < 1 || nextPage > pagination.totalPages || nextPage === pagination.pageNumber) return;
-    setPagination(prev => ({ ...prev, pageNumber: nextPage }));
+  const pagination = {
+    totalCount: data?.totalCount ?? 0,
+    pageNumber: data?.pageNumber ?? pageNumber,
+    pageSize: data?.pageSize ?? DEFAULT_PAGE_SIZE,
+    totalPages: data?.totalPages ?? 1,
   };
 
-  const approvedCount = drivers.filter((d) => d.status === 'approved').length;
+  const goToPage = (nextPage) => {
+    setPageNumber(nextPage);
+  };
+
+  const handleDriverUpdated = () => {
+    refetch();
+  };
+
+  useEffect(() => {
+    setPageNumber(1);
+  }, [activeStatusFilter, activeLicenseFilter]);
+
+  const activeCount = drivers.filter((d) => d.status === 'active').length;
   const pendingCount = drivers.filter((d) => d.status === 'pending').length;
 
   return (
@@ -159,8 +142,8 @@ const DriversPage = () => {
             </svg>
           </div>
           <div className="mini-stat-info">
-            <span className="mini-stat-label">Đã duyệt (trang hiện tại)</span>
-            <span className="mini-stat-value">{approvedCount}</span>
+            <span className="mini-stat-label">Hoạt động (trang hiện tại)</span>
+            <span className="mini-stat-value">{activeCount}</span>
           </div>
         </div>
         <div className="admin-mini-stat">
@@ -193,7 +176,8 @@ const DriversPage = () => {
         >
           <option value="">Tất cả trạng thái</option>
           <option value="pending">Chờ duyệt</option>
-          <option value="approved">Đã duyệt</option>
+          <option value="active">Hoạt động</option>
+          <option value="inactive">Tạm dừng</option>
           <option value="rejected">Từ chối</option>
         </select>
         <select

@@ -1,0 +1,185 @@
+import React, { useMemo } from 'react';
+
+const buildPageList = (currentPage, totalPages) => {
+  if (totalPages <= 1) return [1];
+  const start = Math.max(1, currentPage - 2);
+  const end = Math.min(totalPages, start + 4);
+  const adjustedStart = Math.max(1, end - 4);
+  return Array.from({ length: end - adjustedStart + 1 }, (_, index) => adjustedStart + index);
+};
+
+const CompanyTable = ({ companies, isLoading, pagination, onGoToPage, onViewDetail, onDelete }) => {
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'active':
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+            <span className="w-1.5 h-1.5 bg-emerald-600 rounded-full mr-1.5"></span>
+            Đã duyệt
+          </span>
+        );
+      case 'inactive':
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+            <span className="w-1.5 h-1.5 bg-amber-600 rounded-full mr-1.5"></span>
+            Chờ duyệt
+          </span>
+        );
+      case 'locked':
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+            <span className="w-1.5 h-1.5 bg-slate-600 rounded-full mr-1.5"></span>
+            Từ chối/Tạm ngưng
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+            <span className="w-1.5 h-1.5 bg-slate-600 rounded-full mr-1.5"></span>
+            Không xác định
+          </span>
+        );
+    }
+  };
+
+  const currentStart = pagination?.totalCount === 0
+    ? 0
+    : (pagination?.pageNumber - 1) * pagination?.pageSize + 1;
+  const currentEnd = Math.min((pagination?.pageNumber || 1) * (pagination?.pageSize || 10), pagination?.totalCount || 0);
+  const pageNumbers = useMemo(
+    () => buildPageList(pagination?.pageNumber || 1, pagination?.totalPages || 1),
+    [pagination?.pageNumber, pagination?.totalPages]
+  );
+
+  return (
+    <div className="overflow-x-auto bg-white rounded-xl relative">
+      <table className="w-full min-w-[1000px] border-collapse">
+        <thead>
+          <tr>
+            <th className="px-5 py-3.5 text-left text-[0.72rem] font-bold uppercase tracking-[0.5px] text-slate-500/60 border-b border-slate-100 whitespace-nowrap">
+              Công ty
+            </th>
+            <th className="px-5 py-3.5 text-left text-[0.72rem] font-bold uppercase tracking-[0.5px] text-slate-500/60 border-b border-slate-100 whitespace-nowrap">
+              Mã công ty
+            </th>
+            <th className="px-5 py-3.5 text-left text-[0.72rem] font-bold uppercase tracking-[0.5px] text-slate-500/60 border-b border-slate-100 whitespace-nowrap">
+              Liên hệ
+            </th>
+            <th className="px-5 py-3.5 text-left text-[0.72rem] font-bold uppercase tracking-[0.5px] text-slate-500/60 border-b border-slate-100 whitespace-nowrap">
+              Trạng thái
+            </th>
+            <th className="px-5 py-3.5 text-left text-[0.72rem] font-bold uppercase tracking-[0.5px] text-slate-500/60 border-b border-slate-100 whitespace-nowrap">
+              Thao tác
+            </th>
+          </tr>
+        </thead>
+        <tbody className="relative">
+          {isLoading && (
+            <tr className="absolute inset-x-0 top-0 h-full bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center min-h-[200px]">
+               <td colSpan="5" className="flex items-center justify-center w-full h-full">
+                  <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+               </td>
+            </tr>
+          )}
+          {companies.map((company) => (
+            <tr key={company.id} className="hover:bg-slate-50 transition-colors group">
+              <td className="px-5 py-4 text-[0.88rem] text-slate-800 border-b border-slate-50 align-middle">
+                <span className="font-semibold text-slate-900">{company.companyName}</span>
+              </td>
+              <td className="px-5 py-4 text-[0.88rem] text-slate-800 border-b border-slate-50 align-middle">
+                <code className="text-[0.78rem] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
+                  {company.companyCode}
+                </code>
+              </td>
+              <td className="px-5 py-4 text-[0.88rem] text-slate-800 border-b border-slate-50 align-middle">
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-medium">{company.phone}</span>
+                  <span className="text-[0.78rem] text-slate-500 opacity-70">{company.email}</span>
+                </div>
+              </td>
+              <td className="px-5 py-4 text-[0.88rem] text-slate-800 border-b border-slate-50 align-middle">
+                {getStatusBadge(company.status)}
+              </td>
+              <td className="px-5 py-4 border-b border-slate-50 align-middle">
+                <div className="flex gap-1.5">
+                  <button
+                    className="w-8 h-8 rounded-md bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100 hover:text-blue-900 transition-colors cursor-pointer"
+                    aria-label="Xem chi tiết & Chỉnh sửa"
+                    type="button"
+                    onClick={() => onViewDetail(company.id)}
+                    title="Xem chi tiết & Chỉnh sửa"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                  </button>
+                  <button
+                    className="w-8 h-8 rounded-md bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
+                    aria-label="Xóa"
+                    type="button"
+                    onClick={() => onDelete(company)}
+                    title="Xóa"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+          {companies.length === 0 && !isLoading && (
+            <tr>
+              <td colSpan="5" className="px-5 py-12 text-center text-slate-500 text-[0.88rem]">
+                Không tìm thấy công ty nào khớp.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+
+      {/* Pagination Footer */}
+      {pagination && pagination.totalCount > 0 && (
+        <div className="flex items-center justify-between px-5 py-4 border-t border-slate-50">
+          <div className="hidden sm:block">
+            <span className="text-[0.78rem] text-slate-500 opacity-80">
+              Hiển thị {currentStart}-{currentEnd} trên {pagination.totalCount} công ty
+            </span>
+          </div>
+          <div className="flex gap-1">
+            <button
+              onClick={() => onGoToPage(pagination.pageNumber - 1)}
+              disabled={pagination.pageNumber <= 1 || isLoading}
+              className="w-16 h-8 rounded-md flex items-center justify-center text-[0.75rem] font-semibold text-slate-500 opacity-60 hover:opacity-100 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+            >
+              Trước
+            </button>
+            {pageNumbers.map((page) => (
+              <button
+                key={page}
+                onClick={() => onGoToPage(page)}
+                disabled={isLoading}
+                className={`w-8 h-8 rounded-md flex items-center justify-center text-[0.82rem] font-semibold transition-colors cursor-pointer disabled:cursor-not-allowed
+                  ${page === pagination.pageNumber
+                    ? 'bg-[#001f3f] text-white hover:bg-blue-900 shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={() => onGoToPage(pagination.pageNumber + 1)}
+              disabled={pagination.pageNumber >= pagination.totalPages || isLoading}
+              className="w-16 h-8 rounded-md flex items-center justify-center text-[0.75rem] font-semibold text-slate-500 opacity-60 hover:opacity-100 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+            >
+              Tiếp
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default CompanyTable;

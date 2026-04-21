@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import VehicleTable from '@/components/AdminSysLayout/Vehicle/VehicleTable';
 import VehicleDetailModal from '@/components/AdminSysLayout/PendingVehicle/VehicleDetailModal';
 import { getVehiclesApi } from '@/services/vehicleService';
@@ -8,14 +9,7 @@ const DEFAULT_PAGE_SIZE = 10;
 const PendingVehiclesPage = () => {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [vehicles, setVehicles] = useState([]);
-  const [pagination, setPagination] = useState({
-    totalCount: 0,
-    pageNumber: 1,
-    pageSize: DEFAULT_PAGE_SIZE,
-    totalPages: 1,
-  });
+  const [pageNumber, setPageNumber] = useState(1);
 
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
@@ -33,50 +27,41 @@ const PendingVehiclesPage = () => {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedKeyword(searchKeyword.trim());
+      setPageNumber(1);
     }, 350);
     return () => clearTimeout(timeoutId);
   }, [searchKeyword]);
 
-  const fetchVehicles = useCallback(async (ignore = false) => {
-    setIsLoading(true);
-    try {
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['pendingVehicles', debouncedKeyword, pageNumber],
+    queryFn: async () => {
       const response = await getVehiclesApi({
         Search: debouncedKeyword || undefined,
-        PageNumber: pagination.pageNumber,
-        PageSize: pagination.pageSize,
+        PageNumber: pageNumber,
+        PageSize: DEFAULT_PAGE_SIZE,
         Status: 1, // Status = Pending (1)
       });
-      const pageData = response?.data ?? {};
-      const items = Array.isArray(pageData.items) ? pageData.items : [];
+      return response?.data ?? {};
+    },
+    staleTime: 3 * 60 * 1000,
+    placeholderData: (prev) => prev,
+  });
 
-      if (ignore) return;
-
-      setVehicles(items);
-      setPagination(prev => ({
-        ...prev,
-        totalCount: pageData.totalCount ?? 0,
-        pageNumber: pageData.pageNumber ?? 1,
-        pageSize: pageData.pageSize ?? DEFAULT_PAGE_SIZE,
-        totalPages: pageData.totalPages ?? 1,
-      }));
-    } catch (error) {
-      if (ignore) return;
-      console.error("Failed to fetch vehicles", error);
-      setVehicles([]);
-    } finally {
-      if (!ignore) setIsLoading(false);
-    }
-  }, [debouncedKeyword, pagination.pageNumber, pagination.pageSize]);
-
-  useEffect(() => {
-    let ignore = false;
-    fetchVehicles(ignore);
-    return () => { ignore = true; };
-  }, [fetchVehicles]);
+  const vehicles = Array.isArray(data?.items) ? data.items : [];
+  
+  const pagination = {
+    totalCount: data?.totalCount ?? 0,
+    pageNumber: data?.pageNumber ?? pageNumber,
+    pageSize: data?.pageSize ?? DEFAULT_PAGE_SIZE,
+    totalPages: data?.totalPages ?? 1,
+  };
 
   const goToPage = (nextPage) => {
-    if (nextPage < 1 || nextPage > pagination.totalPages || nextPage === pagination.pageNumber) return;
-    setPagination(prev => ({ ...prev, pageNumber: nextPage }));
+    setPageNumber(nextPage);
+  };
+
+  const handleUpdated = () => {
+    refetch();
   };
 
   return (
@@ -113,7 +98,7 @@ const PendingVehiclesPage = () => {
         isOpen={isDetailModalOpen}
         onClose={handleCloseDetailModal}
         vehicle={selectedVehicle}
-        onUpdated={fetchVehicles}
+        onUpdated={handleUpdated}
       />
     </div>
   );

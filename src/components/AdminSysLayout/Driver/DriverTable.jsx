@@ -18,18 +18,25 @@ const DriverTable = ({ drivers, isLoading, pagination, onGoToPage, onViewDetail 
             Chờ duyệt
           </span>
         );
-      case 'approved':
+      case 'active':
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
             <span className="w-1.5 h-1.5 bg-emerald-600 rounded-full mr-1.5"></span>
-            Đã duyệt
+            Hoạt động
+          </span>
+        );
+      case 'inactive':
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+            <span className="w-1.5 h-1.5 bg-slate-600 rounded-full mr-1.5"></span>
+            Tạm dừng
           </span>
         );
       case 'rejected':
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
             <span className="w-1.5 h-1.5 bg-red-600 rounded-full mr-1.5"></span>
-            Từ chối
+            Bị từ chối
           </span>
         );
       default:

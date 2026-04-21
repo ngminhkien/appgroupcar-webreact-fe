@@ -71,6 +71,7 @@ const VehicleDetailModal = ({ isOpen, onClose, vehicle, onUpdated }) => {
       case VehicleStatus.Active: return 'Hoạt động';
       case VehicleStatus.Inactive: return 'Không hoạt động';
       case VehicleStatus.Maintenance: return 'Bảo trì';
+      case VehicleStatus.Rejected: return 'Bị từ chối';
       default: return 'Không xác định';
     }
   };

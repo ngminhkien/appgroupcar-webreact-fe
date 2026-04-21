@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import '@/components/AdminSysLayout/AdminShared.css';
+import { useQuery } from '@tanstack/react-query';
 import { UserTable, DeleteModal, UserDetailModal } from '@/components/AdminSysLayout/User';
 import { getUsersApi, deleteUserApi } from '@/services/userService';
 import toast from 'react-hot-toast';
@@ -30,17 +31,7 @@ const UsersPage = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchKeyword, setSearchKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
-  const [users, setUsers] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [pagination, setPagination] = useState({
-    totalCount: 0,
-    pageNumber: 1,
-    pageSize: DEFAULT_PAGE_SIZE,
-    totalPages: 1,
-    hasPreviousPage: false,
-    hasNextPage: false,
-  });
+  const [pageNumber, setPageNumber] = useState(1);
 
   // Delete modal state
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -54,91 +45,74 @@ const UsersPage = () => {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedKeyword(searchKeyword.trim());
+      setPageNumber(1);
     }, 350);
 
     return () => clearTimeout(timeoutId);
   }, [searchKeyword]);
 
-  const fetchUsersList = useCallback(async (ignore = false) => {
-    const isActive = activeFilter === 'all' ? undefined : activeFilter === 'active';
-
-    const params = {
-      search: debouncedKeyword || undefined,
-      pageNumber: pagination.pageNumber,
-      pageSize: pagination.pageSize,
-      isActive,
-    };
-
-    setIsLoading(true);
-    setErrorMessage('');
-
-    try {
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ['users', debouncedKeyword, pageNumber, activeFilter],
+    queryFn: async () => {
+      const isActive = activeFilter === 'all' ? undefined : activeFilter === 'active';
+      const params = {
+        search: debouncedKeyword || undefined,
+        pageNumber: pageNumber,
+        pageSize: DEFAULT_PAGE_SIZE,
+        isActive,
+      };
       const response = await getUsersApi(params);
-      const pageData = response?.data ?? {};
-      const items = Array.isArray(pageData.items) ? pageData.items : [];
+      return response?.data ?? {};
+    },
+    staleTime: 3 * 60 * 1000,
+    placeholderData: (prev) => prev,
+  });
 
-      if (ignore) return;
+  const users = useMemo(() => {
+    const items = Array.isArray(data?.items) ? data.items : [];
+    return items.map((item) => {
+      const displayName = item.fullName || item.userName || item.email || 'N/A';
+      const status = item.deleteAt === null ? 'active' : 'locked';
 
-      const mappedUsers = items.map((item) => {
-        const displayName = item.fullName || item.userName || item.email || 'N/A';
-        const status = item.deleteAt === null ? 'active' : 'locked';
+      return {
+        id: item.id,
+        name: displayName,
+        avatar: getInitials(displayName),
+        avatarColor: getAvatarColor(displayName),
+        email: item.email || '--',
+        phone: item.phoneNumber || '--',
+        registerDate: formatDate(item.createAt),
+        status,
+      };
+    });
+  }, [data]);
 
-        return {
-          id: item.id,
-          name: displayName,
-          avatar: getInitials(displayName),
-          avatarColor: getAvatarColor(displayName),
-          email: item.email || '--',
-          phone: item.phoneNumber || '--',
-          registerDate: formatDate(item.createAt),
-          status,
-        };
-      });
+  const pagination = {
+    totalCount: data?.totalCount ?? 0,
+    pageNumber: data?.pageNumber ?? pageNumber,
+    pageSize: data?.pageSize ?? DEFAULT_PAGE_SIZE,
+    totalPages: data?.totalPages ?? 1,
+    hasPreviousPage: Boolean(data?.hasPreviousPage),
+    hasNextPage: Boolean(data?.hasNextPage),
+  };
 
-      setUsers(mappedUsers);
-      setPagination({
-        totalCount: pageData.totalCount ?? 0,
-        pageNumber: pageData.pageNumber ?? 1,
-        pageSize: pageData.pageSize ?? DEFAULT_PAGE_SIZE,
-        totalPages: pageData.totalPages ?? 1,
-        hasPreviousPage: Boolean(pageData.hasPreviousPage),
-        hasNextPage: Boolean(pageData.hasNextPage),
-      });
-    } catch (error) {
-      if (ignore) return;
-      setUsers([]);
-      setErrorMessage(error.response?.data?.message || 'Không tải được danh sách người dùng.');
-    } finally {
-      if (!ignore) {
-        setIsLoading(false);
-      }
-    }
-  }, [activeFilter, debouncedKeyword, pagination.pageNumber, pagination.pageSize]);
-
-  useEffect(() => {
-    let ignore = false;
-    fetchUsersList(ignore);
-    return () => {
-      ignore = true;
-    };
-  }, [fetchUsersList]);
+  const errorMessage = isError ? (error.response?.data?.message || 'Không tải được danh sách người dùng.') : '';
 
   const activeCount = users.filter((user) => user.status === 'active').length;
   const lockedCount = users.filter((user) => user.status !== 'active').length;
 
   const onChangeFilter = (nextFilter) => {
     setActiveFilter(nextFilter);
-    setPagination((prev) => ({ ...prev, pageNumber: 1 }));
+    setPageNumber(1);
   };
 
   const onSearchChange = (event) => {
     setSearchKeyword(event.target.value);
-    setPagination((prev) => ({ ...prev, pageNumber: 1 }));
+    setPageNumber(1);
   };
 
   const goToPage = (nextPage) => {
-    if (nextPage < 1 || nextPage > pagination.totalPages || nextPage === pagination.pageNumber) return;
-    setPagination((prev) => ({ ...prev, pageNumber: nextPage }));
+    setPageNumber(nextPage);
   };
 
   const handleOpenDeleteModal = (user) => {
@@ -160,7 +134,7 @@ const UsersPage = () => {
       toast.success(response?.message || 'Xóa người dùng thành công!');
       setIsDeleteModalOpen(false);
       setSelectedUser(null);
-      fetchUsersList();
+      refetch();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi xóa người dùng.');
     } finally {
@@ -179,7 +153,7 @@ const UsersPage = () => {
   };
 
   const handleUserUpdated = () => {
-    fetchUsersList();
+    refetch();
   };
 
   return (

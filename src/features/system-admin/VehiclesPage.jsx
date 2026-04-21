@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import '@/components/AdminSysLayout/AdminShared.css';
+import { useQuery } from '@tanstack/react-query';
 import VehicleTable from '@/components/AdminSysLayout/Vehicle/VehicleTable';
 import { getVehiclesApi } from '@/services/vehicleService';
 import { VehicleStatus, VehicleType } from '@/types/enums';
@@ -12,70 +13,49 @@ const VehiclesPage = () => {
   const [activeSeatFilter, setActiveSeatFilter] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [vehicles, setVehicles] = useState([]);
-  const [pagination, setPagination] = useState({
-    totalCount: 0,
-    pageNumber: 1,
-    pageSize: DEFAULT_PAGE_SIZE,
-    totalPages: 1,
-  });
+  const [pageNumber, setPageNumber] = useState(1);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedKeyword(searchKeyword.trim());
+      setPageNumber(1);
     }, 500);
     return () => clearTimeout(timeoutId);
   }, [searchKeyword]);
 
-  const fetchVehicles = useCallback(async (ignore = false) => {
-    setIsLoading(true);
-    try {
+  const { data, isLoading } = useQuery({
+    queryKey: ['vehicles', debouncedKeyword, pageNumber, activeStatusFilter, activeTypeFilter, activeSeatFilter],
+    queryFn: async () => {
       const response = await getVehiclesApi({
         Search: debouncedKeyword || undefined,
-        PageNumber: pagination.pageNumber,
-        PageSize: pagination.pageSize,
+        PageNumber: pageNumber,
+        PageSize: DEFAULT_PAGE_SIZE,
         Status: activeStatusFilter ? Number(activeStatusFilter) : undefined,
         VehicleType: activeTypeFilter ? Number(activeTypeFilter) : undefined,
         SeatCapacity: activeSeatFilter ? Number(activeSeatFilter) : undefined,
       });
-      const pageData = response?.data ?? {};
-      const items = Array.isArray(pageData.items) ? pageData.items : [];
+      return response?.data ?? {};
+    },
+    staleTime: 3 * 60 * 1000,
+    placeholderData: (prev) => prev,
+  });
 
-      if (ignore) return;
-
-      setVehicles(items);
-      setPagination(prev => ({
-        ...prev,
-        totalCount: pageData.totalCount ?? 0,
-        pageNumber: pageData.pageNumber ?? 1,
-        pageSize: pageData.pageSize ?? DEFAULT_PAGE_SIZE,
-        totalPages: pageData.totalPages ?? 1,
-      }));
-    } catch (error) {
-      if (ignore) return;
-      console.error("Failed to fetch vehicles", error);
-      setVehicles([]);
-    } finally {
-      if (!ignore) setIsLoading(false);
-    }
-  }, [debouncedKeyword, pagination.pageNumber, pagination.pageSize, activeStatusFilter, activeTypeFilter, activeSeatFilter]);
-
-  // Reset pagination when filters change
-  useEffect(() => {
-      setPagination(prev => ({ ...prev, pageNumber: 1 }));
-  }, [debouncedKeyword, activeStatusFilter, activeTypeFilter, activeSeatFilter]);
-
-  useEffect(() => {
-    let ignore = false;
-    fetchVehicles(ignore);
-    return () => { ignore = true; };
-  }, [fetchVehicles]);
+  const vehicles = Array.isArray(data?.items) ? data.items : [];
+  
+  const pagination = {
+    totalCount: data?.totalCount ?? 0,
+    pageNumber: data?.pageNumber ?? pageNumber,
+    pageSize: data?.pageSize ?? DEFAULT_PAGE_SIZE,
+    totalPages: data?.totalPages ?? 1,
+  };
 
   const goToPage = (nextPage) => {
-    if (nextPage < 1 || nextPage > pagination.totalPages || nextPage === pagination.pageNumber) return;
-    setPagination(prev => ({ ...prev, pageNumber: nextPage }));
+    setPageNumber(nextPage);
   };
+
+  useEffect(() => {
+    setPageNumber(1);
+  }, [activeStatusFilter, activeTypeFilter, activeSeatFilter]);
 
   const activeCount = vehicles.filter((v) => v.status === VehicleStatus.Active).length;
   const pendingCount = vehicles.filter((v) => v.status === VehicleStatus.Pending).length;

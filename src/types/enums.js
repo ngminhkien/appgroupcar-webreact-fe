@@ -8,6 +8,7 @@ export const VehicleStatus = Object.freeze({
   Active: 2,
   Inactive: 3,
   Maintenance: 4,
+  Rejected: 5,
 });
 
 export const ShipmentRequestStatus = Object.freeze({
@@ -51,8 +52,9 @@ export const ServiceType = Object.freeze({
 
 export const DriverVerificationStatus = Object.freeze({
   Pending: 1,
-  Approved: 2,
-  Rejected: 3,
+  Active: 2,
+  Inactive: 3,
+  Rejected: 4,
 });
 
 export const BookingStatus = Object.freeze({

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import DriverApprovalTable from '../../components/AdminSysLayout/PendingDriver/PendingDriverTable';
 import DriverDetailModal from '../../components/AdminSysLayout/PendingDriver/DriverDetailModal';
 import { getMarketDriversApi } from '../../services/driverService';
@@ -14,8 +15,9 @@ const formatDate = (value) => {
 
 const mapStatus = (statusValue) => {
   if (statusValue === 1) return 'pending';
-  if (statusValue === 2) return 'approved';
-  if (statusValue === 3) return 'rejected';
+  if (statusValue === 2) return 'active';
+  if (statusValue === 3) return 'inactive';
+  if (statusValue === 4) return 'rejected';
   return 'pending';
 };
 
@@ -23,14 +25,7 @@ const PendingDriversPage = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchKeyword, setSearchKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [drivers, setDrivers] = useState([]);
-  const [pagination, setPagination] = useState({
-    totalCount: 0,
-    pageNumber: 1,
-    pageSize: DEFAULT_PAGE_SIZE,
-    totalPages: 1,
-  });
+  const [pageNumber, setPageNumber] = useState(1);
 
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState(null);
@@ -45,73 +40,61 @@ const PendingDriversPage = () => {
     setSelectedDriver(null);
   };
 
-  const handleDriverUpdated = () => {
-    fetchDrivers();
-  };
-
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedKeyword(searchKeyword.trim());
+      setPageNumber(1);
     }, 350);
     return () => clearTimeout(timeoutId);
   }, [searchKeyword]);
 
-  const fetchDrivers = useCallback(async (ignore = false) => {
-    setIsLoading(true);
-    try {
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['pendingDrivers', debouncedKeyword, pageNumber],
+    queryFn: async () => {
       const response = await getMarketDriversApi({
         search: debouncedKeyword || undefined,
-        pageNumber: pagination.pageNumber,
-        pageSize: pagination.pageSize,
+        pageNumber: pageNumber,
+        pageSize: DEFAULT_PAGE_SIZE,
         VerificationStatus: 1, // Always fetch Pending
       });
-      const pageData = response?.data ?? {};
-      const items = Array.isArray(pageData.items) ? pageData.items : [];
+      return response?.data ?? {};
+    },
+    staleTime: 3 * 60 * 1000,
+    placeholderData: (prev) => prev,
+  });
 
-      if (ignore) return;
+  const drivers = useMemo(() => {
+    const items = Array.isArray(data?.items) ? data.items : [];
+    return items.map((item) => ({
+      ...item,
+      name: item.name || '--',
+      licenseClass: item.licenseClass || '--',
+      identityNumber: item.identityNumber || '--',
+      submissionDate: formatDate(item.createdAt),
+      status: mapStatus(item.verificationStatus),
+      avatarUrl: item.user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name || 'NA')}&background=random`,
+    }));
+  }, [data]);
 
-      const mappedDrivers = items.map((item) => ({
-        ...item,
-        name: item.name || '--',
-        licenseClass: item.licenseClass || '--',
-        identityNumber: item.identityNumber || '--',
-        submissionDate: formatDate(item.createdAt),
-        status: mapStatus(item.verificationStatus),
-        avatarUrl: item.user?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name || 'NA')}&background=random`,
-      }));
+  const pagination = {
+    totalCount: data?.totalCount ?? 0,
+    pageNumber: data?.pageNumber ?? pageNumber,
+    pageSize: data?.pageSize ?? DEFAULT_PAGE_SIZE,
+    totalPages: data?.totalPages ?? 1,
+  };
 
-      setDrivers(mappedDrivers);
-      setPagination(prev => ({
-        ...prev,
-        totalCount: pageData.totalCount ?? 0,
-        pageNumber: pageData.pageNumber ?? 1,
-        pageSize: pageData.pageSize ?? DEFAULT_PAGE_SIZE,
-        totalPages: pageData.totalPages ?? 1,
-      }));
-    } catch (error) {
-      if (ignore) return;
-      console.error("Failed to fetch drivers", error);
-      setDrivers([]);
-    } finally {
-      if (!ignore) setIsLoading(false);
-    }
-  }, [debouncedKeyword, pagination.pageNumber, pagination.pageSize]);
+  const goToPage = (nextPage) => {
+    setPageNumber(nextPage);
+  };
 
-  useEffect(() => {
-    let ignore = false;
-    fetchDrivers(ignore);
-    return () => { ignore = true; };
-  }, [fetchDrivers]);
+  const handleDriverUpdated = () => {
+    refetch();
+  };
 
   const filteredDrivers = drivers.filter(driver => {
     if (activeFilter === 'all') return true;
     return driver.status === activeFilter;
   });
-
-  const goToPage = (nextPage) => {
-    if (nextPage < 1 || nextPage > pagination.totalPages || nextPage === pagination.pageNumber) return;
-    setPagination(prev => ({ ...prev, pageNumber: nextPage }));
-  };
   console.log(filteredDrivers)
   return (
     <div className="p-6 md:p-8 space-y-8 bg-[#F8FAFC] min-h-screen">

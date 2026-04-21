@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/store/AuthContext';
 import './AdminSidebar.css';
 
 const navItems = [
@@ -113,8 +114,10 @@ const SidebarSubMenuItem = ({ item }) => {
 
 const AdminSidebar = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
 
