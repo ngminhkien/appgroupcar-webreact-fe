@@ -1,21 +1,21 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import AdminSidebar from './AdminSidebar';
-import AdminTopbar from './AdminTopbar';
-import './AdminSysLayout.css';
+import CompanySidebar from './CompanySidebar';
+import CompanyTopbar from './CompanyTopbar';
+import '../AdminSysLayout/AdminSysLayout.css';
 
-const AdminSysLayout = () => {
+const AdminCompanyLayout = () => {
   return (
     <div className="admin-layout">
-      <AdminSidebar />
+      <CompanySidebar />
       <div className="admin-main">
-        <AdminTopbar />
+        <CompanyTopbar />
         <div className="admin-content">
           <Outlet />
         </div>
         <footer className="admin-footer">
           <span className="admin-footer-right">
-            © 2024 NexusRide Dashboard. Hệ thống đang vận hành ổn định.
+            © 2024 NexusRide Company Portal. Hoạt động trên quyền công ty đối tác.
           </span>
         </footer>
       </div>
@@ -23,4 +23,4 @@ const AdminSysLayout = () => {
   );
 };
 
-export default AdminSysLayout;
+export default AdminCompanyLayout;

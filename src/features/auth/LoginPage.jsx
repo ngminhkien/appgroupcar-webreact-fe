@@ -69,6 +69,8 @@ const LoginPage = () => {
         // Check for 'Admin' (capitalized as in sample) or 'admin' / 'system_admin'
         if (role === 'Admin' || role === 'admin') {
           navigate('/admin/dashboard', { replace: true });
+        } else if (role === 'ADMIN_COMPANY') {
+          navigate('/company-admin/dashboard', { replace: true });
         } else {
           navigate('/', { replace: true });
         }

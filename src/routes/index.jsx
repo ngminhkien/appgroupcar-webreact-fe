@@ -13,9 +13,13 @@ import {
   DriversPage,
   VehiclesPage
 } from '@/features/system-admin';
+import CompanyAdminDashboardPage from '@/features/company-admin/DashboardPage';
+import CompanyAdminAccountsPage from '@/features/company-admin/AccountsPage';
+import CompanyAdminVehiclesPage from '@/features/company-admin/VehiclesPage';
 import { PublicLayout } from '@/components/PublicLayout';
 import { AuthLayout } from '@/components/AuthLayout';
 import { AdminSysLayout } from '@/components/AdminSysLayout';
+import { AdminCompanyLayout } from '@/components/AdminCompanyLayout';
 import ProtectedRoute from './ProtectedRoute';
 
 const AppRoutes = () => {
@@ -46,6 +50,17 @@ const AppRoutes = () => {
             <Route path="/admin/vehicles/pending" element={<PendingVehiclesPage />} />
             <Route path="/admin/profile" element={<AdminProfilePage />} />
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+          </Route>
+        </Route>
+
+        {/* Company Admin System — Protected, role-based ONLY for ADMIN_COMPANY */}
+        <Route element={<ProtectedRoute allowedRoles={['ADMIN_COMPANY']} />}>
+          <Route element={<AdminCompanyLayout />}>
+            <Route path="/company-admin/dashboard" element={<CompanyAdminDashboardPage />} />
+            <Route path="/company-admin/accounts" element={<CompanyAdminAccountsPage />} />
+            <Route path="/company-admin/vehicles" element={<CompanyAdminVehiclesPage />} />
+            <Route path="/company-admin/profile" element={<AdminProfilePage />} />
+            <Route path="/company-admin" element={<Navigate to="/company-admin/dashboard" replace />} />
           </Route>
         </Route>
 

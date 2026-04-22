@@ -17,7 +17,7 @@ import { useAuth } from '@/store/AuthContext';
  */
 const ProtectedRoute = ({ allowedRoles = [] }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
-
+  console.log(user)
   // Still initializing auth state — show nothing to prevent flash
   if (isLoading) {
     return (
