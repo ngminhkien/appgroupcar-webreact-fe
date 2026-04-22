@@ -1,20 +1,80 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import PendingCompanyTable from '../../components/AdminSysLayout/PendingCompany/PendingCompanyTable';
+import CompanyDetailModal from '../../components/AdminSysLayout/Company/DetailModal';
+import { getCompaniesApi } from '../../services/companyService';
 
-const FAKE_COMPANIES = [
-  { id: 1, name: 'Công ty TNHH Vận tải ABC', taxCode: '0101234567', representative: 'Nguyễn Văn A', status: 'pending', logoUrl: 'https://ui-avatars.com/api/?name=ABC&background=0D8ABC&color=fff' },
-  { id: 2, name: 'CTCP Dịch vụ Logistics XYZ', taxCode: '0312987654', representative: 'Trần Thị B', status: 'pending', logoUrl: 'https://ui-avatars.com/api/?name=XYZ&background=4CAF50&color=fff' },
-  { id: 3, name: 'Hợp tác xã Vận tải Hùng Cường', taxCode: '0405678901', representative: 'Lê Văn C', status: 'rejected', logoUrl: 'https://ui-avatars.com/api/?name=HC&background=FF9800&color=fff' },
-  { id: 4, name: 'Công ty TNHH MTV Minh Phát', taxCode: '0203456789', representative: 'Hoàng Minh D', status: 'approved', logoUrl: 'https://ui-avatars.com/api/?name=MP&background=E91E63&color=fff' },
-];
+const DEFAULT_PAGE_SIZE = 10;
 
 const PendingCompaniesPage = () => {
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
+  const [pageNumber, setPageNumber] = useState(1);
 
-  const filteredCompanies = FAKE_COMPANIES.filter(company => {
-    if (activeFilter === 'all') return true;
-    return company.status === activeFilter;
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState(null);
+
+  const handleOpenDetailModal = (company) => {
+    setSelectedCompany(company);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleCloseDetailModal = () => {
+    setIsDetailModalOpen(false);
+    setSelectedCompany(null);
+  };
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedKeyword(searchKeyword.trim());
+      setPageNumber(1);
+    }, 500);
+    return () => clearTimeout(timeoutId);
+  }, [searchKeyword]);
+
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['pendingCompanies', debouncedKeyword, pageNumber],
+    queryFn: async () => {
+      const response = await getCompaniesApi({
+        Search: debouncedKeyword || undefined,
+        PageNumber: pageNumber,
+        PageSize: DEFAULT_PAGE_SIZE,
+        CompanyStatus: 0, // Pending
+      });
+      return response?.data ?? response ?? {};
+    },
+    staleTime: 3 * 60 * 1000,
+    placeholderData: (prev) => prev,
   });
+
+  const companies = useMemo(() => {
+    const items = Array.isArray(data?.items) ? data.items : [];
+    return items.map((item) => ({
+      ...item,
+      id: item.id || item.companyId,
+      companyName: item.companyName || '--',
+      companyCode: item.companyCode || '--',
+      phone: item.phone || '--',
+      email: item.email || '--',
+      status: item.status, 
+      logoUrl: item.logoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.companyName || 'C')}&background=random`,
+    }));
+  }, [data]);
+
+  const pagination = {
+    totalCount: data?.totalCount ?? 0,
+    pageNumber: data?.pageNumber ?? pageNumber,
+    pageSize: data?.pageSize ?? DEFAULT_PAGE_SIZE,
+    totalPages: data?.totalPages ?? 1,
+  };
+
+  const goToPage = (nextPage) => {
+    setPageNumber(nextPage);
+  };
+
+  const handleCompanyUpdated = () => {
+    refetch();
+  };
 
   return (
     <div className="p-6 md:p-8 space-y-8 bg-[#F8FAFC] min-h-screen">
@@ -30,51 +90,56 @@ const PendingCompaniesPage = () => {
         </div>
       </div>
 
-      {/* Stats Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-            </svg>
-          </div>
-          <div>
-            <p className="text-slate-500 font-medium font-['Inter'] text-sm">Tổng công ty</p>
-            <p className="text-2xl font-bold text-slate-800">{FAKE_COMPANIES.length}</p>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
-          <div className="p-3 bg-amber-50 text-amber-500 rounded-xl">
-             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-             </svg>
-          </div>
-          <div>
-            <p className="text-slate-500 font-medium font-['Inter'] text-sm">Chờ duyệt</p>
-             <p className="text-2xl font-bold text-slate-800">
-               {FAKE_COMPANIES.filter(c => c.status === 'pending').length}
-             </p>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
-          <div className="p-3 bg-emerald-50 text-emerald-500 rounded-xl">
-             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-             </svg>
-          </div>
-          <div>
-            <p className="text-slate-500 font-medium font-['Inter'] text-sm">Đã Phê duyệt</p>
-             <p className="text-2xl font-bold text-slate-800">
-               {FAKE_COMPANIES.filter(c => c.status === 'approved').length}
-             </p>
-          </div>
+      {/* Toolbar Section */}
+      <div className="flex flex-col md:flex-row gap-4 items-center">
+        <div className="relative w-full md:w-96">
+          <input
+            type="text"
+            placeholder="Tìm kiếm công ty..."
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-['Inter'] text-sm"
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+          />
+          <svg
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
         </div>
       </div>
 
       {/* Table Content */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-         <PendingCompanyTable companies={filteredCompanies} />
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden relative">
+        {isLoading && (
+          <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] flex items-center justify-center z-10">
+            <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        )}
+        <PendingCompanyTable 
+          companies={companies} 
+          isLoading={isLoading}
+          pagination={pagination}
+          onGoToPage={goToPage}
+          onViewDetail={handleOpenDetailModal}
+        />
       </div>
+
+      {selectedCompany && (
+        <CompanyDetailModal
+          isOpen={isDetailModalOpen}
+          onClose={handleCloseDetailModal}
+          companyId={selectedCompany.id}
+          onUpdated={handleCompanyUpdated}
+        />
+      )}
     </div>
   );
 };

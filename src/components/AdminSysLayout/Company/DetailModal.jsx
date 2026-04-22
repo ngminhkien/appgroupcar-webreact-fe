@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { getCompanyDetailApi, updateCompanyApi } from '@/services/companyService';
+import React, { useEffect, useState } from 'react';
+import { getCompanyDetailApi, updateCompanyStatusApi } from '@/services/companyService';
 import { CompanyType, CompanyStatus } from '@/types/enums';
 import toast from 'react-hot-toast';
 
@@ -41,20 +41,13 @@ const formatDateTime = (value) => {
 const DetailModal = ({ isOpen, onClose, companyId, onUpdated }) => {
   const [companyData, setCompanyData] = useState(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Editable fields
-  const [companyName, setCompanyName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [provinceCode, setProvinceCode] = useState('');
-  const [districtCode, setDistrictCode] = useState('');
-  const [businessLicenseNo, setBusinessLicenseNo] = useState('');
-  const [logoPreview, setLogoPreview] = useState(null);
-  const [logoFile, setLogoFile] = useState(null);
-
-  const fileInputRef = useRef(null);
+  // Status update
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [confirmDescription, setConfirmDescription] = useState('');
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   useEffect(() => {
     if (!isOpen || !companyId) return;
@@ -68,14 +61,6 @@ const DetailModal = ({ isOpen, onClose, companyId, onUpdated }) => {
         const data = response?.data ?? response;
         if (cancelled) return;
         setCompanyData(data);
-        setCompanyName(data.companyName || '');
-        setPhone(data.phone || '');
-        setAddress(data.address || '');
-        setProvinceCode(data.provinceCode || '');
-        setDistrictCode(data.districtCode || '');
-        setBusinessLicenseNo(data.businessLicenseNo || '');
-        setLogoPreview(data.logoUrl || null);
-        setLogoFile(null);
       } catch (error) {
         if (cancelled) return;
         setErrorMessage(error.response?.data?.message || 'Không thể tải thông tin công ty.');
@@ -88,60 +73,49 @@ const DetailModal = ({ isOpen, onClose, companyId, onUpdated }) => {
     return () => { cancelled = true; };
   }, [isOpen, companyId]);
 
-  const handleLogoChange = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setLogoFile(file);
-    const reader = new FileReader();
-    reader.onload = (e) => setLogoPreview(e.target.result);
-    reader.readAsDataURL(file);
+  const handleOpenConfirm = (status) => {
+    setConfirmAction(status);
+    setConfirmDescription('');
+    setIsConfirmModalOpen(true);
   };
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    setErrorMessage('');
+  const handleConfirmStatus = async () => {
+    if (!confirmAction) return;
+    setIsUpdatingStatus(true);
     try {
-      const formData = new FormData();
-      formData.append('CompanyName', companyName);
-      formData.append('Phone', phone);
-      formData.append('Address', address);
-      formData.append('ProvinceCode', provinceCode);
-      formData.append('DistrictCode', districtCode);
-      formData.append('BusinessLicenseNo', businessLicenseNo);
-      if (logoFile) {
-        formData.append('Logo', logoFile);
-      }
-      const response = await updateCompanyApi(companyId, formData);
-      toast.success(response?.message || 'Cập nhật thành công!');
+      const response = await updateCompanyStatusApi(companyId, {
+        status: confirmAction,
+        description: confirmDescription,
+      });
+      toast.success(response?.message || 'Cập nhật trạng thái thành công!');
+      setIsConfirmModalOpen(false);
+      onClose();
       if (onUpdated) onUpdated();
     } catch (error) {
-      const msg = error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật.';
-      toast.error(msg);
-      setErrorMessage(msg);
+      toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật trạng thái.');
     } finally {
-      setIsSaving(false);
+      setIsUpdatingStatus(false);
     }
   };
 
   const handleClose = () => {
     setCompanyData(null);
     setErrorMessage('');
-    setLogoFile(null);
-    setLogoPreview(null);
+    setIsConfirmModalOpen(false);
     onClose();
   };
 
   if (!isOpen) return null;
 
   const getLogoSrc = () => {
-    if (logoPreview && logoPreview.startsWith('data:')) return logoPreview;
-    if (logoPreview) {
-      if (logoPreview.startsWith('/')) {
+    const logoUrl = companyData?.logoUrl;
+    if (logoUrl) {
+      if (logoUrl.startsWith('/')) {
         const baseUrl = import.meta.env.VITE_API_URL || '';
         const domainUrl = baseUrl.replace(/\/api\/?$/, '');
-        return `${domainUrl}${logoPreview}`;
+        return `${domainUrl}${logoUrl}`;
       }
-      return logoPreview;
+      return logoUrl;
     }
     return null;
   };
@@ -209,7 +183,7 @@ const DetailModal = ({ isOpen, onClose, companyId, onUpdated }) => {
             <div className="space-y-6">
               {/* Logo Section */}
               <div className="flex flex-col items-center">
-                <div className="relative group">
+                <div className="relative">
                   {getLogoSrc() ? (
                     <img
                       src={getLogoSrc()}
@@ -221,122 +195,57 @@ const DetailModal = ({ isOpen, onClose, companyId, onUpdated }) => {
                       {(companyData.companyName || 'C')[0]?.toUpperCase()}
                     </div>
                   )}
-                  <button
-                    type="button"
-                    className="absolute bottom-0 right-0 w-8 h-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110"
-                    onClick={() => fileInputRef.current?.click()}
-                    title="Thay đổi logo"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
-                      <circle cx="12" cy="13" r="4" />
-                    </svg>
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleLogoChange}
-                  />
                 </div>
-                {logoFile && (
-                  <span className="mt-2 text-xs text-indigo-600 font-medium bg-indigo-50 px-3 py-1 rounded-full">
-                    Logo mới đã chọn: {logoFile.name}
-                  </span>
-                )}
               </div>
 
               {/* Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Company Name - Editable */}
+                {/* Company Name */}
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-medium text-slate-600">
-                    Tên công ty
-                    <span className="ml-1 text-xs text-indigo-500 font-normal">(có thể sửa)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"
-                    placeholder="Nhập tên công ty"
-                  />
+                  <label className="block text-sm font-medium text-slate-600">Tên công ty</label>
+                  <div className="w-full px-4 py-2.5 rounded-xl border border-slate-100 bg-slate-50 text-slate-500 text-sm cursor-not-allowed">
+                    {companyData.companyName || '--'}
+                  </div>
                 </div>
 
-                {/* Phone - Editable */}
+                {/* Phone */}
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-medium text-slate-600">
-                    Số điện thoại
-                    <span className="ml-1 text-xs text-indigo-500 font-normal">(có thể sửa)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"
-                    placeholder="Nhập số điện thoại"
-                  />
+                  <label className="block text-sm font-medium text-slate-600">Số điện thoại</label>
+                  <div className="w-full px-4 py-2.5 rounded-xl border border-slate-100 bg-slate-50 text-slate-500 text-sm cursor-not-allowed">
+                    {companyData.phone || '--'}
+                  </div>
                 </div>
 
-                {/* Address - Editable (full width) */}
+                {/* Address (full width) */}
                 <div className="space-y-1.5 md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-600">
-                    Địa chỉ
-                    <span className="ml-1 text-xs text-indigo-500 font-normal">(có thể sửa)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"
-                    placeholder="Nhập địa chỉ"
-                  />
+                  <label className="block text-sm font-medium text-slate-600">Địa chỉ</label>
+                  <div className="w-full px-4 py-2.5 rounded-xl border border-slate-100 bg-slate-50 text-slate-500 text-sm cursor-not-allowed">
+                    {companyData.address || '--'}
+                  </div>
                 </div>
 
-                {/* Province Code - Editable */}
+                {/* Province Code */}
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-medium text-slate-600">
-                    Mã tỉnh/thành
-                    <span className="ml-1 text-xs text-indigo-500 font-normal">(có thể sửa)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={provinceCode}
-                    onChange={(e) => setProvinceCode(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"
-                    placeholder="Nhập mã tỉnh/thành"
-                  />
+                  <label className="block text-sm font-medium text-slate-600">Mã tỉnh/thành</label>
+                  <div className="w-full px-4 py-2.5 rounded-xl border border-slate-100 bg-slate-50 text-slate-500 text-sm cursor-not-allowed">
+                    {companyData.provinceCode || '--'}
+                  </div>
                 </div>
 
-                {/* District Code - Editable */}
+                {/* District Code */}
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-medium text-slate-600">
-                    Mã quận/huyện
-                    <span className="ml-1 text-xs text-indigo-500 font-normal">(có thể sửa)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={districtCode}
-                    onChange={(e) => setDistrictCode(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"
-                    placeholder="Nhập mã quận/huyện"
-                  />
+                  <label className="block text-sm font-medium text-slate-600">Mã quận/huyện</label>
+                  <div className="w-full px-4 py-2.5 rounded-xl border border-slate-100 bg-slate-50 text-slate-500 text-sm cursor-not-allowed">
+                    {companyData.districtCode || '--'}
+                  </div>
                 </div>
 
-                {/* Business License No - Editable */}
+                {/* Business License No */}
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-medium text-slate-600">
-                    Số GPKD
-                    <span className="ml-1 text-xs text-indigo-500 font-normal">(có thể sửa)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={businessLicenseNo}
-                    onChange={(e) => setBusinessLicenseNo(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"
-                    placeholder="Nhập số GPKD"
-                  />
+                  <label className="block text-sm font-medium text-slate-600">Số GPKD</label>
+                  <div className="w-full px-4 py-2.5 rounded-xl border border-slate-100 bg-slate-50 text-slate-500 text-sm cursor-not-allowed">
+                    {companyData.businessLicenseNo || '--'}
+                  </div>
                 </div>
 
                 {/* Company Code - Read Only */}
@@ -447,27 +356,87 @@ const DetailModal = ({ isOpen, onClose, companyId, onUpdated }) => {
               type="button"
               className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 disabled:opacity-50"
               onClick={handleClose}
-              disabled={isSaving}
+              disabled={isUpdatingStatus}
             >
               Đóng
             </button>
-            <button
-              type="button"
-              className="px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
-              onClick={handleSave}
-              disabled={isSaving}
-            >
-              {isSaving && (
-                <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-              )}
-              {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
-            </button>
+            {companyData.status === CompanyStatus.Pending && (
+              <>
+                <button
+                  type="button"
+                  className="px-5 py-2.5 rounded-xl text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-all active:scale-95 disabled:opacity-50 flex items-center shadow-sm"
+                  onClick={() => handleOpenConfirm(CompanyStatus.Rejected)}
+                  disabled={isUpdatingStatus}
+                >
+                  Từ chối
+                </button>
+                <button
+                  type="button"
+                  className="px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                  onClick={() => handleOpenConfirm(CompanyStatus.Approved)}
+                  disabled={isUpdatingStatus}
+                >
+                  Duyệt
+                </button>
+              </>
+            )}
+            {companyData.status === CompanyStatus.Approved && (
+              <button
+                type="button"
+                className="px-5 py-2.5 rounded-xl text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 shadow-sm"
+                onClick={() => handleOpenConfirm(CompanyStatus.Suspended)}
+                disabled={isUpdatingStatus}
+              >
+                Tạm ngưng hoạt động
+              </button>
+            )}
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal Overlay */}
+      {isConfirmModalOpen && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setIsConfirmModalOpen(false)}>
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">
+              {confirmAction === CompanyStatus.Approved ? 'Xác nhận duyệt' : confirmAction === CompanyStatus.Suspended ? 'Xác nhận tạm ngưng' : 'Xác nhận từ chối'}
+            </h3>
+            <p className="text-sm text-slate-500 mb-4">
+              Vui lòng nhập lý do/ghi chú định trạng thái này của công ty (có thể bỏ trống nếu duyệt).
+            </p>
+            <textarea
+              className="w-full h-24 px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all resize-none mb-6"
+              placeholder="Nhập ghi chú hoặc lý do..."
+              value={confirmDescription}
+              onChange={(e) => setConfirmDescription(e.target.value)}
+            />
+            <div className="flex justify-end gap-3 flex-shrink-0">
+              <button
+                type="button"
+                className="px-5 py-2.5 rounded-xl text-sm font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 disabled:opacity-50"
+                onClick={() => setIsConfirmModalOpen(false)}
+                disabled={isUpdatingStatus}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                className={`px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 ${confirmAction === CompanyStatus.Approved ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200' : confirmAction === CompanyStatus.Suspended ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-200' : 'bg-red-600 hover:bg-red-700 shadow-red-200'} shadow-lg`}
+                onClick={handleConfirmStatus}
+                disabled={isUpdatingStatus}
+              >
+                {isUpdatingStatus && (
+                  <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                )}
+                {confirmAction === CompanyStatus.Approved ? 'Xác nhận duyệt' : confirmAction === CompanyStatus.Suspended ? 'Xác nhận tạm ngưng' : 'Xác nhận từ chối'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -25,7 +25,7 @@ const DriverDetailModal = ({ isOpen, onClose, driver, onUpdated }) => {
         if (!cancelled) setIsLoading(false);
       }
     };
-
+    console.log(driver)
     fetchDetail();
     return () => { cancelled = true; };
   }, [isOpen, driver?.id]);

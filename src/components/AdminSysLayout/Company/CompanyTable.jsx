@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { CompanyStatus } from '@/types/enums';
 
 const buildPageList = (currentPage, totalPages) => {
   if (totalPages <= 1) return [1];
@@ -11,32 +12,38 @@ const buildPageList = (currentPage, totalPages) => {
 const CompanyTable = ({ companies, isLoading, pagination, onGoToPage, onViewDetail, onDelete }) => {
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'active':
-        return (
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-            <span className="w-1.5 h-1.5 bg-emerald-600 rounded-full mr-1.5"></span>
-            Đã duyệt
-          </span>
-        );
-      case 'inactive':
+      case CompanyStatus.Pending:
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
             <span className="w-1.5 h-1.5 bg-amber-600 rounded-full mr-1.5"></span>
             Chờ duyệt
           </span>
         );
-      case 'locked':
+      case CompanyStatus.Approved:
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+            <span className="w-1.5 h-1.5 bg-emerald-600 rounded-full mr-1.5"></span>
+            Đã duyệt
+          </span>
+        );
+      case CompanyStatus.Rejected:
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            <span className="w-1.5 h-1.5 bg-red-600 rounded-full mr-1.5"></span>
+            Từ chối
+          </span>
+        );
+      case CompanyStatus.Suspended:
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
             <span className="w-1.5 h-1.5 bg-slate-600 rounded-full mr-1.5"></span>
-            Từ chối/Tạm ngưng
+            Tạm ngưng
           </span>
         );
       default:
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
-            <span className="w-1.5 h-1.5 bg-slate-600 rounded-full mr-1.5"></span>
-            Không xác định
+             Chưa xác định
           </span>
         );
     }
@@ -104,25 +111,14 @@ const CompanyTable = ({ companies, isLoading, pagination, onGoToPage, onViewDeta
                 <div className="flex gap-1.5">
                   <button
                     className="w-8 h-8 rounded-md bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100 hover:text-blue-900 transition-colors cursor-pointer"
-                    aria-label="Xem chi tiết & Chỉnh sửa"
+                    aria-label="Xem chi tiết "
                     type="button"
                     onClick={() => onViewDetail(company.id)}
-                    title="Xem chi tiết & Chỉnh sửa"
+                    title="Xem chi tiết"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                       <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                       <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                  </button>
-                  <button
-                    className="w-8 h-8 rounded-md bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
-                    aria-label="Xóa"
-                    type="button"
-                    onClick={() => onDelete(company)}
-                    title="Xóa"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
                     </svg>
                   </button>
                 </div>

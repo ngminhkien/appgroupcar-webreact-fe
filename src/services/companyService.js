@@ -43,3 +43,13 @@ export const deleteCompanyApi = async (companyId) => {
   const response = await axiosInstance.delete(`/companies/${companyId}`);
   return response.data;
 };
+
+/**
+ * Update company status (Approve/Reject).
+ * @param {string} companyId
+ * @param {{status: number, description: string}} data
+ */
+export const updateCompanyStatusApi = async (companyId, data) => {
+  const response = await axiosInstance.patch(`/companies/${companyId}/status`, data);
+  return response.data;
+};

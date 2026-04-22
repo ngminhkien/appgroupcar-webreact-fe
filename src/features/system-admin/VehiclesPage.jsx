@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import '@/components/AdminSysLayout/AdminShared.css';
 import { useQuery } from '@tanstack/react-query';
 import VehicleTable from '@/components/AdminSysLayout/Vehicle/VehicleTable';
+import VehicleDetailModal from '@/components/AdminSysLayout/PendingVehicle/VehicleDetailModal';
 import { getVehiclesApi } from '@/services/vehicleService';
 import { VehicleStatus, VehicleType } from '@/types/enums';
 
@@ -14,6 +15,19 @@ const VehiclesPage = () => {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
   const [pageNumber, setPageNumber] = useState(1);
+
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+
+  const handleOpenDetailModal = (vehicle) => {
+    setSelectedVehicle(vehicle);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleCloseDetailModal = () => {
+    setIsDetailModalOpen(false);
+    setSelectedVehicle(null);
+  };
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -169,8 +183,16 @@ const VehiclesPage = () => {
            isLoading={isLoading}
            pagination={pagination}
            onGoToPage={goToPage}
+           onViewDetail={handleOpenDetailModal}
          />
       </div>
+
+      {/* Detail Modal */}
+      <VehicleDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={handleCloseDetailModal}
+        vehicle={selectedVehicle}
+      />
     </div>
   );
 };

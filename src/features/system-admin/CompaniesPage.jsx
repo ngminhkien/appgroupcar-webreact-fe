@@ -10,23 +10,10 @@ import toast from 'react-hot-toast';
 
 const DEFAULT_PAGE_SIZE = 10;
 
-const getStatusMeta = (status) => {
-  switch (status) {
-    case CompanyStatus.Approved:
-      return { key: 'active', label: 'Đã duyệt' };
-    case CompanyStatus.Pending:
-      return { key: 'inactive', label: 'Chờ duyệt' };
-    case CompanyStatus.Rejected:
-      return { key: 'locked', label: 'Từ chối' };
-    case CompanyStatus.Suspended:
-      return { key: 'locked', label: 'Tạm ngưng' };
-    default:
-      return { key: 'inactive', label: 'Không xác định' };
-  }
-};
+
 
 const CompaniesPage = () => {
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
   const [pageNumber, setPageNumber] = useState(1);
@@ -50,14 +37,13 @@ const CompaniesPage = () => {
   }, [searchKeyword]);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['companies', debouncedKeyword, pageNumber, activeFilter],
+    queryKey: ['companies', debouncedKeyword, pageNumber, statusFilter],
     queryFn: async () => {
-      const isActive = activeFilter === 'all' ? undefined : activeFilter === 'active';
       const params = {
-        search: debouncedKeyword || undefined,
-        pageNumber: pageNumber,
-        pageSize: DEFAULT_PAGE_SIZE,
-        isActive,
+        Search: debouncedKeyword || undefined,
+        PageNumber: pageNumber,
+        PageSize: DEFAULT_PAGE_SIZE,
+        CompanyStatus: statusFilter !== '' ? statusFilter : undefined,
       };
       const response = await getCompaniesApi(params);
       return response?.data ?? {};
@@ -69,15 +55,26 @@ const CompaniesPage = () => {
   const companies = useMemo(() => {
     const items = Array.isArray(data?.items) ? data.items : [];
     return items.map((item) => {
-      const statusMeta = getStatusMeta(item.status);
+      let statusLabel = 'Không xác định';
+
+      if (item.status === CompanyStatus.Approved) {
+        statusLabel = 'Đã duyệt';
+      } else if (item.status === CompanyStatus.Pending) {
+        statusLabel = 'Chờ duyệt';
+      } else if (item.status === CompanyStatus.Rejected) {
+        statusLabel = 'Từ chối';
+      } else if (item.status === CompanyStatus.Suspended) {
+        statusLabel = 'Tạm ngưng';
+      }
+
       return {
         id: item.id,
         companyName: item.companyName || '--',
         companyCode: item.companyCode || '--',
         phone: item.phone || '--',
         email: item.email || '--',
-        status: statusMeta.key,
-        statusLabel: statusMeta.label,
+        status: item.status, // Pass the raw integer status
+        statusLabel: statusLabel,
       };
     });
   }, [data]);
@@ -96,8 +93,8 @@ const CompaniesPage = () => {
   const approvedCount = companies.filter((company) => company.statusLabel === 'Đã duyệt').length;
   const pendingCount = companies.filter((company) => company.statusLabel === 'Chờ duyệt').length;
 
-  const onChangeFilter = (nextFilter) => {
-    setActiveFilter(nextFilter);
+  const onChangeFilter = (nextStatus) => {
+    setStatusFilter(nextStatus);
     setPageNumber(1);
   };
 
@@ -201,34 +198,45 @@ const CompaniesPage = () => {
       </div>
 
       <div className="admin-table-toolbar">
-        <input
-          type="text"
-          value={searchKeyword}
-          onChange={onSearchChange}
-          placeholder="Tìm kiếm theo tên, mã, email..."
-          className="admin-table-search-input"
-        />
-        <button
-          className={`admin-filter-btn ${activeFilter === 'all' ? 'admin-filter-btn--active' : ''}`}
-          onClick={() => onChangeFilter('all')}
-          type="button"
-        >
-          Tất cả
-        </button>
-        <button
-          className={`admin-filter-btn ${activeFilter === 'active' ? 'admin-filter-btn--active' : ''}`}
-          onClick={() => onChangeFilter('active')}
-          type="button"
-        >
-          Hoạt động
-        </button>
-        <button
-          className={`admin-filter-btn ${activeFilter === 'inactive' ? 'admin-filter-btn--active' : ''}`}
-          onClick={() => onChangeFilter('inactive')}
-          type="button"
-        >
-          Tạm dừng
-        </button>
+        <div className="flex flex-1 items-center gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <input
+              type="text"
+              value={searchKeyword}
+              onChange={onSearchChange}
+              placeholder="Tìm kiếm theo tên, mã, email..."
+              className="admin-table-search-input w-full pl-10"
+            />
+            <svg
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+          
+          <select
+            className="h-10 px-4 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPageNumber(1);
+            }}
+          >
+            <option value="">Tất cả trạng thái</option>
+            <option value={CompanyStatus.Pending}>Chờ duyệt</option>
+            <option value={CompanyStatus.Approved}>Đã duyệt</option>
+            <option value={CompanyStatus.Rejected}>Từ chối</option>
+            <option value={CompanyStatus.Suspended}>Tạm ngưng</option>
+          </select>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden relative">
