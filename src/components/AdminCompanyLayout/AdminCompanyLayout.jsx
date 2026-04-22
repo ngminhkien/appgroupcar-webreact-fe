@@ -13,11 +13,11 @@ const AdminCompanyLayout = () => {
         <div className="admin-content">
           <Outlet />
         </div>
-        <footer className="admin-footer">
+        {/* <footer className="admin-footer">
           <span className="admin-footer-right">
             © 2024 NexusRide Company Portal. Hoạt động trên quyền công ty đối tác.
           </span>
-        </footer>
+        </footer> */}
       </div>
     </div>
   );

@@ -16,6 +16,9 @@ import {
 import CompanyAdminDashboardPage from '@/features/company-admin/DashboardPage';
 import CompanyAdminAccountsPage from '@/features/company-admin/AccountsPage';
 import CompanyAdminVehiclesPage from '@/features/company-admin/VehiclesPage';
+import RoutesPage from '@/features/company-admin/RoutesPage';
+import BusRoutePointPage from '@/features/company-admin/BusRoutePointPage';
+import BusShowtimePage from '@/features/company-admin/BusShowtimePage';
 import { PublicLayout } from '@/components/PublicLayout';
 import { AuthLayout } from '@/components/AuthLayout';
 import { AdminSysLayout } from '@/components/AdminSysLayout';
@@ -59,6 +62,9 @@ const AppRoutes = () => {
             <Route path="/company-admin/dashboard" element={<CompanyAdminDashboardPage />} />
             <Route path="/company-admin/accounts" element={<CompanyAdminAccountsPage />} />
             <Route path="/company-admin/vehicles" element={<CompanyAdminVehiclesPage />} />
+            <Route path="/company-admin/routes" element={<RoutesPage />} />
+            <Route path="/company-admin/bus-route-point" element={<BusRoutePointPage />} />
+            <Route path="/company-admin/bus-showtime" element={<BusShowtimePage />} />
             <Route path="/company-admin/profile" element={<AdminProfilePage />} />
             <Route path="/company-admin" element={<Navigate to="/company-admin/dashboard" replace />} />
           </Route>

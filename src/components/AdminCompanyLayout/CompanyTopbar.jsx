@@ -5,18 +5,7 @@ const CompanyTopbar = ({ title = 'Tổng quan' }) => {
   return (
     <header className="admin-topbar">
       <div className="topbar-left">
-        <div className="topbar-search">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <circle cx="11" cy="11" r="8"/>
-            <path d="M21 21l-4.35-4.35"/>
-          </svg>
-          <input
-            id="company-admin-search"
-            type="text"
-            placeholder="Tìm kiếm phương tiện, tài xế..."
-            className="topbar-search-input"
-          />
-        </div>
+       
       </div>
 
       <div className="topbar-right">
