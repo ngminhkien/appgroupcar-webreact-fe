@@ -3,6 +3,9 @@ import '@/components/AdminSysLayout/AdminShared.css';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import BusRouteTable from '@/components/AdminCompanyLayout/BusRoute/BusRouteTable';
 import AddBusRouteModal from '@/components/AdminCompanyLayout/BusRoute/AddBusRouteModal';
+import BusRouteDetailModal from '@/components/AdminCompanyLayout/BusRoute/BusRouteDetailModal';
+import EditBusRouteModal from '@/components/AdminCompanyLayout/BusRoute/EditBusRouteModal';
+import DeleteBusRouteModal from '@/components/AdminCompanyLayout/BusRoute/DeleteBusRouteModal';
 import { getBusRoutesApi } from '@/services/busRouteService';
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -14,6 +17,45 @@ const RoutesPage = () => {
   const [searchInput, setSearchInput] = useState('');
   const searchTimeoutRef = useRef(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedRoute, setSelectedRoute] = useState(null);
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [routeToEdit, setRouteToEdit] = useState(null);
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [routeToDelete, setRouteToDelete] = useState(null);
+
+  const handleOpenDetailModal = (route) => {
+    setSelectedRoute(route);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleCloseDetailModal = () => {
+    setIsDetailModalOpen(false);
+    setSelectedRoute(null);
+  };
+
+  const handleOpenEditModal = (route) => {
+    setRouteToEdit(route);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setRouteToEdit(null);
+  };
+
+  const handleOpenDeleteModal = (route) => {
+    setRouteToDelete(route);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleCloseDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setRouteToDelete(null);
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ['bus-routes', pageNumber, keyword],
@@ -95,22 +137,14 @@ const RoutesPage = () => {
       </div>
       
       {/* Search Bar */}
-      <div className="mt-6 flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-        <div className="relative w-full max-w-md">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-          </div>
-          <input
-            type="text"
-            className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#001f3f]/20 focus:border-[#001f3f] focus:bg-white transition-colors"
-            placeholder="Tìm kiếm theo tên tuyến, mã tuyến..."
-            value={searchInput}
-            onChange={handleSearchChange}
-          />
-        </div>
+      <div className="admin-table-toolbar">
+        <input
+          type="text"
+          placeholder="Tìm kiếm theo tên tuyến, mã tuyến..."
+          className="admin-table-search-input"
+          value={searchInput}
+          onChange={handleSearchChange}
+        />
       </div>
 
       <div className="admin-data-table-wrapper relative mt-4">
@@ -124,6 +158,9 @@ const RoutesPage = () => {
            isLoading={isLoading}
            pagination={pagination}
            onGoToPage={goToPage}
+           onViewDetail={handleOpenDetailModal}
+           onEdit={handleOpenEditModal}
+           onDelete={handleOpenDeleteModal}
          />
       </div>
 
@@ -133,6 +170,31 @@ const RoutesPage = () => {
         onAdded={() => {
           queryClient.invalidateQueries(['bus-routes']);
         }}
+      />
+
+      <BusRouteDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={handleCloseDetailModal}
+        route={selectedRoute}
+      />
+
+      <EditBusRouteModal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        route={routeToEdit}
+        onUpdated={() => {
+          queryClient.invalidateQueries(['bus-routes']);
+        }}
+      />
+
+      <DeleteBusRouteModal
+        isOpen={isDeleteModalOpen}
+        onClose={handleCloseDeleteModal}
+        onDeleted={() => {
+          queryClient.invalidateQueries(['bus-routes']);
+        }}
+        routeId={routeToDelete?.id}
+        routeName={routeToDelete?.name}
       />
     </div>
   );

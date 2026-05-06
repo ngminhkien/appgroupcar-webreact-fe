@@ -81,3 +81,11 @@ export const CompanyStatus = Object.freeze({
   Rejected: 2,
   Suspended: 3,
 });
+
+export const BusShowtimeStatus = Object.freeze({
+  Scheduled: 1,
+  Active: 2,
+  Delayed: 3,
+  Cancelled: 4,
+  Hidden: 5,
+});

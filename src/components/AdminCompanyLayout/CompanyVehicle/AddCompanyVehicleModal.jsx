@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { createCompanyVehicleApi, getSeatLayoutsApi } from '@/services/companyVehicleService';
 import { VehicleStatus, VehicleType } from '@/types/enums';
+import SeatLayout from '@/components/PublicLayout/SeatLayout';
 
 const AddCompanyVehicleModal = ({ isOpen, onClose, onAdded }) => {
   const [formData, setFormData] = useState({
@@ -96,8 +97,11 @@ const AddCompanyVehicleModal = ({ isOpen, onClose, onAdded }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+      <div className={`flex gap-4 w-full justify-center transition-all duration-300 items-start ${formData.SeatLayoutId ? 'max-w-6xl' : 'max-w-2xl'}`}>
+        
+        {/* Cột 1: Form Thêm mới */}
+        <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shrink-0">
         <div className="px-6 pt-6 pb-4 border-b border-slate-100 flex items-center justify-between shrink-0">
           <h2 className="text-xl font-semibold text-slate-800">Thêm mới phương tiện</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg hover:bg-slate-100">
@@ -274,6 +278,19 @@ const AddCompanyVehicleModal = ({ isOpen, onClose, onAdded }) => {
             Xác nhận
           </button>
         </div>
+        </div>
+        
+        {/* Cột 2: Xem trước Sơ đồ ghế */}
+        {formData.SeatLayoutId && (
+          <div className="hidden lg:flex bg-white rounded-2xl shadow-xl w-[400px] max-h-[90vh] flex-col overflow-hidden shrink-0 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="px-6 pt-6 pb-4 border-b border-slate-100 flex items-center justify-between shrink-0">
+              <h2 className="text-xl font-semibold text-slate-800">Sơ đồ ghế</h2>
+            </div>
+            <div className="p-6 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/50 flex flex-col items-center">
+              <SeatLayout layoutId={formData.SeatLayoutId} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

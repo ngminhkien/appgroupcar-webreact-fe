@@ -33,6 +33,7 @@ const AddBusRouteModal = ({ isOpen, onClose, onAdded }) => {
       setFormData({
         name: '',
         routePoints: [
+          { locationId: '', pickupAllowed: true, dropoffAllowed: true },
           { locationId: '', pickupAllowed: true, dropoffAllowed: true }
         ]
       });
@@ -76,8 +77,8 @@ const AddBusRouteModal = ({ isOpen, onClose, onAdded }) => {
       toast.error('Vui lòng nhập tên tuyến xe');
       return;
     }
-    if (formData.routePoints.length === 0) {
-      toast.error('Vui lòng thêm ít nhất một điểm dừng');
+    if (formData.routePoints.length < 2) {
+      toast.error('Vui lòng thêm ít nhất hai điểm dừng (điểm đi và điểm đến)');
       return;
     }
     
@@ -183,8 +184,8 @@ const AddBusRouteModal = ({ isOpen, onClose, onAdded }) => {
                   <button
                     type="button"
                     onClick={() => handleRemovePoint(index)}
-                    className="mt-1.5 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                    disabled={isSubmitting || formData.routePoints.length <= 1}
+                    className="mt-1.5 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={isSubmitting || formData.routePoints.length <= 2}
                     title="Xóa điểm"
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -195,9 +196,9 @@ const AddBusRouteModal = ({ isOpen, onClose, onAdded }) => {
                 </div>
               ))}
               
-              {formData.routePoints.length === 0 && (
+              {formData.routePoints.length < 2 && (
                 <div className="text-center py-6 text-sm text-slate-500 border border-dashed border-slate-300 rounded-xl">
-                  Chưa có điểm dừng nào. Hãy thêm điểm dừng cho tuyến xe.
+                  Cần ít nhất 2 điểm dừng (điểm đi và điểm đến) cho một tuyến xe.
                 </div>
               )}
             </div>
