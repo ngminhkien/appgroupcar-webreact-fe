@@ -1,11 +1,11 @@
-import axios from 'axios';
+import axios from "axios";
 
 // ─── Axios Instance ───
 const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   timeout: 15000,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -27,13 +27,13 @@ const processQueue = (error, token = null) => {
 // ─── Request Interceptor ───
 axiosInstance.interceptors.request.use(
   (config) => {
-    const accessToken = localStorage.getItem('accessToken');
+    const accessToken = localStorage.getItem("accessToken");
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // ─── Response Interceptor ───
@@ -44,6 +44,11 @@ axiosInstance.interceptors.response.use(
 
     // Only handle 401 and avoid infinite retry
     if (error.response?.status !== 401 || originalRequest._retry) {
+      return Promise.reject(error);
+    }
+
+    // Skip interceptor for login route to prevent reload loop on failed login
+    if (originalRequest.url?.includes("/auth/login")) {
       return Promise.reject(error);
     }
 
@@ -62,29 +67,29 @@ axiosInstance.interceptors.response.use(
     originalRequest._retry = true;
     isRefreshing = true;
 
-    const refreshToken = localStorage.getItem('refreshToken');
+    const refreshToken = localStorage.getItem("refreshToken");
 
     if (!refreshToken) {
       isRefreshing = false;
       // Clear tokens and redirect to login
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      window.location.href = '/login';
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      window.location.href = "/login";
       return Promise.reject(error);
     }
 
     try {
       const { data } = await axios.post(
         `${import.meta.env.VITE_API_URL}/auth/refresh`,
-        { refreshToken }
+        { refreshToken },
       );
 
       const newAccessToken = data.data.accessToken;
       const newRefreshToken = data.data.refreshToken;
 
-      localStorage.setItem('accessToken', newAccessToken);
+      localStorage.setItem("accessToken", newAccessToken);
       if (newRefreshToken) {
-        localStorage.setItem('refreshToken', newRefreshToken);
+        localStorage.setItem("refreshToken", newRefreshToken);
       }
 
       axiosInstance.defaults.headers.Authorization = `Bearer ${newAccessToken}`;
@@ -94,14 +99,14 @@ axiosInstance.interceptors.response.use(
       return axiosInstance(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError, null);
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      window.location.href = '/login';
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      window.location.href = "/login";
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;
     }
-  }
+  },
 );
 
 export default axiosInstance;

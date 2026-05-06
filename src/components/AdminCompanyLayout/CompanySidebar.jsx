@@ -48,16 +48,7 @@ const navItems = [
       </svg>
     ),
   },
-  {
-    path: '/company-admin/bus-route-point',
-    label: 'Điểm đón trả',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <circle cx="12" cy="12" r="10"/>
-        <circle cx="12" cy="12" r="3"/>
-      </svg>
-    ),
-  },
+
   {
     path: '/company-admin/bus-showtime',
     label: 'Lịch trình xe',
