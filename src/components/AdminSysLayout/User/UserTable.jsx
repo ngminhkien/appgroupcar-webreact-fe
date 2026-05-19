@@ -26,7 +26,6 @@ const UserTable = ({
     () => buildPageList(pagination.pageNumber, pagination.totalPages),
     [pagination.pageNumber, pagination.totalPages]
   );
-
   return (
     <div className="admin-data-table-wrapper">
       <table className="admin-data-table">

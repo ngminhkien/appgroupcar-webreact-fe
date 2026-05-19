@@ -32,3 +32,14 @@ export const approveDriverApi = async (userId) => {
   });
   return response.data;
 };
+
+/**
+ * Refuse a market driver.
+ * @param {string} userId - Driver User ID.
+ */
+export const refuseDriverApi = async (userId) => {
+  const response = await axiosInstance.patch('/marketDriver/refuse', null, {
+    params: { userId }
+  });
+  return response.data;
+};

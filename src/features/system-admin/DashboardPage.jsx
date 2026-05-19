@@ -1,12 +1,46 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './DashboardPage.css';
+import { getActiveUsersApi, getActiveDriversApi, getActiveVehiclesApi } from '@/services/adminSystemStatisticService';
 
 const statCards = [
+  {
+    id: 'total-users',
+    label: 'Tổng số người dùng',
+    value: '24,892',
+    change: '',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M9 18l6-6-6-6"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'total-drivers',
+    label: 'Tổng số tài xế',
+    value: '24,892',
+    change: '',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M9 18l6-6-6-6"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'total-vehicles',
+    label: 'Tổng số phương tiện',
+    value: '24,892',
+    change: '',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M9 18l6-6-6-6"/>
+      </svg>
+    ),
+  },
   {
     id: 'total-trips',
     label: 'Tổng số chuyến đi',
     value: '24,892',
-    change: '+2.5%',
+    change: '',
     trend: 'up',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -15,10 +49,10 @@ const statCards = [
     ),
   },
   {
-    id: 'revenue',
+    id: 'total-revenue',
     label: 'Tổng doanh thu',
     value: '1.25B đ',
-    change: '+6.2%',
+    change: '',
     trend: 'up',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -27,10 +61,10 @@ const statCards = [
     ),
   },
   {
-    id: 'active-shipments',
-    label: 'Đang vận chuyển',
+    id: 'total-transactions',
+    label: 'Tổng giao dịch',
     value: '452',
-    change: 'LIVE',
+    change: '',
     trend: 'live',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -39,18 +73,7 @@ const statCards = [
       </svg>
     ),
   },
-  {
-    id: 'avg-rating',
-    label: 'Đánh giá trung bình',
-    value: '4.92',
-    change: 'Excellent',
-    trend: 'neutral',
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-      </svg>
-    ),
-  },
+
 ];
 
 const chartBars = [
@@ -99,36 +122,97 @@ const recentActivities = [
 const DashboardPage = () => {
   const maxBarValue = Math.max(...chartBars.map((b) => b.value));
 
+  const [activeUsers, setActiveUsers] = useState('...');
+  const [activeDrivers, setActiveDrivers] = useState('...');
+  const [activeVehicles, setActiveVehicles] = useState('...');
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [usersRes, driversRes, vehiclesRes] = await Promise.all([
+          getActiveUsersApi(),
+          getActiveDriversApi(),
+          getActiveVehiclesApi(),
+        ]);
+        if (usersRes?.code === 200) setActiveUsers(usersRes.data);
+        if (driversRes?.code === 200) setActiveDrivers(driversRes.data);
+        if (vehiclesRes?.code === 200) setActiveVehicles(vehiclesRes.data);
+      } catch (error) {
+        console.error('Error fetching statistics:', error);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const displayStatCards = statCards.map(card => {
+    if (card.id === 'total-users') return { ...card, value: activeUsers };
+    if (card.id === 'total-drivers') return { ...card, value: activeDrivers };
+    if (card.id === 'total-vehicles') return { ...card, value: activeVehicles };
+    return card;
+  });
+
+  const entityStats = displayStatCards.slice(0, 3);
+  const activityStats = displayStatCards.slice(3, 6);
+
   return (
     <div className="dashboard-page">
       {/* Period indicator */}
       <div className="dashboard-header">
         <div>
           <h1 className="dashboard-title">Tổng quan hệ thống</h1>
-          <p className="dashboard-period">Dựa trên 30 ngày gần nhất</p>
         </div>
       </div>
 
-      {/* ─── Stat Cards ─── */}
+      {/* ─── Entity Stats ─── */}
+      <h2 className="section-title">Thống kê tài nguyên</h2>
       <div className="stat-cards-grid">
-        {statCards.map((card) => (
+        {entityStats.map((card) => (
           <div key={card.id} className="stat-card" id={card.id}>
             <div className="stat-card-header">
               <span className="stat-card-label">{card.label}</span>
               <span className="stat-card-icon">{card.icon}</span>
             </div>
             <div className="stat-card-value">{card.value}</div>
-            <div className="stat-card-footer">
-              <span className={`stat-card-change stat-card-change--${card.trend}`}>
-                {card.trend === 'up' && (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M18 15l-6-6-6 6"/>
-                  </svg>
-                )}
-                {card.trend === 'live' && <span className="live-dot" />}
-                {card.change}
-              </span>
+            {(card.trend || card.change) && (
+              <div className="stat-card-footer">
+                <span className={`stat-card-change stat-card-change--${card.trend}`}>
+                  {card.trend === 'up' && (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 15l-6-6-6 6"/>
+                    </svg>
+                  )}
+                  {card.trend === 'live' && <span className="live-dot" />}
+                  {card.change}
+                </span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* ─── Activity Stats ─── */}
+      <h2 className="section-title">Thống kê hoạt động</h2>
+      <div className="stat-cards-grid">
+        {activityStats.map((card) => (
+          <div key={card.id} className="stat-card" id={card.id}>
+            <div className="stat-card-header">
+              <span className="stat-card-label">{card.label}</span>
+              <span className="stat-card-icon">{card.icon}</span>
             </div>
+            <div className="stat-card-value">{card.value}</div>
+            {(card.trend || card.change) && (
+              <div className="stat-card-footer">
+                <span className={`stat-card-change stat-card-change--${card.trend}`}>
+                  {card.trend === 'up' && (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 15l-6-6-6 6"/>
+                    </svg>
+                  )}
+                  {card.trend === 'live' && <span className="live-dot" />}
+                  {card.change}
+                </span>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -203,41 +287,6 @@ const DashboardPage = () => {
                 <path d="M7 17l9.2-9.2M17 17V7.8H7.8"/>
               </svg>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── Activity & Network ─── */}
-      <div className="bottom-row">
-        <div className="activity-card">
-          <h3 className="chart-title">Hoạt động hệ thống gần đây</h3>
-          <div className="activity-list">
-            {recentActivities.map((activity) => (
-              <div key={activity.id} className={`activity-item activity-item--${activity.type}`}>
-                <span className="activity-icon">{activity.icon}</span>
-                <div className="activity-content">
-                  <span className="activity-title">{activity.title}</span>
-                  <span className="activity-detail">{activity.detail}</span>
-                </div>
-                <span className="activity-time">{activity.time}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="network-card">
-          <div className="network-visual">
-            <div className="network-globe">
-              <div className="globe-ring globe-ring--1" />
-              <div className="globe-ring globe-ring--2" />
-              <div className="globe-ring globe-ring--3" />
-              <div className="globe-center" />
-              <div className="globe-dot globe-dot--1" />
-              <div className="globe-dot globe-dot--2" />
-              <div className="globe-dot globe-dot--3" />
-              <div className="globe-dot globe-dot--4" />
-            </div>
-            <span className="network-label">LIVE NETWORK VIEW</span>
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { approveDriverApi, getDriverByIdApi } from '@/services/driverService';
+import { approveDriverApi, getDriverByIdApi, refuseDriverApi } from '@/services/driverService';
 
 const DriverDetailModal = ({ isOpen, onClose, driver, onUpdated }) => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -41,6 +41,20 @@ const DriverDetailModal = ({ isOpen, onClose, driver, onUpdated }) => {
       onClose();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi phê duyệt.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRefuse = async () => {
+    setIsProcessing(true);
+    try {
+      const res = await refuseDriverApi(driver.id);
+      toast.success(res?.message || 'Từ chối tài xế thành công!');
+      if (onUpdated) onUpdated();
+      onClose();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi từ chối.');
     } finally {
       setIsProcessing(false);
     }
@@ -216,6 +230,14 @@ const DriverDetailModal = ({ isOpen, onClose, driver, onUpdated }) => {
           
           {detailData?.verificationStatus === 1 && (
              <>
+               <button
+                 type="button"
+                 className="px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-200 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                 onClick={handleRefuse}
+                 disabled={isProcessing}
+               >
+                 {isProcessing ? 'Đang xử lý...' : 'Từ chối'}
+               </button>
                <button
                  type="button"
                  className="px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 cursor-pointer"

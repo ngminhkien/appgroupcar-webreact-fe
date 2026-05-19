@@ -73,7 +73,7 @@ const UsersPage = () => {
     return items.map((item) => {
       const displayName = item.fullName || item.userName || item.email || 'N/A';
       const status = item.deleteAt === null ? 'active' : 'locked';
-
+console.log(items);
       return {
         id: item.id,
         name: displayName,
@@ -81,7 +81,7 @@ const UsersPage = () => {
         avatarColor: getAvatarColor(displayName),
         email: item.email || '--',
         phone: item.phoneNumber || '--',
-        registerDate: formatDate(item.createAt),
+        registerDate: formatDate(item.createdAt),
         status,
       };
     });
