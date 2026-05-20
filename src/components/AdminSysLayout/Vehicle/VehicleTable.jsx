@@ -9,7 +9,7 @@ const buildPageList = (currentPage, totalPages) => {
   return Array.from({ length: end - adjustedStart + 1 }, (_, index) => adjustedStart + index);
 };
 
-const VehicleTable = ({ vehicles, isLoading, pagination, onGoToPage, onViewDetail }) => {
+const VehicleTable = ({ vehicles, isLoading, pagination, onGoToPage, onViewDetail, onDelete, onUnlock }) => {
   const getStatusBadge = (statusValue) => {
     switch (statusValue) {
       case VehicleStatus.Pending:
@@ -103,20 +103,45 @@ const VehicleTable = ({ vehicles, isLoading, pagination, onGoToPage, onViewDetai
                <td className="px-5 py-4 text-[0.88rem] text-slate-800 border-b border-slate-50 align-middle">{v.seatCapacity || '--'}</td>
                <td className="px-5 py-4 text-[0.88rem] text-slate-800 border-b border-slate-50 align-middle">{getVehicleTypeName(v.vehicleType)}</td>
                <td className="px-5 py-4 text-[0.88rem] text-slate-800 border-b border-slate-50 align-middle">{getStatusBadge(v.status)}</td>
-               <td className="px-5 py-4 border-b border-slate-50 align-middle">
-                  <div className="flex gap-1.5">
-                     <button 
-                        className="w-8 h-8 rounded-md bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100 hover:text-blue-900 transition-colors cursor-pointer" 
-                        title="Xem chi tiết"
-                        onClick={(e) => { e.stopPropagation(); onViewDetail && onViewDetail(v); }}
-                     >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                           <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                           <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                        </svg>
-                     </button>
-                  </div>
-               </td>
+                <td className="px-5 py-4 border-b border-slate-50 align-middle">
+                   <div className="flex gap-1.5">
+                      <button 
+                         className="w-8 h-8 rounded-md bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100 hover:text-blue-900 transition-colors cursor-pointer" 
+                         title="Xem chi tiết"
+                         onClick={(e) => { e.stopPropagation(); onViewDetail && onViewDetail(v); }}
+                      >
+                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                         </svg>
+                      </button>
+                      {v.status === VehicleStatus.Inactive ? (
+                        <button
+                           className="w-8 h-8 rounded-md bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100 hover:text-green-600 transition-colors cursor-pointer"
+                           title="Mở khóa"
+                           type="button"
+                           onClick={(e) => { e.stopPropagation(); onUnlock && onUnlock(v); }}
+                        >
+                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                             <path d="M7 11V7a5 5 0 019.9-1" />
+                           </svg>
+                        </button>
+                      ) : v.status === VehicleStatus.Active ? (
+                        <button
+                           className="w-8 h-8 rounded-md bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100 hover:text-red-600 transition-colors cursor-pointer"
+                           title="Khóa"
+                           type="button"
+                           onClick={(e) => { e.stopPropagation(); onDelete && onDelete(v); }}
+                        >
+                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                             <path d="M7 11V7a5 5 0 0110 0v4" />
+                           </svg>
+                        </button>
+                      ) : null}
+                   </div>
+                </td>
             </tr>
           ))}
           {vehicles.length === 0 && !isLoading && (

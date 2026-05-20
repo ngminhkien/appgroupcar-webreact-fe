@@ -3,8 +3,11 @@ import '@/components/AdminSysLayout/AdminShared.css';
 import { useQuery } from '@tanstack/react-query';
 import DriverTable from '../../components/AdminSysLayout/Driver/DriverTable';
 import DriverDetailModal from '../../components/AdminSysLayout/PendingDriver/DriverDetailModal';
-import { getMarketDriversApi } from '../../services/driverService';
+import DeleteModal from '../../components/AdminSysLayout/Driver/DeleteModal';
+import UnlockModal from '../../components/AdminSysLayout/Driver/UnlockModal';
+import { getMarketDriversApi, lockDriverApi, unlockDriverApi } from '../../services/driverService';
 import { getActiveDriversApi, getNewDriversApi } from '@/services/adminSystemStatisticService';
+import toast from 'react-hot-toast';
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -32,6 +35,14 @@ const DriversPage = () => {
 
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState(null);
+
+  // Lock/Unlock states
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
+  const [selectedDeleteDriver, setSelectedDeleteDriver] = useState(null);
+  const [selectedUnlockDriver, setSelectedUnlockDriver] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isUnlocking, setIsUnlocking] = useState(false);
 
   // Statistical states
   const [totalDrivers, setTotalDrivers] = useState('...');
@@ -128,6 +139,60 @@ const DriversPage = () => {
   const handleDriverUpdated = () => {
     refetch();
     fetchStats();
+  };
+
+  const handleOpenDeleteModal = (driver) => {
+    setSelectedDeleteDriver(driver);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleCloseDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setSelectedDeleteDriver(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedDeleteDriver) return;
+    setIsDeleting(true);
+    try {
+      const response = await lockDriverApi(selectedDeleteDriver.id);
+      toast.success(response?.message || 'Khóa tài xế thành công!');
+      setIsDeleteModalOpen(false);
+      setSelectedDeleteDriver(null);
+      refetch();
+      fetchStats();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi khóa tài xế.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleOpenUnlockModal = (driver) => {
+    setSelectedUnlockDriver(driver);
+    setIsUnlockModalOpen(true);
+  };
+
+  const handleCloseUnlockModal = () => {
+    setIsUnlockModalOpen(false);
+    setSelectedUnlockDriver(null);
+  };
+
+  const handleConfirmUnlock = async () => {
+    if (!selectedUnlockDriver) return;
+    setIsUnlocking(true);
+    try {
+      const response = await unlockDriverApi(selectedUnlockDriver.id);
+      toast.success(response?.message || 'Mở khóa tài xế thành công!');
+      setIsUnlockModalOpen(false);
+      setSelectedUnlockDriver(null);
+      refetch();
+      fetchStats();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi mở khóa tài xế.');
+    } finally {
+      setIsUnlocking(false);
+    }
   };
 
   useEffect(() => {
@@ -252,6 +317,8 @@ const DriversPage = () => {
            pagination={pagination}
            onGoToPage={goToPage}
            onViewDetail={handleOpenDetailModal}
+           onDelete={handleOpenDeleteModal}
+           onUnlock={handleOpenUnlockModal}
          />
       </div>
 
@@ -261,6 +328,22 @@ const DriversPage = () => {
         onClose={handleCloseDetailModal}
         driver={selectedDriver}
         onUpdated={handleDriverUpdated}
+      />
+
+      <DeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={handleCloseDeleteModal}
+        onConfirm={handleConfirmDelete}
+        driverName={selectedDeleteDriver?.name}
+        isLoading={isDeleting}
+      />
+
+      <UnlockModal
+        isOpen={isUnlockModalOpen}
+        onClose={handleCloseUnlockModal}
+        onConfirm={handleConfirmUnlock}
+        driverName={selectedUnlockDriver?.name}
+        isLoading={isUnlocking}
       />
     </div>
   );

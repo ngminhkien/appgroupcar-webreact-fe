@@ -36,11 +36,11 @@ export const updateCompanyApi = async (companyId, formData) => {
 };
 
 /**
- * Delete a company by ID.
+ * Lock a company by ID.
  * @param {string} companyId
  */
-export const deleteCompanyApi = async (companyId) => {
-  const response = await axiosInstance.delete(`/companies/${companyId}`);
+export const lockCompanyApi = async (companyId) => {
+  const response = await axiosInstance.put(`/companies/${companyId}/lock`);
   return response.data;
 };
 
@@ -53,3 +53,13 @@ export const updateCompanyStatusApi = async (companyId, data) => {
   const response = await axiosInstance.patch(`/companies/${companyId}/status`, data);
   return response.data;
 };
+
+/**
+ * Unlock a company by ID.
+ * @param {string} companyId
+ */
+export const unlockCompanyApi = async (companyId) => {
+  const response = await axiosInstance.put(`/companies/${companyId}/unlock`);
+  return response.data;
+};
+

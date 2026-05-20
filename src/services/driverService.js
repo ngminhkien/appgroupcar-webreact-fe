@@ -43,3 +43,21 @@ export const refuseDriverApi = async (userId) => {
   });
   return response.data;
 };
+
+/**
+ * Lock a driver by ID.
+ * @param {string} id
+ */
+export const lockDriverApi = async (id) => {
+  const response = await axiosInstance.put(`/marketDriver/${id}/lock`);
+  return response.data;
+};
+
+/**
+ * Unlock a driver by ID.
+ * @param {string} id
+ */
+export const unlockDriverApi = async (id) => {
+  const response = await axiosInstance.put(`/marketDriver/${id}/unlock`);
+  return response.data;
+};

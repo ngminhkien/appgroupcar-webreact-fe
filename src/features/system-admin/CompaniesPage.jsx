@@ -3,8 +3,9 @@ import '@/components/AdminSysLayout/AdminShared.css';
 import { useQuery } from '@tanstack/react-query';
 import DetailModal from '@/components/AdminSysLayout/Company/DetailModal';
 import DeleteModal from '@/components/AdminSysLayout/Company/DeleteModal';
+import UnlockModal from '@/components/AdminSysLayout/Company/UnlockModal';
 import CompanyTable from '@/components/AdminSysLayout/Company/CompanyTable';
-import { getCompaniesApi, deleteCompanyApi } from '@/services/companyService';
+import { getCompaniesApi, lockCompanyApi, unlockCompanyApi } from '@/services/companyService';
 import { CompanyStatus } from '@/types/enums';
 import toast from 'react-hot-toast';
 
@@ -26,6 +27,11 @@ const CompaniesPage = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Unlock modal state
+  const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
+  const [selectedUnlockCompany, setSelectedUnlockCompany] = useState(null);
+  const [isUnlocking, setIsUnlocking] = useState(false);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -136,15 +142,42 @@ const CompaniesPage = () => {
 
     setIsDeleting(true);
     try {
-      const response = await deleteCompanyApi(selectedCompany.id);
-      toast.success(response?.message || 'Xóa công ty thành công!');
+      const response = await lockCompanyApi(selectedCompany.id);
+      toast.success(response?.message || 'Khóa công ty thành công!');
       setIsDeleteModalOpen(false);
       setSelectedCompany(null);
       refetch();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi xóa công ty.');
+      toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi khóa công ty.');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleOpenUnlockModal = (company) => {
+    setSelectedUnlockCompany(company);
+    setIsUnlockModalOpen(true);
+  };
+
+  const handleCloseUnlockModal = () => {
+    setIsUnlockModalOpen(false);
+    setSelectedUnlockCompany(null);
+  };
+
+  const handleConfirmUnlock = async () => {
+    if (!selectedUnlockCompany) return;
+
+    setIsUnlocking(true);
+    try {
+      const response = await unlockCompanyApi(selectedUnlockCompany.id);
+      toast.success(response?.message || 'Mở khóa công ty thành công!');
+      setIsUnlockModalOpen(false);
+      setSelectedUnlockCompany(null);
+      refetch();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi mở khóa công ty.');
+    } finally {
+      setIsUnlocking(false);
     }
   };
 
@@ -240,14 +273,15 @@ const CompaniesPage = () => {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden relative">
-         <CompanyTable
-            companies={companies}
-            isLoading={isLoading}
-            pagination={pagination}
-            onGoToPage={goToPage}
-            onViewDetail={openCompanyDetailModal}
-            onDelete={handleOpenDeleteModal}
-         />
+          <CompanyTable
+             companies={companies}
+             isLoading={isLoading}
+             pagination={pagination}
+             onGoToPage={goToPage}
+             onViewDetail={openCompanyDetailModal}
+             onDelete={handleOpenDeleteModal}
+             onUnlock={handleOpenUnlockModal}
+          />
       </div>
 
       <DetailModal
@@ -263,6 +297,14 @@ const CompaniesPage = () => {
         onConfirm={handleConfirmDelete}
         companyName={selectedCompany?.companyName}
         isLoading={isDeleting}
+      />
+
+      <UnlockModal
+        isOpen={isUnlockModalOpen}
+        onClose={handleCloseUnlockModal}
+        onConfirm={handleConfirmUnlock}
+        companyName={selectedUnlockCompany?.companyName}
+        isLoading={isUnlocking}
       />
     </div>
   );

@@ -36,11 +36,11 @@ export const updateUserApi = async (id, formData) => {
 };
 
 /**
- * Delete a user by ID.
+ * Lock a user by ID.
  * @param {string} id
  */
-export const deleteUserApi = async (id) => {
-  const response = await axiosInstance.delete(`/user/${id}`);
+export const lockUserApi = async (id) => {
+  const response = await axiosInstance.put(`/user/${id}/lock`);
   return response.data;
 };
 

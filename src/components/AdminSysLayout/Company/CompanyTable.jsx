@@ -9,7 +9,7 @@ const buildPageList = (currentPage, totalPages) => {
   return Array.from({ length: end - adjustedStart + 1 }, (_, index) => adjustedStart + index);
 };
 
-const CompanyTable = ({ companies, isLoading, pagination, onGoToPage, onViewDetail, onDelete }) => {
+const CompanyTable = ({ companies, isLoading, pagination, onGoToPage, onViewDetail, onDelete, onUnlock }) => {
   const getStatusBadge = (status) => {
     switch (status) {
       case CompanyStatus.Pending:
@@ -121,6 +121,33 @@ const CompanyTable = ({ companies, isLoading, pagination, onGoToPage, onViewDeta
                       <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                     </svg>
                   </button>
+                  {company.status === CompanyStatus.Suspended ? (
+                    <button
+                      className="w-8 h-8 rounded-md bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100 hover:text-green-600 transition-colors cursor-pointer"
+                      aria-label="Mở khóa"
+                      type="button"
+                      onClick={() => onUnlock(company)}
+                      title="Mở khóa"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                        <path d="M7 11V7a5 5 0 019.9-1" />
+                      </svg>
+                    </button>
+                  ) : (
+                    <button
+                      className="w-8 h-8 rounded-md bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100 hover:text-red-600 transition-colors cursor-pointer"
+                      aria-label="Khóa"
+                      type="button"
+                      onClick={() => onDelete(company)}
+                      title="Khóa"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                        <path d="M7 11V7a5 5 0 0110 0v4" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               </td>
             </tr>

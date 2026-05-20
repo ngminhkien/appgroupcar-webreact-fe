@@ -4,7 +4,7 @@ const DeleteModal = ({
   isOpen, 
   onClose, 
   onConfirm, 
-  companyName, 
+  driverName, 
   isLoading 
 }) => {
   if (!isOpen) return null;
@@ -48,10 +48,10 @@ const DeleteModal = ({
         {/* Body */}
         <div className="px-6 py-2">
           <p className="text-slate-600">
-            Bạn có chắc chắn muốn khóa công ty <span className="font-bold text-slate-900">{companyName}</span>?
+            Bạn có chắc chắn muốn khóa tài xế <span className="font-bold text-slate-900">{driverName}</span>?
           </p>
           <p className="mt-2 text-sm text-slate-500 leading-relaxed">
-            Hành động này sẽ tạm ngưng hoạt động của công ty này trên hệ thống.
+            Hành động này sẽ tạm dừng hoạt động của tài xế này trên hệ thống.
           </p>
         </div>
 

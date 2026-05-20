@@ -2,7 +2,7 @@ import React, { useMemo, useEffect, useState } from 'react';
 import '@/components/AdminSysLayout/AdminShared.css';
 import { useQuery } from '@tanstack/react-query';
 import { UserTable, DeleteModal, UserDetailModal, UnlockModal } from '@/components/AdminSysLayout/User';
-import { getUsersApi, deleteUserApi, unlockUserApi } from '@/services/userService';
+import { getUsersApi, lockUserApi, unlockUserApi } from '@/services/userService';
 import { getActiveUsersApi, getNewUsersApi } from '@/services/adminSystemStatisticService';
 import toast from 'react-hot-toast';
 
@@ -163,14 +163,14 @@ const UsersPage = () => {
 
     setIsDeleting(true);
     try {
-      const response = await deleteUserApi(selectedUser.id);
-      toast.success(response?.message || 'Xóa người dùng thành công!');
+      const response = await lockUserApi(selectedUser.id);
+      toast.success(response?.message || 'Khóa người dùng thành công!');
       setIsDeleteModalOpen(false);
       setSelectedUser(null);
       refetch();
       fetchStats();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi xóa người dùng.');
+      toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi khóa người dùng.');
     } finally {
       setIsDeleting(false);
     }

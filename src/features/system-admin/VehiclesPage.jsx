@@ -3,7 +3,10 @@ import '@/components/AdminSysLayout/AdminShared.css';
 import { useQuery } from '@tanstack/react-query';
 import VehicleTable from '@/components/AdminSysLayout/Vehicle/VehicleTable';
 import VehicleDetailModal from '@/components/AdminSysLayout/PendingVehicle/VehicleDetailModal';
-import { getVehiclesApi } from '@/services/vehicleService';
+import DeleteModal from '@/components/AdminSysLayout/Vehicle/DeleteModal';
+import UnlockModal from '@/components/AdminSysLayout/Vehicle/UnlockModal';
+import { getVehiclesApi, lockVehicleApi, unlockVehicleApi } from '@/services/vehicleService';
+import toast from 'react-hot-toast';
 import { VehicleStatus, VehicleType } from '@/types/enums';
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -19,6 +22,14 @@ const VehiclesPage = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
 
+  // Lock/Unlock states
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
+  const [selectedDeleteVehicle, setSelectedDeleteVehicle] = useState(null);
+  const [selectedUnlockVehicle, setSelectedUnlockVehicle] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isUnlocking, setIsUnlocking] = useState(false);
+
   const handleOpenDetailModal = (vehicle) => {
     setSelectedVehicle(vehicle);
     setIsDetailModalOpen(true);
@@ -29,6 +40,58 @@ const VehiclesPage = () => {
     setSelectedVehicle(null);
   };
 
+  const handleOpenDeleteModal = (vehicle) => {
+    setSelectedDeleteVehicle(vehicle);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleCloseDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setSelectedDeleteVehicle(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedDeleteVehicle) return;
+    setIsDeleting(true);
+    try {
+      const response = await lockVehicleApi(selectedDeleteVehicle.id);
+      toast.success(response?.message || 'Khóa phương tiện thành công!');
+      setIsDeleteModalOpen(false);
+      setSelectedDeleteVehicle(null);
+      refetch();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi khóa phương tiện.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleOpenUnlockModal = (vehicle) => {
+    setSelectedUnlockVehicle(vehicle);
+    setIsUnlockModalOpen(true);
+  };
+
+  const handleCloseUnlockModal = () => {
+    setIsUnlockModalOpen(false);
+    setSelectedUnlockVehicle(null);
+  };
+
+  const handleConfirmUnlock = async () => {
+    if (!selectedUnlockVehicle) return;
+    setIsUnlocking(true);
+    try {
+      const response = await unlockVehicleApi(selectedUnlockVehicle.id);
+      toast.success(response?.message || 'Mở khóa phương tiện thành công!');
+      setIsUnlockModalOpen(false);
+      setSelectedUnlockVehicle(null);
+      refetch();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi mở khóa phương tiện.');
+    } finally {
+      setIsUnlocking(false);
+    }
+  };
+
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedKeyword(searchKeyword.trim());
@@ -37,7 +100,7 @@ const VehiclesPage = () => {
     return () => clearTimeout(timeoutId);
   }, [searchKeyword]);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ['vehicles', debouncedKeyword, pageNumber, activeStatusFilter, activeTypeFilter, activeSeatFilter],
     queryFn: async () => {
       const response = await getVehiclesApi({
@@ -184,6 +247,8 @@ const VehiclesPage = () => {
            pagination={pagination}
            onGoToPage={goToPage}
            onViewDetail={handleOpenDetailModal}
+           onDelete={handleOpenDeleteModal}
+           onUnlock={handleOpenUnlockModal}
          />
       </div>
 
@@ -192,6 +257,22 @@ const VehiclesPage = () => {
         isOpen={isDetailModalOpen}
         onClose={handleCloseDetailModal}
         vehicle={selectedVehicle}
+      />
+
+      <DeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={handleCloseDeleteModal}
+        onConfirm={handleConfirmDelete}
+        plateNumber={selectedDeleteVehicle?.plateNumber}
+        isLoading={isDeleting}
+      />
+
+      <UnlockModal
+        isOpen={isUnlockModalOpen}
+        onClose={handleCloseUnlockModal}
+        onConfirm={handleConfirmUnlock}
+        plateNumber={selectedUnlockVehicle?.plateNumber}
+        isLoading={isUnlocking}
       />
     </div>
   );

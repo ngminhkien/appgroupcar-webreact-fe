@@ -18,3 +18,21 @@ export const approveVehicleApi = async (id) => {
   const response = await axiosInstance.patch(`/vehicle/approval/${id}`);
   return response.data;
 };
+
+/**
+ * Lock a vehicle by ID.
+ * @param {string} id
+ */
+export const lockVehicleApi = async (id) => {
+  const response = await axiosInstance.put(`/vehicle/${id}/lock`);
+  return response.data;
+};
+
+/**
+ * Unlock a vehicle by ID.
+ * @param {string} id
+ */
+export const unlockVehicleApi = async (id) => {
+  const response = await axiosInstance.put(`/vehicle/${id}/unlock`);
+  return response.data;
+};
