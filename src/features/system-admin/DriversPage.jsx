@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import DriverTable from '../../components/AdminSysLayout/Driver/DriverTable';
 import DriverDetailModal from '../../components/AdminSysLayout/PendingDriver/DriverDetailModal';
 import { getMarketDriversApi } from '../../services/driverService';
+import { getActiveDriversApi, getNewDriversApi } from '@/services/adminSystemStatisticService';
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -31,6 +32,34 @@ const DriversPage = () => {
 
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState(null);
+
+  // Statistical states
+  const [totalDrivers, setTotalDrivers] = useState('...');
+  const [newDriversCount, setNewDriversCount] = useState('...');
+
+  const fetchStats = async () => {
+    try {
+      const activeRes = await getActiveDriversApi();
+      if (activeRes?.code === 200) {
+        setTotalDrivers(activeRes.data);
+      }
+
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).toISOString();
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+
+      const newRes = await getNewDriversApi(start, end);
+      if (newRes?.code === 200) {
+        setNewDriversCount(newRes.data);
+      }
+    } catch (error) {
+      console.error('Error fetching driver stats:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
 
   const handleOpenDetailModal = (driver) => {
     setSelectedDriver(driver);
@@ -98,6 +127,7 @@ const DriversPage = () => {
 
   const handleDriverUpdated = () => {
     refetch();
+    fetchStats();
   };
 
   useEffect(() => {
@@ -131,7 +161,21 @@ const DriversPage = () => {
           </div>
           <div className="mini-stat-info">
             <span className="mini-stat-label">Tổng tài xế</span>
-            <span className="mini-stat-value">{pagination.totalCount}</span>
+            <span className="mini-stat-value">{totalDrivers}</span>
+          </div>
+        </div>
+        <div className="admin-mini-stat">
+          <div className="mini-stat-icon mini-stat-icon--purple">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <line x1="19" y1="8" x2="19" y2="14" />
+              <line x1="16" y1="11" x2="22" y2="11" />
+            </svg>
+          </div>
+          <div className="mini-stat-info">
+            <span className="mini-stat-label">Tài xế mới (Tháng này)</span>
+            <span className="mini-stat-value">{newDriversCount}</span>
           </div>
         </div>
         <div className="admin-mini-stat">
@@ -147,7 +191,7 @@ const DriversPage = () => {
           </div>
         </div>
         <div className="admin-mini-stat">
-          <div className="mini-stat-icon mini-stat-icon--purple">
+          <div className="mini-stat-icon mini-stat-icon--red">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <circle cx="12" cy="12" r="10"/>
               <path d="M12 6v6l4 2"/>

@@ -25,11 +25,82 @@
   margin: 0;
 }
 
-.section-title {
+.dashboard-section-title {
   font-size: 1.15rem;
   font-weight: 700;
   color: var(--on-surface);
   margin: 20px 0 16px;
+}
+
+.section-header-row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 20px;
+  margin: 20px 0 20px;
+}
+
+.filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.filter-select {
+  padding: 8px 16px;
+  padding-right: 36px;
+  border-radius: 8px;
+  border: 1.5px solid var(--primary-container);
+  background-color: var(--surface-container-lowest);
+  color: var(--primary-container);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 4px 12px rgba(0, 31, 63, 0.08);
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23001f3f' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px;
+}
+
+.filter-select:hover {
+  background-color: var(--primary-container);
+  color: var(--on-primary);
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 31, 63, 0.15);
+}
+
+.date-input {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--surface-container-high);
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+  font-family: inherit;
+  font-size: 0.85rem;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.date-input:focus {
+  border-color: var(--primary-container);
+  box-shadow: 0 0 0 2px rgba(0, 31, 63, 0.1);
+}
+
+.custom-date-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-container-lowest);
+  padding: 4px 8px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 31, 63, 0.05);
 }
 
 /* ─── Stat Cards Grid ─── */
@@ -41,15 +112,20 @@
 }
 
 .stat-card {
-  background: var(--surface-container-lowest);
+  background: linear-gradient(145deg, var(--surface-container-lowest) 20%, var(--card-bg, transparent) 100%);
+  border-bottom: 3px solid var(--card-accent, transparent);
   border-radius: 12px;
   padding: 24px;
   transition: var(--transition-fluid);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 24px rgba(25, 28, 29, 0.06);
+  transform: translateY(-4px);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(145deg, var(--surface-container-lowest) 0%, var(--card-bg, transparent) 100%);
 }
 
 .stat-card-header {
@@ -132,7 +208,7 @@
 /* ─── Charts Row ─── */
 .charts-row {
   display: grid;
-  grid-template-columns: 1.6fr 1fr;
+  grid-template-columns: 1fr;
   gap: 20px;
   margin-bottom: 28px;
 }
@@ -174,87 +250,87 @@
   gap: 4px;
   background: var(--surface-container-low);
   border-radius: 8px;
-  padding: 3px;
+  padding: 4px;
 }
 
 .chart-tab {
-  padding: 6px 14px;
+  padding: 6px 16px;
   border: none;
-  background: none;
+  background: transparent;
   border-radius: 6px;
   font-size: 0.78rem;
   font-weight: 600;
   font-family: var(--font-family);
   color: var(--on-surface-variant);
   cursor: pointer;
-  transition: var(--transition-fluid);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chart-tab:hover:not(.chart-tab--active) {
+  background: var(--surface-container-high);
+  color: var(--on-surface);
 }
 
 .chart-tab--active {
-  background: var(--surface-container-lowest);
-  color: var(--on-surface);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-/* Bar chart */
-.bar-chart {
-  display: flex;
-  align-items: flex-end;
-  gap: 16px;
-  height: 200px;
-  padding-top: 20px;
-}
-
-.bar-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  height: 100%;
-}
-
-.bar-wrapper {
-  flex: 1;
-  width: 100%;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.bar-fill {
-  width: 80%;
-  max-width: 48px;
-  background: linear-gradient(180deg, var(--primary-container), rgba(0, 31, 63, 0.6));
-  border-radius: 6px 6px 2px 2px;
-  transition: height 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
-  position: relative;
-  min-height: 8px;
-}
-
-.bar-fill:hover {
-  background: linear-gradient(180deg, var(--secondary-container), rgba(74, 225, 131, 0.6));
-}
-
-.bar-tooltip {
-  position: absolute;
-  top: -28px;
-  left: 50%;
-  transform: translateX(-50%);
   background: var(--primary-container);
   color: var(--on-primary);
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 31, 63, 0.15);
 }
 
-.bar-label {
+/* Custom Line Chart */
+.line-chart-container {
+  width: 100%;
+  padding-top: 10px;
+  position: relative;
+}
+
+.line-chart-container svg {
+  overflow: visible;
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.chart-tooltip {
+  background: var(--surface-container-lowest);
+  border: 1.5px solid var(--surface-container-high);
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: 0 8px 24px rgba(0, 31, 63, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  pointer-events: none;
+  min-width: 110px;
+  text-align: center;
+  /* Animate appearance slightly */
+  animation: tooltipFadeIn 0.15s ease-out;
+}
+
+.tooltip-label {
   font-size: 0.72rem;
+  font-weight: 600;
   color: var(--on-surface-variant);
-  opacity: 0.6;
-  font-weight: 500;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tooltip-value {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--primary-container);
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 4px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 
 /* Distribution */

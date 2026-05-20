@@ -13,11 +13,6 @@ const AdminSysLayout = () => {
         <div className="admin-content">
           <Outlet />
         </div>
-        <footer className="admin-footer">
-          <span className="admin-footer-right">
-            © 2024 NexusRide Dashboard. Hệ thống đang vận hành ổn định.
-          </span>
-        </footer>
       </div>
     </div>
   );

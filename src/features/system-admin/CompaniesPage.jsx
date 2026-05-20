@@ -153,8 +153,8 @@ const CompaniesPage = () => {
       <div className="admin-page-header">
         <div className="admin-page-header-row">
           <div>
-            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight font-['Inter'] uppercase">Danh sách công ty</h2>
-            <p className="text-slate-500 mt-2 font-medium font-['Inter']">Quản lý danh sách công ty trong hệ thống.</p>
+            <h1 className="admin-page-title">Danh sách công ty</h1>
+            <p className="admin-page-desc">Quản lý danh sách công ty trong hệ thống.</p>
           </div>
         </div>
       </div>

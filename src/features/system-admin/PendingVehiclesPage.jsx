@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import '@/components/AdminSysLayout/AdminShared.css';
 import { useQuery } from '@tanstack/react-query';
 import VehicleTable from '@/components/AdminSysLayout/Vehicle/VehicleTable';
 import VehicleDetailModal from '@/components/AdminSysLayout/PendingVehicle/VehicleDetailModal';
@@ -67,14 +68,12 @@ const PendingVehiclesPage = () => {
   return (
     <div className="p-6 md:p-8 space-y-8 bg-[#F8FAFC] min-h-screen">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
-        <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight font-['Inter']">
-            Phê duyệt Phương tiện
-          </h1>
-          <p className="text-slate-500 mt-2 font-medium font-['Inter']">
-            Quản lý và xem xét các hồ sơ phương tiện mới đăng ký.
-          </p>
+      <div className="admin-page-header">
+        <div className="admin-page-header-row">
+          <div>
+            <h1 className="admin-page-title">Phê duyệt Phương tiện</h1>
+            <p className="admin-page-desc">Quản lý và xem xét các hồ sơ phương tiện mới đăng ký.</p>
+          </div>
         </div>
       </div>
 

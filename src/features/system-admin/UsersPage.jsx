@@ -3,6 +3,7 @@ import '@/components/AdminSysLayout/AdminShared.css';
 import { useQuery } from '@tanstack/react-query';
 import { UserTable, DeleteModal, UserDetailModal } from '@/components/AdminSysLayout/User';
 import { getUsersApi, deleteUserApi } from '@/services/userService';
+import { getActiveUsersApi, getNewUsersApi } from '@/services/adminSystemStatisticService';
 import toast from 'react-hot-toast';
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -32,6 +33,34 @@ const UsersPage = () => {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
   const [pageNumber, setPageNumber] = useState(1);
+
+  // Statistical states
+  const [totalUsers, setTotalUsers] = useState('...');
+  const [newUsersCount, setNewUsersCount] = useState('...');
+
+  const fetchStats = async () => {
+    try {
+      const activeRes = await getActiveUsersApi();
+      if (activeRes?.code === 200) {
+        setTotalUsers(activeRes.data);
+      }
+
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).toISOString();
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+
+      const newRes = await getNewUsersApi(start, end);
+      if (newRes?.code === 200) {
+        setNewUsersCount(newRes.data);
+      }
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
 
   // Delete modal state
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -67,13 +96,12 @@ const UsersPage = () => {
     staleTime: 3 * 60 * 1000,
     placeholderData: (prev) => prev,
   });
-
   const users = useMemo(() => {
     const items = Array.isArray(data?.items) ? data.items : [];
     return items.map((item) => {
       const displayName = item.fullName || item.userName || item.email || 'N/A';
       const status = item.deleteAt === null ? 'active' : 'locked';
-console.log(items);
+      console.log("date>>>>>>>>>>>>>>>>>>>", item.createAt || item.createdAt);
       return {
         id: item.id,
         name: displayName,
@@ -81,7 +109,7 @@ console.log(items);
         avatarColor: getAvatarColor(displayName),
         email: item.email || '--',
         phone: item.phoneNumber || '--',
-        registerDate: formatDate(item.createdAt),
+        registerDate: formatDate(item.createAt || item.createdAt),
         status,
       };
     });
@@ -135,6 +163,7 @@ console.log(items);
       setIsDeleteModalOpen(false);
       setSelectedUser(null);
       refetch();
+      fetchStats();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi xóa người dùng.');
     } finally {
@@ -154,7 +183,9 @@ console.log(items);
 
   const handleUserUpdated = () => {
     refetch();
+    fetchStats();
   };
+  console.log("page>>>>>>>>>>>>>>>>>>>>>>>>>>>.", users);
 
   return (
     <div className="users-page">
@@ -178,7 +209,21 @@ console.log(items);
           </div>
           <div className="mini-stat-info">
             <span className="mini-stat-label">Tổng người dùng</span>
-            <span className="mini-stat-value">{pagination.totalCount}</span>
+            <span className="mini-stat-value">{totalUsers}</span>
+          </div>
+        </div>
+        <div className="admin-mini-stat">
+          <div className="mini-stat-icon mini-stat-icon--purple">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <line x1="19" y1="8" x2="19" y2="14" />
+              <line x1="16" y1="11" x2="22" y2="11" />
+            </svg>
+          </div>
+          <div className="mini-stat-info">
+            <span className="mini-stat-label">Người dùng mới (Tháng này)</span>
+            <span className="mini-stat-value">{newUsersCount}</span>
           </div>
         </div>
         <div className="admin-mini-stat">
