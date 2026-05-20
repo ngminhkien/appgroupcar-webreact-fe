@@ -67,6 +67,7 @@ axiosInstance.interceptors.response.use(
     originalRequest._retry = true;
     isRefreshing = true;
 
+    const accessToken = localStorage.getItem("accessToken");
     const refreshToken = localStorage.getItem("refreshToken");
 
     if (!refreshToken) {
@@ -80,12 +81,18 @@ axiosInstance.interceptors.response.use(
 
     try {
       const { data } = await axios.post(
-        `${import.meta.env.VITE_API_URL}/auth/refresh`,
-        { refreshToken },
+        `${import.meta.env.VITE_API_URL}/refresh-token`,
+        { accessToken, refreshToken },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
       );
 
-      const newAccessToken = data.data.accessToken;
-      const newRefreshToken = data.data.refreshToken;
+      const responseData = data.data || data;
+      const newAccessToken = responseData.accessToken;
+      const newRefreshToken = responseData.refreshToken;
 
       localStorage.setItem("accessToken", newAccessToken);
       if (newRefreshToken) {
