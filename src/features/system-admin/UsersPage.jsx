@@ -1,8 +1,8 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import '@/components/AdminSysLayout/AdminShared.css';
 import { useQuery } from '@tanstack/react-query';
-import { UserTable, DeleteModal, UserDetailModal } from '@/components/AdminSysLayout/User';
-import { getUsersApi, deleteUserApi } from '@/services/userService';
+import { UserTable, DeleteModal, UserDetailModal, UnlockModal } from '@/components/AdminSysLayout/User';
+import { getUsersApi, deleteUserApi, unlockUserApi } from '@/services/userService';
 import { getActiveUsersApi, getNewUsersApi } from '@/services/adminSystemStatisticService';
 import toast from 'react-hot-toast';
 
@@ -66,6 +66,11 @@ const UsersPage = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Unlock modal state
+  const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
+  const [selectedUnlockUser, setSelectedUnlockUser] = useState(null);
+  const [isUnlocking, setIsUnlocking] = useState(false);
 
   // Detail modal state
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -168,6 +173,34 @@ const UsersPage = () => {
       toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi xóa người dùng.');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleOpenUnlockModal = (user) => {
+    setSelectedUnlockUser(user);
+    setIsUnlockModalOpen(true);
+  };
+
+  const handleCloseUnlockModal = () => {
+    setIsUnlockModalOpen(false);
+    setSelectedUnlockUser(null);
+  };
+
+  const handleConfirmUnlock = async () => {
+    if (!selectedUnlockUser) return;
+
+    setIsUnlocking(true);
+    try {
+      const response = await unlockUserApi(selectedUnlockUser.id);
+      toast.success(response?.message || 'Mở khóa người dùng thành công!');
+      setIsUnlockModalOpen(false);
+      setSelectedUnlockUser(null);
+      refetch();
+      fetchStats();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Có lỗi xảy ra khi mở khóa người dùng.');
+    } finally {
+      setIsUnlocking(false);
     }
   };
 
@@ -290,6 +323,7 @@ const UsersPage = () => {
         pagination={pagination}
         onGoToPage={goToPage}
         onDelete={handleOpenDeleteModal}
+        onUnlock={handleOpenUnlockModal}
         onViewDetail={handleOpenDetailModal}
       />
 
@@ -299,6 +333,14 @@ const UsersPage = () => {
         onConfirm={handleConfirmDelete}
         userName={selectedUser?.name}
         isLoading={isDeleting}
+      />
+
+      <UnlockModal
+        isOpen={isUnlockModalOpen}
+        onClose={handleCloseUnlockModal}
+        onConfirm={handleConfirmUnlock}
+        userName={selectedUnlockUser?.name}
+        isLoading={isUnlocking}
       />
 
       <UserDetailModal

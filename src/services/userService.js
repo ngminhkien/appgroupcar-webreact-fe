@@ -45,6 +45,15 @@ export const deleteUserApi = async (id) => {
 };
 
 /**
+ * Unlock a user by ID.
+ * @param {string} id
+ */
+export const unlockUserApi = async (id) => {
+  const response = await axiosInstance.put(`/user/${id}/unlock`);
+  return response.data;
+};
+
+/**
  * Get current logged in user profile.
  */
 export const getUserProfileApi = async () => {

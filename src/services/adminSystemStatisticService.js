@@ -40,3 +40,13 @@ export const getNewDriversApi = async (startDate, endDate) => {
   return response.data;
 };
 
+export const getLast12MonthsRevenueApi = async (currentDate) => {
+  const response = await axiosInstance.post('/AdminSystemStatistic/last-12-months-revenue', { currentDate });
+  return response.data;
+};
+
+export const getMonthlyWeeksRevenueApi = async (month, year) => {
+  const response = await axiosInstance.post('/AdminSystemStatistic/monthly-weeks-revenue', { month, year });
+  return response.data;
+};
+

@@ -16,6 +16,7 @@ const UserTable = ({
   pagination, 
   onGoToPage,
   onDelete,
+  onUnlock,
   onViewDetail
 }) => {
   const currentStart = pagination.totalCount === 0
@@ -97,18 +98,33 @@ const UserTable = ({
                       <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                     </svg>
                   </button>
-                  <button 
-                    className="table-action-btn" 
-                    aria-label="Khóa mở" 
-                    type="button"
-                    onClick={() => onDelete(user)}
-                    title="Khóa"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                      <path d="M7 11V7a5 5 0 0110 0v4" />
-                    </svg>
-                  </button>
+                  {user.status === 'locked' ? (
+                    <button 
+                      className="table-action-btn" 
+                      aria-label="Mở khóa" 
+                      type="button"
+                      onClick={() => onUnlock(user)}
+                      title="Mở khóa"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                        <path d="M7 11V7a5 5 0 019.9-1" />
+                      </svg>
+                    </button>
+                  ) : (
+                    <button 
+                      className="table-action-btn" 
+                      aria-label="Khóa" 
+                      type="button"
+                      onClick={() => onDelete(user)}
+                      title="Khóa"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                        <path d="M7 11V7a5 5 0 0110 0v4" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               </td>
             </tr>

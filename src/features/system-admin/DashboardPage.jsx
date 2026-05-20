@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './DashboardPage.css';
-import { getActiveUsersApi, getActiveDriversApi, getActiveVehiclesApi, getSuccessfulOffersApi, getSuccessfulOrdersApi, getTotalRevenueApi } from '@/services/adminSystemStatisticService';
+import { getActiveUsersApi, getActiveDriversApi, getActiveVehiclesApi, getSuccessfulOffersApi, getSuccessfulOrdersApi, getTotalRevenueApi, getLast12MonthsRevenueApi, getMonthlyWeeksRevenueApi } from '@/services/adminSystemStatisticService';
 
 const statCards = [
   {
@@ -144,7 +144,7 @@ const RevenueLineChart = ({ data }) => {
   const points = data.map((d, i) => {
     const x = paddingLeft + (i * chartWidth) / (data.length - 1 || 1);
     const y = paddingTop + chartHeight - (d.value / maxVal) * chartHeight;
-    return { x, y, label: d.label, value: d.value };
+    return { x, y, label: d.label, value: d.value, range: d.range };
   });
 
   const linePath = points.reduce((path, p, i) => {
@@ -326,7 +326,7 @@ const RevenueLineChart = ({ data }) => {
           style={{
             position: 'absolute',
             left: `${(points[hoveredIndex].x / width) * 100}%`,
-            top: `${((points[hoveredIndex].y - 50) / height) * 100}%`,
+            top: `${((points[hoveredIndex].y - 60) / height) * 100}%`,
             transform: 'translateX(-50%)',
             pointerEvents: 'none',
             zIndex: 10,
@@ -334,6 +334,11 @@ const RevenueLineChart = ({ data }) => {
           }}
         >
           <div className="tooltip-label">{points[hoveredIndex].label}</div>
+          {points[hoveredIndex].range && (
+            <div style={{ fontSize: '0.68rem', color: 'var(--on-surface-variant)', opacity: 0.6, margin: '2px 0 4px' }}>
+              {points[hoveredIndex].range}
+            </div>
+          )}
           <div className="tooltip-value">
             {points[hoveredIndex].value.toLocaleString()} đ
           </div>
@@ -378,7 +383,16 @@ const recentActivities = [
 
 const DashboardPage = () => {
   const [chartMode, setChartMode] = useState('year'); // 'year' (12 months) or 'month' (weekly)
-  const activeChartData = chartMode === 'year' ? monthlyRevenueData : weeklyRevenueData;
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  const [monthlyRevenue, setMonthlyRevenue] = useState(monthlyRevenueData);
+  const [weeklyRevenue, setWeeklyRevenue] = useState(weeklyRevenueData);
+
+  const [total12MonthsRevenue, setTotal12MonthsRevenue] = useState(0);
+  const [totalWeeklyRevenue, setTotalWeeklyRevenue] = useState(0);
+
+  const activeChartData = chartMode === 'year' ? monthlyRevenue : weeklyRevenue;
 
   const [activeUsers, setActiveUsers] = useState('...');
   const [activeDrivers, setActiveDrivers] = useState('...');
@@ -410,6 +424,54 @@ const DashboardPage = () => {
     };
     fetchEntityStats();
   }, []);
+
+  // Fetch Last 12 months revenue stats (once)
+  useEffect(() => {
+    const fetch12MonthsRevenue = async () => {
+      try {
+        const currentDate = new Date().toISOString();
+        const res = await getLast12MonthsRevenueApi(currentDate);
+        if (res?.code === 200 && res.data) {
+          const list = res.data.monthlyRevenues || [];
+          if (list.length > 0) {
+            const formatted = list.map((item) => ({
+              label: `Th${item.monthYear.replace('/20', '/')}`,
+              value: item.revenue,
+            }));
+            setMonthlyRevenue(formatted);
+            setTotal12MonthsRevenue(res.data.totalRevenue ?? 0);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching last 12 months revenue:', error);
+      }
+    };
+    fetch12MonthsRevenue();
+  }, []);
+
+  // Fetch Weekly revenue stats (when selectedMonth or selectedYear changes)
+  useEffect(() => {
+    const fetchWeeklyRevenue = async () => {
+      try {
+        const res = await getMonthlyWeeksRevenueApi(selectedMonth, selectedYear);
+        if (res?.code === 200 && res.data) {
+          const list = res.data.weeklyRevenues || [];
+          if (list.length > 0) {
+            const formatted = list.map((item) => ({
+              label: `Tuần ${item.weekNumber}`,
+              value: item.revenue,
+              range: item.weekRange,
+            }));
+            setWeeklyRevenue(formatted);
+            setTotalWeeklyRevenue(res.data.totalRevenue ?? 0);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching weekly revenue:', error);
+      }
+    };
+    fetchWeeklyRevenue();
+  }, [selectedMonth, selectedYear]);
 
   const getFilterDates = () => {
     const now = new Date();
@@ -620,20 +682,108 @@ const DashboardPage = () => {
                   ? 'Phân tích doanh thu 12 tháng gần nhất'
                   : 'Phân tích doanh thu theo tuần của tháng'}
               </p>
+              {chartMode === 'year' ? (
+                <div 
+                  className="chart-total-badge"
+                  style={{ 
+                    marginTop: '8px', 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '6px', 
+                    background: 'rgba(59, 130, 246, 0.08)', 
+                    border: '1px solid rgba(59, 130, 246, 0.15)', 
+                    color: 'var(--primary-container)', 
+                    padding: '4px 10px', 
+                    borderRadius: '8px', 
+                    fontSize: '0.82rem', 
+                    fontWeight: '700' 
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                  </svg>
+                  <span>Tổng 12 tháng: {total12MonthsRevenue.toLocaleString()} đ</span>
+                </div>
+              ) : (
+                <div 
+                  className="chart-total-badge"
+                  style={{ 
+                    marginTop: '8px', 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '6px', 
+                    background: 'rgba(16, 185, 129, 0.08)', 
+                    border: '1px solid rgba(16, 185, 129, 0.15)', 
+                    color: '#0f766e', 
+                    padding: '4px 10px', 
+                    borderRadius: '8px', 
+                    fontSize: '0.82rem', 
+                    fontWeight: '700' 
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                  </svg>
+                  <span>Tổng tháng {selectedMonth}/{selectedYear}: {totalWeeklyRevenue.toLocaleString()} đ</span>
+                </div>
+              )}
             </div>
-            <div className="chart-tabs">
-              <button
-                className={`chart-tab ${chartMode === 'month' ? 'chart-tab--active' : ''}`}
-                onClick={() => setChartMode('month')}
-              >
-                Tuần
-              </button>
-              <button
-                className={`chart-tab ${chartMode === 'year' ? 'chart-tab--active' : ''}`}
-                onClick={() => setChartMode('year')}
-              >
-                12 Tháng
-              </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {chartMode === 'month' && (
+                <div className="chart-date-selectors" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                    className="filter-select"
+                    style={{ 
+                      padding: '6px 28px 6px 12px',
+                      backgroundPosition: 'right 8px center',
+                      fontSize: '0.8rem',
+                      height: '32px',
+                      boxShadow: 'none'
+                    }}
+                  >
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                      <option key={m} value={m}>Tháng {m}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(Number(e.target.value))}
+                    className="filter-select"
+                    style={{ 
+                      padding: '6px 28px 6px 12px',
+                      backgroundPosition: 'right 8px center',
+                      fontSize: '0.8rem',
+                      height: '32px',
+                      boxShadow: 'none'
+                    }}
+                  >
+                    {[2024, 2025, 2026, 2027].map((y) => (
+                      <option key={y} value={y}>Năm {y}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="chart-tabs">
+                <button
+                  className={`chart-tab ${chartMode === 'month' ? 'chart-tab--active' : ''}`}
+                  onClick={() => setChartMode('month')}
+                >
+                  Tuần
+                </button>
+                <button
+                  className={`chart-tab ${chartMode === 'year' ? 'chart-tab--active' : ''}`}
+                  onClick={() => setChartMode('year')}
+                >
+                  12 Tháng
+                </button>
+              </div>
             </div>
           </div>
           <RevenueLineChart data={activeChartData} />
