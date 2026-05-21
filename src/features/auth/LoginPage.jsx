@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthBrandPanel, AuthFormInput } from '@/components/AuthLayout';
-import { loginApi } from '@/services/authService';
+import { loginApi, googleLoginApi } from '@/services/authService';
 import { useAuth } from '@/store/AuthContext';
 import './LoginPage.css';
 
@@ -15,8 +15,138 @@ const LoginPage = () => {
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [apiError, setApiError] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+
+  // ─── Role-based redirect helper ───
+  const redirectByRole = async (accessToken) => {
+    const { jwtDecode } = await import('jwt-decode');
+    const decoded = jwtDecode(accessToken);
+    const role = decoded?.Roles || decoded?.role || decoded?.Role || '';
+
+    if (role === 'Admin' || role === 'admin') {
+      navigate('/admin/dashboard', { replace: true });
+    } else if (role === 'ADMIN_COMPANY') {
+      navigate('/company-admin/dashboard', { replace: true });
+    } else {
+      navigate('/', { replace: true });
+    }
+  };
+
+  // ─── Google Sign-In callback ───
+  const handleGoogleLogin = async (credentialResponse) => {
+    const idToken = credentialResponse.credential;
+    if (!idToken) {
+      setApiError('Không nhận được thông tin từ Google. Vui lòng thử lại.');
+      return;
+    }
+
+    setIsGoogleLoading(true);
+    setApiError('');
+
+    try {
+      const response = await googleLoginApi(idToken);
+
+      if (response.code === 200 && response.data) {
+        login(response.data);
+        await redirectByRole(response.data.accessToken);
+      } else {
+        setApiError(response.message || 'Đăng nhập với Google thất bại.');
+      }
+    } catch (err) {
+      const message =
+        err.response?.data?.message ||
+        err.message ||
+        'Đã xảy ra lỗi khi đăng nhập với Google.';
+      setApiError(message);
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+  // ─── Initialize Google Identity Services ───
+  useEffect(() => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId || clientId === 'YOUR_GOOGLE_CLIENT_ID_HERE') return;
+
+    const initializeGoogle = () => {
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: handleGoogleLogin,
+        });
+      }
+    };
+
+    // GIS script may already be loaded or still loading
+    if (window.google?.accounts?.id) {
+      initializeGoogle();
+    } else {
+      // Wait for the script to load
+      const checkInterval = setInterval(() => {
+        if (window.google?.accounts?.id) {
+          clearInterval(checkInterval);
+          initializeGoogle();
+        }
+      }, 100);
+      // Cleanup after 10 seconds max
+      const timeout = setTimeout(() => clearInterval(checkInterval), 10000);
+      return () => {
+        clearInterval(checkInterval);
+        clearTimeout(timeout);
+      };
+    }
+  }, []);
+
+  // ─── Trigger Google popup on button click ───
+  const handleGoogleButtonClick = () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId || clientId === 'YOUR_GOOGLE_CLIENT_ID_HERE') {
+      setApiError('Chưa cấu hình Google Client ID. Vui lòng liên hệ quản trị viên.');
+      return;
+    }
+
+    if (window.google?.accounts?.id) {
+      window.google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          // One Tap not available, fall back to standard OAuth popup
+          const oauth2Url = `https://accounts.google.com/o/oauth2/v2/auth?` +
+            `client_id=${clientId}` +
+            `&redirect_uri=${encodeURIComponent(window.location.origin + '/login')}` +
+            `&response_type=id_token` +
+            `&scope=openid email profile` +
+            `&nonce=${Math.random().toString(36).substring(2)}`;
+
+          const popup = window.open(oauth2Url, 'google-login', 'width=500,height=600,left=200,top=100');
+          
+          // Listen for the redirect back with id_token in hash
+          const popupInterval = setInterval(() => {
+            try {
+              if (!popup || popup.closed) {
+                clearInterval(popupInterval);
+                return;
+              }
+              const hash = popup.location.hash;
+              if (hash && hash.includes('id_token=')) {
+                clearInterval(popupInterval);
+                const params = new URLSearchParams(hash.substring(1));
+                const idToken = params.get('id_token');
+                popup.close();
+                if (idToken) {
+                  handleGoogleLogin({ credential: idToken });
+                }
+              }
+            } catch {
+              // Cross-origin — ignore until redirect
+            }
+          }, 500);
+        }
+      });
+    } else {
+      setApiError('Google Sign-In chưa sẵn sàng. Vui lòng tải lại trang.');
+    }
+  };
 
   const handleChange = (field) => (e) => {
     setFormData((prev) => ({ ...prev, [field]: e.target.value }));
@@ -56,24 +186,8 @@ const LoginPage = () => {
       const response = await loginApi(formData.email, formData.password);
 
       if (response.code === 200 && response.data) {
-        // Store tokens and update auth state
         login(response.data);
-
-        // Role-based redirect
-        const { jwtDecode } = await import('jwt-decode');
-        const decoded = jwtDecode(response.data.accessToken);
-
-        // Map role from payload: check 'Roles' (sample payload) or 'role'/'Role' (fallback)
-        const role = decoded?.Roles || decoded?.role || decoded?.Role || '';
-
-        // Check for 'Admin' (capitalized as in sample) or 'admin' / 'system_admin'
-        if (role === 'Admin' || role === 'admin') {
-          navigate('/admin/dashboard', { replace: true });
-        } else if (role === 'ADMIN_COMPANY') {
-          navigate('/company-admin/dashboard', { replace: true });
-        } else {
-          navigate('/', { replace: true });
-        }
+        await redirectByRole(response.data.accessToken);
       } else {
         setApiError(response.message || 'Đăng nhập thất bại');
       }
@@ -186,14 +300,24 @@ const LoginPage = () => {
               <span>hoặc</span>
             </div>
 
-            <button type="button" className="auth-btn-social" id="login-google-btn">
-              <svg width="20" height="20" viewBox="0 0 48 48">
-                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                <path fill="#FBBC05" d="M10.53 28.59A14.5 14.5 0 019.5 24c0-1.59.28-3.14.76-4.59l-7.98-6.19A23.998 23.998 0 000 24c0 3.77.9 7.34 2.44 10.5l8.09-5.91z"/>
-                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-              </svg>
-              Đăng nhập với Google
+            <button
+              type="button"
+              className="auth-btn-social"
+              id="login-google-btn"
+              onClick={handleGoogleButtonClick}
+              disabled={isGoogleLoading || isLoading}
+            >
+              {isGoogleLoading ? (
+                <span className="auth-spinner" style={{ borderTopColor: '#4285F4', borderColor: 'rgba(66, 133, 244, 0.2)' }} />
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 48 48">
+                  <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                  <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                  <path fill="#FBBC05" d="M10.53 28.59A14.5 14.5 0 019.5 24c0-1.59.28-3.14.76-4.59l-7.98-6.19A23.998 23.998 0 000 24c0 3.77.9 7.34 2.44 10.5l8.09-5.91z"/>
+                  <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                </svg>
+              )}
+              {isGoogleLoading ? 'Đang xử lý...' : 'Đăng nhập với Google'}
             </button>
           </form>
 

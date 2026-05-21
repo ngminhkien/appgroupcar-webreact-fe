@@ -32,10 +32,20 @@ export const AuthProvider = ({ children }) => {
 
     if (decoded) {
       setUser(decoded);
+      const userId = decoded.id || decoded.UserId || decoded.userId || decoded.sub || decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
+      if (userId) {
+        localStorage.setItem('userId', userId);
+      }
+      const companyId = decoded.CompanyId || decoded.companyId || decoded.Company || decoded.company;
+      if (companyId) {
+        localStorage.setItem('companyId', companyId);
+      }
     } else {
       // Token invalid/expired — clean up
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('companyId');
       setUser(null);
     }
 
@@ -52,6 +62,16 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('refreshToken', refreshToken);
 
     const decoded = decodeAndValidate(accessToken);
+    if (decoded) {
+      const userId = decoded.id || decoded.UserId || decoded.userId || decoded.sub || decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
+      if (userId) {
+        localStorage.setItem('userId', userId);
+      }
+      const companyId = decoded.CompanyId || decoded.companyId || decoded.Company || decoded.company;
+      if (companyId) {
+        localStorage.setItem('companyId', companyId);
+      }
+    }
     setUser(decoded);
   }, []);
 
@@ -70,6 +90,8 @@ export const AuthProvider = ({ children }) => {
     }
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('companyId');
     setUser(null);
   }, []);
 

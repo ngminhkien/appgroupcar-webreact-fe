@@ -75,6 +75,8 @@ axiosInstance.interceptors.response.use(
       // Clear tokens and redirect to login
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("companyId");
       window.location.href = "/login";
       return Promise.reject(error);
     }
@@ -108,6 +110,8 @@ axiosInstance.interceptors.response.use(
       processQueue(refreshError, null);
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("companyId");
       window.location.href = "/login";
       return Promise.reject(refreshError);
     } finally {

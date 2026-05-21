@@ -41,3 +41,12 @@ export const logoutApi = async (refreshToken) => {
   const response = await axiosInstance.post('/auth/logout', { refreshToken });
   return response.data;
 };
+
+/**
+ * Google Login API
+ * @param {string} idToken
+ */
+export const googleLoginApi = async (idToken) => {
+  const response = await axiosInstance.post('/Auth/google/callback', { idToken });
+  return response.data;
+};

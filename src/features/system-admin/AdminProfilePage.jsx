@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery } from '@tanstack/react-query';
 import { getUserProfileApi } from '@/services/userService';
+import EditProfileModal from './EditProfileModal';
 
 const AdminProfilePage = () => {
-  const { data: profileInfo, isLoading, isError, error } = useQuery({
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  
+  const { data: profileInfo, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['userProfile'],
     queryFn: async () => {
       const response = await getUserProfileApi();
@@ -97,12 +100,15 @@ const AdminProfilePage = () => {
              <p className="text-slate-500 mt-5 leading-relaxed max-w-xl text-sm font-medium">
                Chịu trách nhiệm giám sát toàn bộ hoạt động của NexusRide, điều phối tài xế và tối ưu hóa các tuyến đường vận chuyển trong khu vực.
              </p>
-             <button className="mt-8 inline-flex items-center justify-center px-5 py-3 bg-[#0A1A2F] text-white hover:bg-slate-800 rounded-[0.75rem] font-bold transition-colors text-sm shadow-md">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
-                </svg>
-                Chỉnh sửa thông tin
-             </button>
+              <button 
+                onClick={() => setIsEditModalOpen(true)}
+                className="mt-8 inline-flex items-center justify-center px-5 py-3 bg-[#0A1A2F] text-white hover:bg-slate-800 rounded-[0.75rem] font-bold transition-colors text-sm shadow-md"
+              >
+                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                 </svg>
+                 Chỉnh sửa thông tin
+              </button>
           </div>
         </div>
 
@@ -185,6 +191,13 @@ const AdminProfilePage = () => {
         </div>
 
       </div>
+
+      <EditProfileModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        profileInfo={profileInfo}
+        onSuccess={refetch}
+      />
     </div>
   );
 };
