@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import TripDetails from './TripDetails';
+import TripBooking from './TripBooking';
 
 const TripCard = ({ trip }) => {
   const [showDetails, setShowDetails] = useState(false);
+  const [showBooking, setShowBooking] = useState(false);
 
   const formatPrice = (price) => {
     return `${price.toLocaleString()}đ`;
@@ -106,11 +108,20 @@ const TripCard = ({ trip }) => {
 
             {/* CTA buttons for Mobile view only */}
             <div className="flex md:hidden items-center gap-2.5 w-full sm:w-auto">
-              <button className="flex-1 sm:flex-initial bg-slate-950 hover:bg-black text-white text-xs font-extrabold py-3 px-5 rounded-xl cursor-pointer shadow-md transition-all duration-300">
-                Xem chỗ ngồi
+              <button 
+                onClick={() => {
+                  setShowBooking(!showBooking);
+                  setShowDetails(false);
+                }}
+                className="flex-1 sm:flex-initial bg-slate-950 hover:bg-black text-white text-xs font-extrabold py-3 px-5 rounded-xl cursor-pointer shadow-md transition-all duration-300"
+              >
+                {showBooking ? 'Đóng chọn' : 'Chọn chuyến'}
               </button>
               <button
-                onClick={() => setShowDetails(!showDetails)}
+                onClick={() => {
+                  setShowDetails(!showDetails);
+                  setShowBooking(false);
+                }}
                 className="flex-1 sm:flex-initial bg-slate-200/70 hover:bg-slate-200 text-slate-700 text-xs font-extrabold py-3 px-5 rounded-xl cursor-pointer transition-colors duration-300"
               >
                 {showDetails ? 'Ẩn chi tiết' : 'Chi tiết'}
@@ -128,11 +139,20 @@ const TripCard = ({ trip }) => {
           </div>
 
           <div className="flex flex-col gap-2 w-full mt-4">
-            <button className="w-full bg-slate-950 hover:bg-black text-white text-xs font-extrabold py-3 px-4 rounded-xl cursor-pointer shadow-md hover:shadow-slate-950/15 transition-all duration-300">
-              Chọn chuyến
+            <button 
+              onClick={() => {
+                setShowBooking(!showBooking);
+                setShowDetails(false);
+              }}
+              className="w-full bg-slate-950 hover:bg-black text-white text-xs font-extrabold py-3 px-4 rounded-xl cursor-pointer shadow-md hover:shadow-slate-950/15 transition-all duration-300"
+            >
+              {showBooking ? 'Đóng chọn' : 'Chọn chuyến'}
             </button>
             <button
-              onClick={() => setShowDetails(!showDetails)}
+              onClick={() => {
+                setShowDetails(!showDetails);
+                setShowBooking(false);
+              }}
               className="w-full bg-slate-200/70 hover:bg-slate-200 text-slate-700 text-xs font-extrabold py-3 px-4 rounded-xl cursor-pointer transition-colors duration-300"
             >
               {showDetails ? 'Ẩn chi tiết' : 'Chi tiết'}
@@ -144,6 +164,11 @@ const TripCard = ({ trip }) => {
       {/* Conditionally rendered trip details drop-down container */}
       {showDetails && (
         <TripDetails trip={trip} onClose={() => setShowDetails(false)} />
+      )}
+
+      {/* Conditionally rendered trip booking flow dropdown container */}
+      {showBooking && (
+        <TripBooking trip={trip} onClose={() => setShowBooking(false)} />
       )}
 
     </div>
