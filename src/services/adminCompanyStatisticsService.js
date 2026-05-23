@@ -19,9 +19,15 @@ export const getCompletedShowtimeCountApi = async ({ companyId, startDate, endDa
   return response.data;
 };
 
+export const getMonthlyRevenueApi = async ({ companyId }) => {
+  const response = await axiosInstance.post('/AdminCompanyStatistics/monthly-revenue', { companyId });
+  return response.data;
+};
+
 const AdminCompanyStatistics = {
   getRevenueApi,
-  getCompletedShowtimeCountApi
+  getCompletedShowtimeCountApi,
+  getMonthlyRevenueApi
 };
 
 export default AdminCompanyStatistics;

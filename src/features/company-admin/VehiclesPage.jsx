@@ -64,14 +64,14 @@ const VehiclesPage = () => {
         VehicleType: activeTypeFilter ? Number(activeTypeFilter) : undefined,
         SeatCapacity: activeSeatFilter ? Number(activeSeatFilter) : undefined,
       });
-      return response || {};
+      return response?.data || response || {};
     },
     staleTime: 3 * 60 * 1000,
     placeholderData: (prev) => prev,
   });
 
   const vehicles = Array.isArray(data?.items) ? data.items : [];
-  
+
   const pagination = {
     totalCount: data?.totalCount ?? 0,
     pageNumber: data?.pageNumber ?? pageNumber,
@@ -99,8 +99,8 @@ const VehiclesPage = () => {
             <h1 className="admin-page-title">Phương tiện công ty</h1>
             <p className="admin-page-desc">Quản lý danh sách các phương tiện (xe ô tô, xe tải...) thuộc công ty.</p>
           </div>
-          <button 
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#001f3f] text-white text-sm font-medium rounded-xl hover:bg-blue-900 transition-all shadow-sm active:scale-95 whitespace-nowrap" 
+          <button
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#001f3f] text-white text-sm font-medium rounded-xl hover:bg-blue-900 transition-all shadow-sm active:scale-95 whitespace-nowrap"
             onClick={() => setIsAddModalOpen(true)}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -141,8 +141,8 @@ const VehiclesPage = () => {
         <div className="admin-mini-stat">
           <div className="mini-stat-icon mini-stat-icon--purple">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M12 6v6l4 2"/>
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 6v6l4 2" />
             </svg>
           </div>
           <div className="mini-stat-info">
@@ -199,19 +199,19 @@ const VehiclesPage = () => {
 
       {/* Table Content */}
       <div className="admin-data-table-wrapper relative">
-         {isLoading && (
-           <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] flex items-center justify-center z-10">
-             <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-           </div>
-         )}
-         <CompanyVehicleTable 
-           vehicles={vehicles} 
-           isLoading={isLoading}
-           pagination={pagination}
-           onGoToPage={goToPage}
-           onViewDetail={handleOpenDetailModal}
-           onDelete={handleOpenDeleteModal}
-         />
+        {isLoading && (
+          <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] flex items-center justify-center z-10">
+            <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        )}
+        <CompanyVehicleTable
+          vehicles={vehicles}
+          isLoading={isLoading}
+          pagination={pagination}
+          onGoToPage={goToPage}
+          onViewDetail={handleOpenDetailModal}
+          onDelete={handleOpenDeleteModal}
+        />
       </div>
 
       {/* Detail Modal */}

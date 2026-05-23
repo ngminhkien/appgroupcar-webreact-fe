@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { jwtDecode } from 'jwt-decode';
-import { getRevenueApi, getCompletedShowtimeCountApi } from '@/services/adminCompanyStatisticsService';
+import { getRevenueApi, getCompletedShowtimeCountApi, getMonthlyRevenueApi } from '@/services/adminCompanyStatisticsService';
 
 const getDateRanges = () => {
   const getTodayRange = () => {
@@ -49,8 +49,361 @@ const formatCurrency = (num) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num);
 };
 
+const MonthlyRevenueBookingLineChart = ({ data = [], isLoading, isError }) => {
+  const [hoveredIndex, setHoveredIndex] = useState(null);
+
+  if (isLoading) {
+    return (
+      <div className="h-72 w-full flex flex-col items-center justify-center space-y-3 bg-slate-50/50 rounded-xl">
+        <div className="w-8 h-8 border-4 border-[#001f3f] border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-sm font-medium text-slate-500 font-sans">Đang tải dữ liệu biểu đồ...</p>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="h-72 w-full flex items-center justify-center bg-red-50 rounded-xl border border-red-100 p-6">
+        <p className="text-sm font-semibold text-red-600 font-sans">Không thể tải dữ liệu biểu đồ doanh thu theo tháng.</p>
+      </div>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="h-72 w-full flex items-center justify-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+        <p className="text-sm font-semibold text-slate-400 font-sans">Không có dữ liệu thống kê cho khoảng thời gian này.</p>
+      </div>
+    );
+  }
+
+  const width = 1000;
+  const height = 300;
+  const paddingLeft = 75;
+  const paddingRight = 60;
+  const paddingTop = 30;
+  const paddingBottom = 45;
+
+  const chartWidth = width - paddingLeft - paddingRight;
+  const chartHeight = height - paddingTop - paddingBottom;
+
+  // Max values for scaling
+  const maxRevenue = Math.max(...data.map(d => d.revenue), 100000) * 1.15;
+  const maxBookings = Math.max(...data.map(d => d.bookingCount), 5) * 1.15;
+
+  // Generate points
+  const points = data.map((d, i) => {
+    const x = paddingLeft + (i * chartWidth) / (data.length - 1 || 1);
+    const yRevenue = paddingTop + chartHeight - (d.revenue / maxRevenue) * chartHeight;
+    const yBookings = paddingTop + chartHeight - (d.bookingCount / maxBookings) * chartHeight;
+    return {
+      x,
+      yRevenue,
+      yBookings,
+      revenue: d.revenue,
+      bookingCount: d.bookingCount,
+      label: `T${String(d.month).padStart(2, '0')}/${String(d.year).slice(-2)}`,
+      month: d.month,
+      year: d.year
+    };
+  });
+
+  // SVG Paths
+  const revenueLinePath = points.reduce((path, p, i) => {
+    return i === 0 ? `M ${p.x} ${p.yRevenue}` : `${path} L ${p.x} ${p.yRevenue}`;
+  }, '');
+
+  const bookingsLinePath = points.reduce((path, p, i) => {
+    return i === 0 ? `M ${p.x} ${p.yBookings}` : `${path} L ${p.x} ${p.yBookings}`;
+  }, '');
+
+  const revenueAreaPath = points.length > 0
+    ? `${revenueLinePath} L ${points[points.length - 1].x} ${paddingTop + chartHeight} L ${points[0].x} ${paddingTop + chartHeight} Z`
+    : '';
+
+  const bookingsAreaPath = points.length > 0
+    ? `${bookingsLinePath} L ${points[points.length - 1].x} ${paddingTop + chartHeight} L ${points[0].x} ${paddingTop + chartHeight} Z`
+    : '';
+
+  // Left Y-Axis Grid Lines (based on Revenue)
+  const gridLines = [];
+  for (let i = 0; i <= 4; i++) {
+    const revVal = (i / 4) * maxRevenue;
+    const bookVal = (i / 4) * maxBookings;
+    const y = paddingTop + chartHeight - (i / 4) * chartHeight;
+    gridLines.push({ revVal, bookVal, y });
+  }
+
+  const formatYRevenue = (val) => {
+    if (val >= 1000000000) return `${(val / 1000000000).toFixed(1)}B`;
+    if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
+    if (val >= 1000) return `${(val / 1000).toFixed(0)}K`;
+    return `${val}`;
+  };
+
+  const formatYBookings = (val) => {
+    return Math.round(val);
+  };
+
+  return (
+    <div className="relative w-full" style={{ position: 'relative' }}>
+      {/* Legend */}
+      <div className="flex items-center gap-6 mb-4 text-xs font-semibold text-slate-500 font-sans">
+        <div className="flex items-center gap-2">
+          <span className="w-3.5 h-3.5 rounded-full bg-[#001f3f]" />
+          <span>Doanh thu (VND)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-3.5 h-3.5 rounded-full bg-[#10b981]" />
+          <span>Số chuyến xe (bookingCount)</span>
+        </div>
+      </div>
+
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto overflow-visible select-none">
+        <defs>
+          <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#001f3f" stopOpacity="0.12" />
+            <stop offset="100%" stopColor="#001f3f" stopOpacity="0.00" />
+          </linearGradient>
+          <linearGradient id="bookingsGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#10b981" stopOpacity="0.10" />
+            <stop offset="100%" stopColor="#10b981" stopOpacity="0.00" />
+          </linearGradient>
+        </defs>
+
+        {/* Grid and Left/Right Y-Axis Labels */}
+        {gridLines.map((line, idx) => (
+          <g key={idx}>
+            {/* Grid Line */}
+            <line
+              x1={paddingLeft}
+              y1={line.y}
+              x2={width - paddingRight}
+              y2={line.y}
+              stroke="#e2e8f0"
+              strokeWidth="1"
+              strokeDasharray={idx === 0 ? '0' : '4 4'}
+              opacity={idx === 0 ? 0.3 : 0.8}
+            />
+            {/* Left Y-axis Label (Revenue) */}
+            <text
+              x={paddingLeft - 10}
+              y={line.y + 4}
+              textAnchor="end"
+              fill="#64748b"
+              fontSize="10"
+              fontWeight="600"
+              className="font-sans"
+            >
+              {formatYRevenue(line.revVal)}
+            </text>
+            {/* Right Y-axis Label (Bookings) */}
+            <text
+              x={width - paddingRight + 10}
+              y={line.y + 4}
+              textAnchor="start"
+              fill="#64748b"
+              fontSize="10"
+              fontWeight="600"
+              className="font-sans"
+            >
+              {formatYBookings(line.bookVal)}
+            </text>
+          </g>
+        ))}
+
+        {/* X Axis Labels */}
+        {points.map((p, idx) => (
+          <text
+            key={idx}
+            x={p.x}
+            y={height - 15}
+            textAnchor="middle"
+            fill="#64748b"
+            fontSize="10"
+            fontWeight="600"
+            className="font-sans"
+          >
+            {p.label}
+          </text>
+        ))}
+
+        {/* Revenue Area */}
+        {revenueAreaPath && <path d={revenueAreaPath} fill="url(#revenueGrad)" />}
+        {/* Bookings Area */}
+        {bookingsAreaPath && <path d={bookingsAreaPath} fill="url(#bookingsGrad)" />}
+
+        {/* Revenue Line */}
+        {revenueLinePath && (
+          <path
+            d={revenueLinePath}
+            fill="none"
+            stroke="#001f3f"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        )}
+
+        {/* Bookings Line */}
+        {bookingsLinePath && (
+          <path
+            d={bookingsLinePath}
+            fill="none"
+            stroke="#10b981"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        )}
+
+        {/* Dots */}
+        {points.map((p, idx) => (
+          <g key={idx}>
+            {/* Revenue Dot */}
+            <circle
+              cx={p.x}
+              cy={p.yRevenue}
+              r="4.5"
+              fill="#001f3f"
+              stroke="#ffffff"
+              strokeWidth="2.5"
+            />
+            {/* Bookings Dot */}
+            <circle
+              cx={p.x}
+              cy={p.yBookings}
+              r="4.5"
+              fill="#10b981"
+              stroke="#ffffff"
+              strokeWidth="2.5"
+            />
+          </g>
+        ))}
+
+        {/* Hover markers */}
+        {hoveredIndex !== null && points[hoveredIndex] && (
+          <g>
+            <line
+              x1={points[hoveredIndex].x}
+              y1={paddingTop}
+              x2={points[hoveredIndex].x}
+              y2={paddingTop + chartHeight}
+              stroke="#94a3b8"
+              strokeWidth="1.5"
+              strokeDasharray="4 4"
+            />
+            {/* Highlighted dots */}
+            <circle
+              cx={points[hoveredIndex].x}
+              cy={points[hoveredIndex].yRevenue}
+              r="6.5"
+              fill="#001f3f"
+              stroke="#ffffff"
+              strokeWidth="2.5"
+            />
+            <circle
+              cx={points[hoveredIndex].x}
+              cy={points[hoveredIndex].yBookings}
+              r="6.5"
+              fill="#10b981"
+              stroke="#ffffff"
+              strokeWidth="2.5"
+            />
+          </g>
+        )}
+
+        {/* Hover Target Overlay Zones */}
+        {points.map((p, idx) => {
+          const leftBound = idx === 0 ? paddingLeft : (points[idx - 1].x + p.x) / 2;
+          const rightBound = idx === points.length - 1 ? width - paddingRight : (p.x + points[idx + 1].x) / 2;
+          const w = rightBound - leftBound;
+
+          return (
+            <rect
+              key={idx}
+              x={leftBound}
+              y={paddingTop}
+              width={w > 0 ? w : 0}
+              height={chartHeight}
+              fill="transparent"
+              style={{ cursor: 'pointer' }}
+              onMouseEnter={() => setHoveredIndex(idx)}
+              onMouseLeave={() => setHoveredIndex(null)}
+            />
+          );
+        })}
+      </svg>
+
+      {/* Floating Tooltip */}
+      {hoveredIndex !== null && points[hoveredIndex] && (
+        <div
+          className="absolute bg-white/95 backdrop-blur-sm p-3.5 rounded-xl border border-slate-100 shadow-xl pointer-events-none z-20 text-xs flex flex-col space-y-1.5 min-w-[170px]"
+          style={{
+            left: `${(points[hoveredIndex].x / width) * 100}%`,
+            top: `${((Math.min(points[hoveredIndex].yRevenue, points[hoveredIndex].yBookings) - 75) / height) * 100}%`,
+            transform: 'translateX(-50%)',
+            transition: 'left 0.15s ease, top 0.15s ease',
+          }}
+        >
+          <div className="font-bold text-slate-800 text-center border-b border-slate-100 pb-1 mb-1 font-sans">
+            Tháng {points[hoveredIndex].month}/{points[hoveredIndex].year}
+          </div>
+          <div className="flex justify-between items-center space-x-4 font-sans">
+            <span className="flex items-center gap-1.5 font-medium text-slate-500">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#001f3f]" />
+              Doanh thu:
+            </span>
+            <span className="font-bold text-[#001f3f]">
+              {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(points[hoveredIndex].revenue)}
+            </span>
+          </div>
+          <div className="flex justify-between items-center space-x-4 font-sans">
+            <span className="flex items-center gap-1.5 font-medium text-slate-500">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#10b981]" />
+              Số chuyến xe:
+            </span>
+            <span className="font-bold text-[#10b981]">
+              {points[hoveredIndex].bookingCount} chuyến
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const CompanyAdminDashboardPage = () => {
   const [filter, setFilter] = useState('month'); // 'today' | 'week' | 'month'
+
+  const { data: monthlyData, isLoading: isMonthlyLoading, isError: isMonthlyError } = useQuery({
+    queryKey: ['company-monthly-revenue'],
+    queryFn: async () => {
+      let companyId = localStorage.getItem('companyId');
+
+      if (!companyId) {
+        const token = localStorage.getItem('accessToken');
+        if (token) {
+          try {
+            const decoded = jwtDecode(token);
+            companyId = decoded.CompanyId || decoded.companyId || decoded.Company || decoded.company;
+            if (companyId) {
+              localStorage.setItem('companyId', companyId);
+            }
+          } catch (e) {
+            console.error('Failed to decode token on dashboard:', e);
+          }
+        }
+      }
+
+      if (!companyId) {
+        throw new Error('Không tìm thấy Company ID trong storage. Vui lòng đăng nhập lại.');
+      }
+
+      return await getMonthlyRevenueApi({ companyId });
+    },
+    staleTime: 30 * 1000,
+  });
 
   const { data: revenueData, isLoading: isRevenueLoading, isError: isRevenueError, error: revenueError } = useQuery({
     queryKey: ['company-revenue', filter],
@@ -136,6 +489,9 @@ const CompanyAdminDashboardPage = () => {
 
   const showtimeStats = showtimeData?.data || showtimeData || {};
   const completedShowtimeCount = showtimeStats.completedShowtimeCount ?? 0;
+
+  const monthlyStats = monthlyData?.data || monthlyData || {};
+  const monthlyRevenues = monthlyStats.monthlyRevenues || [];
 
   const displayFilterLabel = {
     today: 'Hôm nay',
@@ -247,92 +603,17 @@ const CompanyAdminDashboardPage = () => {
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Bar Chart */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <div className="flex justify-between items-center mb-8">
-            <h3 className="text-lg font-bold text-slate-800">Biểu đồ doanh thu theo tuần</h3>
-            <button className="text-sm font-semibold text-[#001f3f] hover:text-blue-700 transition-colors">Xem chi tiết</button>
-          </div>
-          <div className="relative h-64 w-full mt-4">
-            {/* Y-axis */}
-            <div className="absolute inset-0 flex flex-col justify-between text-[11px] font-medium text-slate-400 pb-8">
-              <div className="flex items-center gap-4 w-full border-b border-slate-100 pb-2"><span className="w-8 text-right">100M</span></div>
-              <div className="flex items-center gap-4 w-full border-b border-slate-100 pb-2"><span className="w-8 text-right">75M</span></div>
-              <div className="flex items-center gap-4 w-full border-b border-slate-100 pb-2"><span className="w-8 text-right">50M</span></div>
-              <div className="flex items-center gap-4 w-full border-b border-slate-100 pb-2"><span className="w-8 text-right">25M</span></div>
-              <div className="flex items-center gap-4 w-full border-b border-slate-100 pb-2"><span className="w-8 text-right">0</span></div>
-            </div>
-
-            {/* Bars placeholder */}
-            <div className="absolute inset-0 left-12 bottom-8 flex justify-around items-end px-4">
-              <div className="w-8 h-[30%] bg-emerald-100 rounded-t-sm"></div>
-              <div className="w-8 h-[45%] bg-emerald-100 rounded-t-sm"></div>
-              <div className="w-8 h-[65%] bg-emerald-100 rounded-t-sm"></div>
-              <div className="w-8 h-[80%] bg-[#001f3f] rounded-t-sm"></div>
-              <div className="w-8 h-[95%] bg-emerald-400 rounded-t-sm shadow-sm shadow-emerald-200/50"></div>
-              <div className="w-8 h-[55%] bg-emerald-100 rounded-t-sm"></div>
-              <div className="w-8 h-[70%] bg-emerald-100 rounded-t-sm"></div>
-            </div>
-
-            {/* X-axis */}
-            <div className="absolute bottom-0 left-12 right-0 flex justify-around text-xs font-semibold text-slate-400 px-4">
-              <span className="w-8 text-center">T2</span>
-              <span className="w-8 text-center">T3</span>
-              <span className="w-8 text-center">T4</span>
-              <span className="w-8 text-center text-[#001f3f]">T5</span>
-              <span className="w-8 text-center text-emerald-500">T6</span>
-              <span className="w-8 text-center">T7</span>
-              <span className="w-8 text-center">CN</span>
-            </div>
-          </div>
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 w-full">
+        <div className="flex justify-between items-center mb-8">
+          <h3 className="text-lg font-bold text-slate-800 font-sans">Biểu đồ đường doanh thu & số chuyến theo tháng</h3>
+          <button className="text-sm font-semibold text-[#001f3f] hover:text-blue-700 transition-colors font-sans">Xem chi tiết</button>
         </div>
-
-        {/* Donut Chart */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
-          <h3 className="text-lg font-bold text-slate-800 mb-8">Phân bổ loại xe</h3>
-          <div className="flex-1 flex flex-col items-center justify-center pb-4">
-            <div className="relative w-44 h-44 mb-8">
-              <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
-                {/* Background Track */}
-                <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#e2e8f0" strokeWidth="4" />
-                {/* Limousine (25%) */}
-                <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#4ade80" strokeWidth="5" strokeDasharray="25 75" strokeDashoffset="0" />
-                {/* Xe giường nằm (65%) */}
-                <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#001f3f" strokeWidth="6" strokeDasharray="65 35" strokeDashoffset="-25" />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-extrabold text-[#001f3f]">124</span>
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">Tổng xe</span>
-              </div>
-            </div>
-
-            <div className="w-full space-y-4 px-2">
-              <div className="flex justify-between items-center text-sm">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full bg-[#001f3f]"></div>
-                  <span className="font-medium text-slate-600">Xe giường nằm</span>
-                </div>
-                <span className="font-bold text-slate-800">65%</span>
-              </div>
-
-              <div className="flex justify-between items-center text-sm">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full bg-[#4ade80]"></div>
-                  <span className="font-medium text-slate-600">Limousine</span>
-                </div>
-                <span className="font-bold text-slate-800">25%</span>
-              </div>
-
-              <div className="flex justify-between items-center text-sm">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full bg-slate-200"></div>
-                  <span className="font-medium text-slate-600">Ghế ngồi</span>
-                </div>
-                <span className="font-bold text-slate-800">10%</span>
-              </div>
-            </div>
-          </div>
+        <div className="relative w-full mt-4">
+          <MonthlyRevenueBookingLineChart
+            data={monthlyRevenues}
+            isLoading={isMonthlyLoading}
+            isError={isMonthlyError}
+          />
         </div>
       </div>
     </div>
