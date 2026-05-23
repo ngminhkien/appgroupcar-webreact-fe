@@ -6,7 +6,7 @@ import BookingSearchBar from './BookingSearchBar';
 
 const UserPublicLayout = () => {
   const { pathname } = useLocation();
-  const showSearchBar = !['/', '/login', '/register'].includes(pathname);
+  const showSearchBar = pathname === '/booking';
 
   return (
     <div className="flex flex-col min-h-screen">
