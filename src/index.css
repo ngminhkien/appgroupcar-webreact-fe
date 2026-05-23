@@ -1,8 +1,9 @@
 @import "tailwindcss";
-:root {
-  --font-family: "Be Vietnam Pro", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+@theme {
+  --font-sans: "Be Vietnam Pro", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 body {
-  font-family: var(--font-family);
+  font-family: var(--font-sans);
 }

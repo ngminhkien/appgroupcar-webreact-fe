@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { AuthBrandPanel, AuthFormInput } from '@/components/AuthLayout';
 import { registerApi } from '@/services/authService';
 import toast from 'react-hot-toast';
-import './RegisterPage.css';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -17,6 +15,8 @@ const RegisterPage = () => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (field) => (e) => {
     setFormData((prev) => ({ ...prev, [field]: e.target.value }));
@@ -65,7 +65,6 @@ const RegisterPage = () => {
     }
     setIsLoading(true);
     try {
-      // Only send the fields backend expects
       const payload = {
         fullName: formData.fullName,
         email: formData.email,
@@ -83,156 +82,236 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="register-page">
-      {/* Left — Branding Panel */}
-      <AuthBrandPanel
-        headline="Định hình tương lai vận tải."
-        subtitle="Gia nhập mạng lưới vận chuyển tinh vi nhất khu vực. Trải nghiệm sự chính xác trong từng chuyển động cùng NexusRide."
-      />
+    <div className="min-h-[85vh] flex items-center justify-center bg-slate-50 py-16 px-6">
+      <div className="max-w-xl w-full bg-white rounded-3xl p-8 sm:p-10 shadow-xl border border-slate-100/80 transition-all duration-300 hover:shadow-2xl">
 
-      {/* Right — Register Form */}
-      <div className="register-form-panel">
-        <div className="register-mobile-brand">NexusRide</div>
-
-        <div className="register-form-container">
-          <div className="register-form-header">
-            <h2 className="register-title">Tạo tài khoản mới</h2>
-            <p className="register-subtitle">Bắt đầu hành trình vận chuyển thông minh của bạn hôm nay.</p>
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="w-12 h-12 rounded-xl bg-emerald-500 flex items-center justify-center text-white font-extrabold text-xl mx-auto mb-4 shadow-md shadow-emerald-500/20">
+            N
           </div>
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-2">Tạo tài khoản mới</h2>
+          <p className="text-slate-500 text-sm leading-relaxed">Bắt đầu hành trình vận chuyển thông minh cùng NexusRide</p>
+        </div>
 
-          <form className="register-form" onSubmit={handleSubmit} noValidate>
-            <AuthFormInput
-              id="register-fullname"
-              label="Họ và tên"
-              type="text"
-              placeholder="Nguyễn Văn A"
-              value={formData.fullName}
-              onChange={handleChange('fullName')}
-              error={errors.fullName}
-              required
-              autoComplete="name"
-              icon={
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        {/* Form */}
+        <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+
+          {/* Full Name */}
+          <div className="flex flex-col">
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5" htmlFor="register-fullname">
+              Họ và tên <span className="text-red-500">*</span>
+            </label>
+            <div className="relative flex items-center">
+              <span className="absolute left-4 text-slate-400">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
                   <circle cx="12" cy="7" r="4" />
                 </svg>
-              }
-            />
+              </span>
+              <input
+                id="register-fullname"
+                type="text"
+                placeholder="Nguyễn Văn A"
+                value={formData.fullName}
+                onChange={handleChange('fullName')}
+                autoComplete="name"
+                className={`w-full pl-11 pr-4 py-3 bg-slate-50 border rounded-xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white transition-all ${errors.fullName ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-200 focus:border-emerald-500'
+                  }`}
+              />
+            </div>
+            {errors.fullName && <span className="text-xs text-red-500 mt-1 font-semibold">{errors.fullName}</span>}
+          </div>
 
-            <div className="register-row">
-              <AuthFormInput
-                id="register-email"
-                label="Email"
-                type="email"
-                placeholder="name@company.com"
-                value={formData.email}
-                onChange={handleChange('email')}
-                error={errors.email}
-                required
-                autoComplete="email"
-                icon={
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          {/* Email & Phone Number Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* Email */}
+            <div className="flex flex-col">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5" htmlFor="register-email">
+                Email <span className="text-red-500">*</span>
+              </label>
+              <div className="relative flex items-center">
+                <span className="absolute left-4 text-slate-400">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <rect x="2" y="4" width="20" height="16" rx="2" />
                     <path d="M22 7l-10 6L2 7" />
                   </svg>
-                }
-              />
-              <AuthFormInput
-                id="register-phone"
-                label="Số điện thoại"
-                type="text"
-                placeholder="0912 345 678"
-                value={formData.phoneNumber}
-                onChange={handleChange('phoneNumber')}
-                error={errors.phoneNumber}
-                required
-                autoComplete="tel"
-                icon={
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
-                  </svg>
-                }
-              />
+                </span>
+                <input
+                  id="register-email"
+                  type="email"
+                  placeholder="name@company.com"
+                  value={formData.email}
+                  onChange={handleChange('email')}
+                  autoComplete="email"
+                  className={`w-full pl-11 pr-4 py-3 bg-slate-50 border rounded-xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white transition-all ${errors.email ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-200 focus:border-emerald-500'
+                    }`}
+                />
+              </div>
+              {errors.email && <span className="text-xs text-red-500 mt-1 font-semibold">{errors.email}</span>}
             </div>
 
-            <div className="register-row">
-              <AuthFormInput
-                id="register-password"
-                label="Mật khẩu"
-                type="password"
-                placeholder="Tối thiểu 8 ký tự"
-                value={formData.password}
-                onChange={handleChange('password')}
-                error={errors.password}
-                required
-                autoComplete="new-password"
-                icon={
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            {/* Phone */}
+            <div className="flex flex-col">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5" htmlFor="register-phone">
+                Số điện thoại <span className="text-red-500">*</span>
+              </label>
+              <div className="relative flex items-center">
+                <span className="absolute left-4 text-slate-400">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
+                  </svg>
+                </span>
+                <input
+                  id="register-phone"
+                  type="text"
+                  placeholder="0912 345 678"
+                  value={formData.phoneNumber}
+                  onChange={handleChange('phoneNumber')}
+                  autoComplete="tel"
+                  className={`w-full pl-11 pr-4 py-3 bg-slate-50 border rounded-xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white transition-all ${errors.phoneNumber ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-200 focus:border-emerald-500'
+                    }`}
+                />
+              </div>
+              {errors.phoneNumber && <span className="text-xs text-red-500 mt-1 font-semibold">{errors.phoneNumber}</span>}
+            </div>
+          </div>
+
+          {/* Password & Confirm Password Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* Password */}
+            <div className="flex flex-col">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5" htmlFor="register-password">
+                Mật khẩu <span className="text-red-500">*</span>
+              </label>
+              <div className="relative flex items-center">
+                <span className="absolute left-4 text-slate-400">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <rect x="3" y="11" width="18" height="11" rx="2" />
                     <path d="M7 11V7a5 5 0 0110 0v4" />
                   </svg>
-                }
-              />
-              <AuthFormInput
-                id="register-confirm-password"
-                label="Xác nhận mật khẩu"
-                type="password"
-                placeholder="Nhập lại mật khẩu"
-                value={formData.confirmPassword}
-                onChange={handleChange('confirmPassword')}
-                error={errors.confirmPassword}
-                required
-                autoComplete="new-password"
-                icon={
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                </span>
+                <input
+                  id="register-password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Tối thiểu 6 ký tự"
+                  value={formData.password}
+                  onChange={handleChange('password')}
+                  autoComplete="new-password"
+                  className={`w-full pl-11 pr-12 py-3 bg-slate-50 border rounded-xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white transition-all ${errors.password ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-200 focus:border-emerald-500'
+                    }`}
+                />
+                <button
+                  type="button"
+                  className="absolute right-4 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                >
+                  {showPassword ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              {errors.password && <span className="text-xs text-red-500 mt-1 font-semibold">{errors.password}</span>}
+            </div>
+
+            {/* Confirm Password */}
+            <div className="flex flex-col">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5" htmlFor="register-confirm-password">
+                Xác nhận mật khẩu <span className="text-red-500">*</span>
+              </label>
+              <div className="relative flex items-center">
+                <span className="absolute left-4 text-slate-400">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                   </svg>
-                }
-              />
-            </div>
-
-            {/* Terms agreement */}
-            <div className={`register-terms ${errors.terms ? 'has-error' : ''}`}>
-              <label className="register-terms-label" htmlFor="agree-terms">
-                <input
-                  id="agree-terms"
-                  type="checkbox"
-                  checked={agreedToTerms}
-                  onChange={(e) => {
-                    setAgreedToTerms(e.target.checked);
-                    if (errors.terms) setErrors((prev) => ({ ...prev, terms: '' }));
-                  }}
-                />
-                <span className="checkmark" />
-                <span>
-                  Tôi đồng ý với{' '}
-                  <a href="#" className="terms-link">Điều khoản dịch vụ</a>
-                  {' '}và{' '}
-                  <a href="#" className="terms-link">Chính sách bảo mật</a>
                 </span>
-              </label>
-              {errors.terms && <span className="auth-input-error">{errors.terms}</span>}
+                <input
+                  id="register-confirm-password"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  placeholder="Nhập lại mật khẩu"
+                  value={formData.confirmPassword}
+                  onChange={handleChange('confirmPassword')}
+                  autoComplete="new-password"
+                  className={`w-full pl-11 pr-12 py-3 bg-slate-50 border rounded-xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white transition-all ${errors.confirmPassword ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-slate-200 focus:border-emerald-500'
+                    }`}
+                />
+                <button
+                  type="button"
+                  className="absolute right-4 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={showConfirmPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                >
+                  {showConfirmPassword ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              {errors.confirmPassword && <span className="text-xs text-red-500 mt-1 font-semibold">{errors.confirmPassword}</span>}
             </div>
+          </div>
 
-            <button
-              id="register-submit-btn"
-              type="submit"
-              className="auth-btn-primary"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <span className="auth-spinner" />
-              ) : (
-                'Tạo tài khoản'
-              )}
-            </button>
-          </form>
+          {/* Terms Agreement */}
+          <div className="flex flex-col">
+            <label className="flex items-start gap-2 text-slate-600 font-semibold cursor-pointer select-none text-sm" htmlFor="agree-terms">
+              <input
+                id="agree-terms"
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={(e) => {
+                  setAgreedToTerms(e.target.checked);
+                  if (errors.terms) setErrors((prev) => ({ ...prev, terms: '' }));
+                }}
+                className="w-4.5 h-4.5 rounded text-emerald-500 border-slate-300 focus:ring-emerald-500 cursor-pointer mt-0.5"
+              />
+              <span>
+                Tôi đồng ý với{' '}
+                <a href="#" className="text-emerald-600 hover:text-emerald-500 font-bold transition-colors">Điều khoản dịch vụ</a>
+                {' '}và{' '}
+                <a href="#" className="text-emerald-600 hover:text-emerald-500 font-bold transition-colors">Chính sách bảo mật</a>
+              </span>
+            </label>
+            {errors.terms && <span className="text-xs text-red-500 mt-1 font-semibold">{errors.terms}</span>}
+          </div>
 
-          <p className="register-login-prompt">
-            Đã có tài khoản?{' '}
-            <Link to="/login" className="register-login-link">Đăng nhập ngay</Link>
-          </p>
-        </div>
+          {/* Submit button */}
+          <button
+            id="register-submit-btn"
+            type="submit"
+            className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all cursor-pointer disabled:opacity-50"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              'Tạo tài khoản'
+            )}
+          </button>
+        </form>
+
+        {/* Login Redirect */}
+        <p className="text-center text-sm text-slate-600 mt-8 font-semibold">
+          Đã có tài khoản?{' '}
+          <Link to="/login" className="text-emerald-600 hover:text-emerald-500 font-extrabold transition-colors">
+            Đăng nhập ngay
+          </Link>
+        </p>
       </div>
     </div>
   );

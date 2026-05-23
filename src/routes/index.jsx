@@ -20,7 +20,8 @@ import RoutesPage from '@/features/company-admin/RoutesPage';
 import BusRoutePointPage from '@/features/company-admin/BusRoutePointPage';
 import BusShowtimePage from '@/features/company-admin/BusShowtimePage';
 import { PublicLayout } from '@/components/PublicLayout';
-import { AuthLayout } from '@/components/AuthLayout';
+import { UserPublicLayout } from '@/components/UserPublicLayout';
+import { BookingPage, CreateRequestPage, HistoryPage } from '@/features/user';
 import { AdminSysLayout } from '@/components/AdminSysLayout';
 import { AdminCompanyLayout } from '@/components/AdminCompanyLayout';
 import ProtectedRoute from './ProtectedRoute';
@@ -30,12 +31,11 @@ const AppRoutes = () => {
     <BrowserRouter>
       <Routes>
         {/* Public pages with Header + Footer */}
-        <Route element={<PublicLayout />}>
+        <Route element={<UserPublicLayout />}>
           <Route path="/" element={<LandingPage />} />
-        </Route>
-
-        {/* Auth pages — standalone layout (no Header/Footer) */}
-        <Route element={<AuthLayout />}>
+          <Route path="/booking" element={<BookingPage />} />
+          <Route path="/create-request" element={<CreateRequestPage />} />
+          <Route path="/history" element={<HistoryPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
         </Route>
