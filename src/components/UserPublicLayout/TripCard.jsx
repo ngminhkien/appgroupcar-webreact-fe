@@ -18,7 +18,7 @@ const TripCard = ({ trip }) => {
       case 'GIƯỜNG NẰM':
         return 'bg-slate-900 text-white';
       default:
-        return 'bg-blue-600 text-white';
+        return 'bg-green-600 text-white';
     }
   };
 
