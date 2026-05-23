@@ -276,9 +276,9 @@ const BookingPage = () => {
   }, [allTrips, selectedTimes, selectedOperators, selectedTypes, maxPrice, sortBy]);
 
   return (
-    <div className="bg-slate-100 min-h-[60vh] w-full">
+    <div className="bg-[#c9ced4] min-h-[60vh] w-full">
       <div className="max-w-7xl mx-auto w-full px-6 py-8 flex flex-col lg:flex-row gap-8">
-        
+
         {/* Left column: Filters Sidebar */}
         <div className="w-full lg:w-80 shrink-0">
           <FilterSidebar
@@ -296,7 +296,7 @@ const BookingPage = () => {
 
         {/* Right column: Results List */}
         <div className="flex-grow flex flex-col gap-6">
-          
+
           {/* Header Summary */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="text-slate-600 text-sm font-medium">

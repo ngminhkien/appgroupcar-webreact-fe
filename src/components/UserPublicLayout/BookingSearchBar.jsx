@@ -15,31 +15,46 @@ const BookingSearchBar = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  const [selectedType, setSelectedType] = useState(searchParams.get('type') || 'booking');
   const [fromCity, setFromCity] = useState(searchParams.get('from') || '');
   const [toCity, setToCity] = useState(searchParams.get('to') || '');
   const [departureDate, setDepartureDate] = useState(searchParams.get('date') || TODAY_DATE);
   const [selectedService, setSelectedService] = useState(searchParams.get('service') || 'bus');
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
+
   const dropdownRef = useRef(null);
+  const typeDropdownRef = useRef(null);
 
-  const services = [
-    { id: 'bus', label: 'Xe khách' },
-    { id: 'carpool', label: 'Đi chung xe' },
-    { id: 'express', label: 'Gửi hàng' }
-
-  ];
+  const services = selectedType === 'request'
+    ? [
+      { id: 'carpool', label: 'Xe ghép' },
+      { id: 'express', label: 'Gửi hàng' }
+    ]
+    : [
+      { id: 'bus', label: 'Xe khách' },
+      { id: 'carpool', label: 'Đi chung xe' },
+      { id: 'express', label: 'Gửi hàng' }
+    ];
 
   useEffect(() => {
+    const urlType = searchParams.get('type') || 'booking';
+    const defaultService = urlType === 'request' ? 'carpool' : 'bus';
+
+    setSelectedType(urlType);
     setFromCity(searchParams.get('from') || '');
     setToCity(searchParams.get('to') || '');
     setDepartureDate(searchParams.get('date') || TODAY_DATE);
-    setSelectedService(searchParams.get('service') || 'bus');
+    setSelectedService(searchParams.get('service') || defaultService);
   }, [searchParams]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setDropdownOpen(false);
+      }
+      if (typeDropdownRef.current && !typeDropdownRef.current.contains(event.target)) {
+        setTypeDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -50,18 +65,72 @@ const BookingSearchBar = () => {
 
   const handleSearch = () => {
     const params = new URLSearchParams();
+    if (selectedType) params.append('type', selectedType);
     if (fromCity.trim()) params.append('from', fromCity.trim());
     if (toCity.trim()) params.append('to', toCity.trim());
     if (departureDate) params.append('date', departureDate);
     if (selectedService) params.append('service', selectedService);
 
-    navigate(`/booking?${params.toString()}`);
+    const targetPath = selectedType === 'request' ? '/create-request' : '/booking';
+    navigate(`${targetPath}?${params.toString()}`);
   };
 
   return (
     <div className="w-full max-w-5xl mx-auto">
       <div className="bg-white/95 backdrop-blur-md rounded-3xl lg:rounded-[36px] p-2.5 shadow-2xl border border-white/20 flex flex-col lg:flex-row items-center gap-3">
-        <div className="w-full lg:flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-0">
+        <div className="w-full lg:flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-0">
+
+          {/* LỰA CHỌN */}
+          <div className="flex flex-col px-6 py-2 border-b sm:border-b-0 sm:border-r border-slate-200 text-left relative" ref={typeDropdownRef}>
+            <span className="text-[10px] font-bold text-slate-500 tracking-wider mb-1">LỰA CHỌN</span>
+            <div
+              className="flex items-center gap-2 cursor-pointer select-none"
+              onClick={() => setTypeDropdownOpen(!typeDropdownOpen)}
+            >
+              <svg className="w-5 h-5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <div className="w-full bg-transparent text-sm font-semibold text-slate-800 pr-6 truncate">
+                {selectedType === 'booking' ? 'Đặt vé' : 'Yêu cầu'}
+              </div>
+              <div className="absolute right-6 pointer-events-none text-slate-500">
+                <svg className={`w-4 h-4 transition-transform duration-200 ${typeDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+            {typeDropdownOpen && (
+              <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden py-1">
+                {[
+                  { id: 'booking', label: 'Đặt vé' },
+                  { id: 'request', label: 'Yêu cầu' }
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedType(item.id);
+                      setTypeDropdownOpen(false);
+                      if (item.id === 'request' && selectedService === 'bus') {
+                        setSelectedService('carpool');
+                      }
+                    }}
+                    className={`w-full text-left px-6 py-3 text-sm font-semibold transition-colors duration-200 flex items-center justify-between ${selectedType === item.id
+                      ? 'bg-emerald-50 text-emerald-600'
+                      : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                  >
+                    <span>{item.label}</span>
+                    {selectedType === item.id && (
+                      <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* ĐIỂM ĐI */}
           <div className="flex flex-col px-6 py-2 border-b sm:border-b-0 sm:border-r border-slate-200 text-left">
@@ -82,7 +151,7 @@ const BookingSearchBar = () => {
           </div>
 
           {/* ĐIỂM ĐẾN */}
-          <div className="flex flex-col px-6 py-2 border-b sm:border-b-0 lg:border-r border-slate-200 text-left">
+          <div className="flex flex-col px-6 py-2 border-b sm:border-b-0 sm:border-r lg:border-r border-slate-200 text-left">
             <span className="text-[10px] font-bold text-slate-500 tracking-wider mb-1">ĐIỂM ĐẾN</span>
             <div className="flex items-center gap-2">
               <svg className="w-5 h-5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -99,7 +168,7 @@ const BookingSearchBar = () => {
           </div>
 
           {/* NGÀY ĐI */}
-          <div className="flex flex-col px-6 py-2 border-b sm:border-b-0 sm:border-r border-slate-200 text-left">
+          <div className="flex flex-col px-6 py-2 border-b sm:border-b-0 sm:border-r lg:border-r border-slate-200 text-left">
             <span className="text-[10px] font-bold text-slate-500 tracking-wider mb-1">NGÀY ĐI</span>
             <div className="flex items-center gap-2">
               <svg className="w-5 h-5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
