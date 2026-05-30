@@ -204,8 +204,8 @@ const MOCK_CARPOOL_TRIPS = [
 const BookingPage = () => {
   const [searchParams] = useSearchParams();
   const serviceCode = searchParams.get('service') || 'bus';
-  const fromLoc = searchParams.get('from') || 'Hà Nội';
-  const toLoc = searchParams.get('to') || 'Hải Phòng';
+  const fromLoc = searchParams.get('from') || '';
+  const toLoc = searchParams.get('to') || '';
 
   // Filters State
   const [selectedTimes, setSelectedTimes] = useState([]);
@@ -274,6 +274,25 @@ const BookingPage = () => {
 
     return result;
   }, [allTrips, selectedTimes, selectedOperators, selectedTypes, maxPrice, sortBy]);
+
+  if (!fromLoc.trim() || !toLoc.trim()) {
+    return (
+      <div className="bg-[#c9ced4] min-h-[60vh] w-full flex items-center justify-center py-16 px-6">
+        <div className="bg-white border border-slate-100 rounded-3xl p-10 max-w-lg w-full text-center shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-6 text-emerald-500">
+            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-extrabold text-slate-800 mb-3">Vui lòng nhập hành trình của bạn</h2>
+          <p className="text-slate-500 text-sm font-medium leading-relaxed">
+            Bạn cần nhập đầy đủ <strong className="text-slate-700">điểm đi</strong> và <strong className="text-slate-700">điểm đến</strong> ở thanh tìm kiếm phía trên để xem danh sách chuyến xe phù hợp.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[#c9ced4] min-h-[60vh] w-full">

@@ -4,6 +4,29 @@
   --font-sans: "Be Vietnam Pro", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
+:root {
+  --primary: #3b82f6;
+  --primary-container: #001F3F;
+  --on-primary: #ffffff;
+  
+  --secondary: #2ECC71;
+  --secondary-container: #2ECC71;
+  --on-secondary-container: #ffffff;
+  
+  --surface: #f8fafc;
+  --surface-container: #f1f5f9;
+  --surface-container-low: #f8fafc;
+  --surface-container-lowest: #ffffff;
+  --surface-container-high: #e2e8f0;
+  --surface-container-highest: #cbd5e1;
+  
+  --on-surface: #0f172a;
+  --on-surface-variant: #475569;
+  
+  --transition-fluid: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --font-family: var(--font-sans);
+}
+
 body {
   font-family: var(--font-sans);
 }

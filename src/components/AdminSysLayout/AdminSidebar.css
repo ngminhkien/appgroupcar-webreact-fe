@@ -4,7 +4,7 @@
 .admin-sidebar {
   width: 240px;
   min-height: 100vh;
-  background: #172554;
+  background: var(--primary-container);
   color: var(--on-primary);
   display: flex;
   flex-direction: column;
@@ -14,6 +14,7 @@
   bottom: 0;
   z-index: 100;
   overflow-y: auto;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
 }
 
 /* Header / Logo */
@@ -71,7 +72,7 @@
   transform: translateY(-50%) scaleY(0);
   width: 4px;
   height: 60%;
-  background-color: #4ade80; /* Màu viền xanh lá */
+  background-color: var(--secondary); /* Màu viền xanh lá #2ECC71 */
   border-radius: 0 4px 4px 0;
   transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
@@ -84,8 +85,8 @@
 
 .sidebar-nav-item--active {
   opacity: 1;
-  background: rgba(107, 254, 156, 0.1);
-  color: #4ade80; /* Màu text xanh lá cho active */
+  background: rgba(46, 204, 113, 0.1);
+  color: var(--secondary); /* Màu text xanh lá cho active #2ECC71 */
   transform: translateX(4px);
 }
 
@@ -94,7 +95,7 @@
 }
 
 .sidebar-nav-item--active .sidebar-nav-icon {
-  color: #4ade80;
+  color: var(--secondary);
 }
 
 .sidebar-nav-icon {
@@ -152,9 +153,9 @@
 
 .sidebar-nav-sub-item--active {
   opacity: 1;
-  color: #4ade80;
+  color: var(--secondary);
   font-weight: 500;
-  background: rgba(107, 254, 156, 0.05);
+  background: rgba(46, 204, 113, 0.05);
 }
 
 /* Footer - User & Logout */

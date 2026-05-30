@@ -218,9 +218,26 @@ const CreateRequestPage = () => {
     } else if (sortBy === 'priceDesc') {
       result.sort((a, b) => b.budget - a.budget);
     }
-
     return result;
   }, [allRequests, fromLoc, toLoc, selectedTimes, maxPrice, sortBy]);
+
+  if (!fromLoc.trim() || !toLoc.trim()) {
+    return (
+      <div className="bg-[#c9ced4] min-h-[60vh] w-full flex items-center justify-center py-16 px-6">
+        <div className="bg-white border border-slate-200 rounded-3xl p-10 max-w-lg w-full text-center shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-6 text-emerald-500">
+            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-extrabold text-slate-800 mb-3">Vui lòng nhập hành trình của bạn</h2>
+          <p className="text-slate-500 text-sm font-medium leading-relaxed">
+            Bạn cần nhập đầy đủ <strong className="text-slate-700">điểm đi</strong> và <strong className="text-slate-700">điểm đến</strong> ở thanh tìm kiếm phía trên để xem các yêu cầu tương ứng.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const isExpressView = serviceCode === 'express';
 
