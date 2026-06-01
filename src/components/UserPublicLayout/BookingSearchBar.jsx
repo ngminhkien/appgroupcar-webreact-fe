@@ -16,8 +16,8 @@ const BookingSearchBar = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [fromCity, setFromCity] = useState(searchParams.get('from') || '');
-  const [toCity, setToCity] = useState(searchParams.get('to') || '');
+  const [fromCity, setFromCity] = useState(searchParams.get('from') || sessionStorage.getItem('booking_fromCity') || '');
+  const [toCity, setToCity] = useState(searchParams.get('to') || sessionStorage.getItem('booking_toCity') || '');
   const [departureDate, setDepartureDate] = useState(searchParams.get('date') || TODAY_DATE);
   const [selectedService, setSelectedService] = useState(searchParams.get('service') || 'bus');
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -26,6 +26,9 @@ const BookingSearchBar = () => {
   const fromInputRef = useRef(null);
   const toInputRef = useRef(null);
 
+  const lastSelectedFromRef = useRef(searchParams.get('from') || sessionStorage.getItem('booking_fromCity') || '');
+  const lastSelectedToRef = useRef(searchParams.get('to') || sessionStorage.getItem('booking_toCity') || '');
+
   const services = [
     { id: 'bus', label: 'Xe khách' },
     { id: 'carpool', label: 'Xe ghép' },
@@ -33,27 +36,34 @@ const BookingSearchBar = () => {
   ];
 
   // Autocomplete suggestions states
-  const [fromLocationId, setFromLocationId] = useState(searchParams.get('PickupLocationId') || '');
+  const [fromLocationId, setFromLocationId] = useState(searchParams.get('PickupLocationId') || sessionStorage.getItem('booking_fromLocationId') || '');
   const [showFromDropdown, setShowFromDropdown] = useState(false);
   const [fromSuggestions, setFromSuggestions] = useState([]);
   const [isFromLoading, setIsFromLoading] = useState(false);
 
-  const [toLocationId, setToLocationId] = useState(searchParams.get('DropoffLocationId') || '');
+  const [toLocationId, setToLocationId] = useState(searchParams.get('DropoffLocationId') || sessionStorage.getItem('booking_toLocationId') || '');
   const [showToDropdown, setShowToDropdown] = useState(false);
   const [toSuggestions, setToSuggestions] = useState([]);
   const [isToLoading, setIsToLoading] = useState(false);
 
   // Sync inputs with URL parameters
   useEffect(() => {
-    setFromCity(searchParams.get('from') || '');
-    setToCity(searchParams.get('to') || '');
+    const urlFrom = searchParams.get('from') || sessionStorage.getItem('booking_fromCity') || '';
+    const urlTo = searchParams.get('to') || sessionStorage.getItem('booking_toCity') || '';
+    
+    setFromCity(urlFrom);
+    setToCity(urlTo);
+    
+    lastSelectedFromRef.current = urlFrom;
+    lastSelectedToRef.current = urlTo;
+
     setDepartureDate(searchParams.get('date') || TODAY_DATE);
     setSelectedService(searchParams.get('service') || 'bus');
-    setFromLocationId(searchParams.get('PickupLocationId') || '');
-    setToLocationId(searchParams.get('DropoffLocationId') || '');
+    setFromLocationId(searchParams.get('PickupLocationId') || sessionStorage.getItem('booking_fromLocationId') || '');
+    setToLocationId(searchParams.get('DropoffLocationId') || sessionStorage.getItem('booking_toLocationId') || '');
   }, [searchParams]);
 
-  // Click outside to close dropdowns
+  // Click outside to close dropdowns and restore empty values
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -61,22 +71,64 @@ const BookingSearchBar = () => {
       }
       if (fromInputRef.current && !fromInputRef.current.contains(event.target)) {
         setShowFromDropdown(false);
+        if (!fromCity.trim()) {
+          const storedCity = sessionStorage.getItem('booking_fromCity');
+          const storedId = sessionStorage.getItem('booking_fromLocationId');
+          if (storedCity) {
+            setFromCity(storedCity);
+            lastSelectedFromRef.current = storedCity;
+          }
+          if (storedId) setFromLocationId(storedId);
+        }
       }
       if (toInputRef.current && !toInputRef.current.contains(event.target)) {
         setShowToDropdown(false);
+        if (!toCity.trim()) {
+          const storedCity = sessionStorage.getItem('booking_toCity');
+          const storedId = sessionStorage.getItem('booking_toLocationId');
+          if (storedCity) {
+            setToCity(storedCity);
+            lastSelectedToRef.current = storedCity;
+          }
+          if (storedId) setToLocationId(storedId);
+        }
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [fromCity, toCity]);
+
+  // Save non-empty values to session storage
+  useEffect(() => {
+    if (fromCity.trim()) {
+      sessionStorage.setItem('booking_fromCity', fromCity.trim());
+    }
+    if (fromLocationId) {
+      sessionStorage.setItem('booking_fromLocationId', fromLocationId);
+    }
+  }, [fromCity, fromLocationId]);
+
+  useEffect(() => {
+    if (toCity.trim()) {
+      sessionStorage.setItem('booking_toCity', toCity.trim());
+    }
+    if (toLocationId) {
+      sessionStorage.setItem('booking_toLocationId', toLocationId);
+    }
+  }, [toCity, toLocationId]);
 
   // Debounced suggestion loader for Source City (fromCity)
   useEffect(() => {
     if (!fromCity.trim()) {
       setFromSuggestions([]);
       setShowFromDropdown(false);
+      return;
+    }
+
+    // Skip suggestion API call if the value matches the last selected/loaded value
+    if (fromCity.trim() === lastSelectedFromRef.current) {
       return;
     }
 
@@ -113,6 +165,11 @@ const BookingSearchBar = () => {
       return;
     }
 
+    // Skip suggestion API call if the value matches the last selected/loaded value
+    if (toCity.trim() === lastSelectedToRef.current) {
+      return;
+    }
+
     // Check if the current value matches an already selected suggestion
     const matchedSuggestion = toSuggestions.find(
       s => (s.displayName || s.name || s.locationName || '') === toCity.trim()
@@ -138,12 +195,63 @@ const BookingSearchBar = () => {
     return () => clearTimeout(timer);
   }, [toCity]);
 
+  const handleSwap = () => {
+    // Swap display names
+    const tempCity = fromCity;
+    setFromCity(toCity);
+    setToCity(tempCity);
+
+    // Swap location IDs
+    const tempId = fromLocationId;
+    setFromLocationId(toLocationId);
+    setToLocationId(tempId);
+
+    // Update refs to prevent triggering suggestions on swap
+    lastSelectedFromRef.current = toCity;
+    lastSelectedToRef.current = tempCity;
+
+    // Swap suggestions to prevent unnecessary API refetching
+    const tempFromSuggestions = fromSuggestions;
+    const tempToSuggestions = toSuggestions;
+    setFromSuggestions(tempToSuggestions);
+    setToSuggestions(tempFromSuggestions);
+
+    // Close any open dropdowns
+    setShowFromDropdown(false);
+    setShowToDropdown(false);
+  };
+
   const handleSearch = () => {
+    let finalFromCity = fromCity.trim();
+    let finalFromId = fromLocationId;
+    let finalToCity = toCity.trim();
+    let finalToId = toLocationId;
+
+    if (!finalFromCity) {
+      finalFromCity = sessionStorage.getItem('booking_fromCity') || '';
+      finalFromId = sessionStorage.getItem('booking_fromLocationId') || '';
+      if (finalFromCity) {
+        setFromCity(finalFromCity);
+        lastSelectedFromRef.current = finalFromCity;
+        setFromLocationId(finalFromId);
+      }
+    }
+
+    if (!finalToCity) {
+      finalToCity = sessionStorage.getItem('booking_toCity') || '';
+      finalToId = sessionStorage.getItem('booking_toLocationId') || '';
+      if (finalToCity) {
+        setToCity(finalToCity);
+        lastSelectedToRef.current = finalToCity;
+        setToLocationId(finalToId);
+      }
+    }
+
     const params = new URLSearchParams();
-    if (fromCity.trim()) params.append('from', fromCity.trim());
-    if (fromLocationId) params.append('PickupLocationId', fromLocationId);
-    if (toCity.trim()) params.append('to', toCity.trim());
-    if (toLocationId) params.append('DropoffLocationId', toLocationId);
+    if (finalFromCity) params.append('from', finalFromCity);
+    if (finalFromId) params.append('PickupLocationId', finalFromId);
+    if (finalToCity) params.append('to', finalToCity);
+    if (finalToId) params.append('DropoffLocationId', finalToId);
     if (departureDate) params.append('date', departureDate);
     if (selectedService) params.append('service', selectedService);
 
@@ -191,6 +299,7 @@ const BookingSearchBar = () => {
                         const name = loc.displayName || loc.name || loc.locationName || '';
                         setFromCity(name);
                         setFromLocationId(loc.id);
+                        lastSelectedFromRef.current = name;
                         setShowFromDropdown(false);
                       }}
                       className="w-full text-left px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors duration-200 cursor-pointer"
@@ -203,6 +312,24 @@ const BookingSearchBar = () => {
                 )}
               </div>
             )}
+
+            {/* Swap Button */}
+            <button
+              type="button"
+              onClick={handleSwap}
+              className="absolute z-20 bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-full p-2 shadow-md hover:shadow-lg transition-all duration-300 group cursor-pointer bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 sm:bottom-auto sm:top-1/2 sm:right-0 sm:left-auto sm:translate-x-1/2 sm:-translate-y-1/2"
+              aria-label="Đổi chiều điểm đi và điểm đến"
+            >
+              <svg 
+                className="w-4 h-4 text-emerald-500 transition-transform duration-500 group-hover:rotate-180" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor" 
+                strokeWidth="2.5"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+              </svg>
+            </button>
           </div>
 
           {/* ĐIỂM ĐẾN */}
@@ -240,6 +367,7 @@ const BookingSearchBar = () => {
                         const name = loc.displayName || loc.name || loc.locationName || '';
                         setToCity(name);
                         setToLocationId(loc.id);
+                        lastSelectedToRef.current = name;
                         setShowToDropdown(false);
                       }}
                       className="w-full text-left px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors duration-200 cursor-pointer"

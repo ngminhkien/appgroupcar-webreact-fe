@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { getOfferRoutePointsApi } from '@/services/offerRoutePointService';
 import { createShipmentRequestApi, createShipmentOfferApi } from '@/services/shipmentService';
+import { getUserProfileApi } from '@/services/userService';
 
 // Steering wheel icon
 const SteeringWheelIcon = ({ className = '' }) => (
@@ -64,9 +65,9 @@ const TripBooking = ({ trip, onClose }) => {
   const [selectedDropoff, setSelectedDropoff] = useState(null);
 
   // New States for Step 3 & 4
-  const [passengerName, setPassengerName] = useState('Nguyễn Minh Kiên');
-  const [passengerPhone, setPassengerPhone] = useState('0987654321');
-  const [passengerEmail, setPassengerEmail] = useState('kien@example.com');
+  const [passengerName, setPassengerName] = useState('');
+  const [passengerPhone, setPassengerPhone] = useState('');
+  const [passengerEmail, setPassengerEmail] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('transfer'); // 'transfer' or 'cash'
 
   const [bookingSuccess, setBookingSuccess] = useState(false);
@@ -89,6 +90,24 @@ const TripBooking = ({ trip, onClose }) => {
 
   // Dynamic Seat Layout
   const [seatLayout, setSeatLayout] = useState([]);
+
+  // Fetch current user profile on mount to fill in passenger info
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const response = await getUserProfileApi();
+        const profile = response?.data || response;
+        if (profile) {
+          if (profile.fullName) setPassengerName(profile.fullName);
+          if (profile.phoneNumber) setPassengerPhone(profile.phoneNumber);
+          if (profile.email) setPassengerEmail(profile.email);
+        }
+      } catch (err) {
+        console.warn("Could not fetch user profile for trip booking:", err);
+      }
+    };
+    fetchUserProfile();
+  }, []);
 
   // Fetch route points dynamically
   useEffect(() => {
