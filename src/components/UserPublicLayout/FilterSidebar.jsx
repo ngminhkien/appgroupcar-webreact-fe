@@ -40,9 +40,9 @@ const FilterSidebar = ({
 
   const toggleTime = (timeId) => {
     if (selectedTimes.includes(timeId)) {
-      setSelectedTimes(selectedTimes.filter(t => t !== timeId));
+      setSelectedTimes([]);
     } else {
-      setSelectedTimes([...selectedTimes, timeId]);
+      setSelectedTimes([timeId]);
     }
   };
 

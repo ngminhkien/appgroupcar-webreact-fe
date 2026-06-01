@@ -134,10 +134,19 @@ const BookingPage = () => {
         const pageNumberLoc = parseInt(searchParams.get('PageNumber') || searchParams.get('pageNumber') || '1', 10);
         const pageSizeLoc = parseInt(searchParams.get('PageSize') || searchParams.get('pageSize') || '10', 10);
 
+        let startTimeVal = dateLoc ? `${dateLoc}T00:00:00` : undefined;
+        if (dateLoc && selectedTimes.length > 0) {
+          const timeRange = selectedTimes[0];
+          if (timeRange === 'morning') startTimeVal = `${dateLoc}T06:00:00`;
+          else if (timeRange === 'afternoon') startTimeVal = `${dateLoc}T12:00:00`;
+          else if (timeRange === 'evening') startTimeVal = `${dateLoc}T18:00:00`;
+          else if (timeRange === 'night') startTimeVal = `${dateLoc}T00:00:00`;
+        }
+
         const params = {
           PickupLocationId: pickupLocId || undefined,
           DropoffLocationId: dropoffLocId || undefined,
-          startTime: dateLoc ? `${dateLoc}T00:00:00` : undefined,
+          startTime: startTimeVal,
           PageNumber: pageNumberLoc,
           PageSize: pageSizeLoc
         };
@@ -152,6 +161,7 @@ const BookingPage = () => {
             PickupLocationId: pickupLocId || undefined,
             DropoffLocationId: dropoffLocId || undefined,
             DepartureDate: dateLoc || undefined,
+            startTime: startTimeVal,
             PageNumber: pageNumberLoc,
             PageSize: pageSizeLoc
           };
@@ -258,7 +268,7 @@ const BookingPage = () => {
     return () => {
       isMounted = false;
     };
-  }, [serviceCode, pickupLocQuery, dropoffLocQuery, dateLoc, searchParams]);
+  }, [serviceCode, pickupLocQuery, dropoffLocQuery, dateLoc, searchParams, selectedTimes]);
 
   // Load suitable trips based on URL service type or API response
   const allTrips = useMemo(() => {
@@ -289,7 +299,8 @@ const BookingPage = () => {
   const filteredTrips = useMemo(() => {
     let result = [...allTrips];
 
-    // 1. Time range filter
+    // 1. Time range filter (Handled on API side via startTime)
+    /*
     if (selectedTimes.length > 0) {
       result = result.filter(trip => {
         const hour = parseInt(trip.departureTime.split(':')[0], 10);
@@ -302,19 +313,26 @@ const BookingPage = () => {
         });
       });
     }
+    */
 
-    // 2. Operator filter
+    // 2. Operator filter (Temporarily commented)
+    /*
     if (selectedOperators.length > 0) {
       result = result.filter(trip => selectedOperators.includes(trip.operator));
     }
+    */
 
-    // 3. Vehicle type filter
+    // 3. Vehicle type filter (Temporarily commented)
+    /*
     if (selectedTypes.length > 0) {
       result = result.filter(trip => selectedTypes.includes(trip.type));
     }
+    */
 
-    // 4. Max price filter
+    // 4. Max price filter (Temporarily commented)
+    /*
     result = result.filter(trip => trip.price <= maxPrice);
+    */
 
     // Sorting
     if (sortBy === 'early') {
