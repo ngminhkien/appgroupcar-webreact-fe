@@ -231,7 +231,10 @@ const BookingPage = () => {
               ? 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&q=80'
               : (serviceCode === 'express' 
                 ? 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=1000&q=80'
-                : 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&q=80'))
+                : 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&q=80')),
+            driverId: item.driverId || item.marketDriverId || item.driver?.id || item.marketDriver?.id || item.userId || null,
+            vehicleId: item.vehicleId || item.vehicle?.id || null,
+            rawItem: item
           };
         });
 

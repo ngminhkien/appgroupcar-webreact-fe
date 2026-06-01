@@ -1,7 +1,103 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { getOfferRoutePointsApi } from '@/services/offerRoutePointService';
+import { getDriverByIdApi } from '@/services/driverService';
+import logoGroupCar from '@/assets/logoGroupCar.png';
 
 const TripDetails = ({ trip, onClose }) => {
   const [activeTab, setActiveTab] = useState('pickupDropoff');
+
+  const [routePoints, setRoutePoints] = useState([]);
+  const [driverInfo, setDriverInfo] = useState(null);
+  const [isLoadingRoute, setIsLoadingRoute] = useState(false);
+  const [isLoadingDriver, setIsLoadingDriver] = useState(false);
+  const [routeError, setRouteError] = useState(null);
+  const [driverError, setDriverError] = useState(null);
+
+  // Helper to format full image urls (for avatars etc)
+  const getFullImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    
+    let baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5039';
+    baseUrl = baseUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
+    const formattedUrl = url.startsWith('/') ? url : `/${url}`;
+    
+    return `${baseUrl}${formattedUrl}`;
+  };
+
+  useEffect(() => {
+    if (!trip?.id) return;
+
+    let isMounted = true;
+    const fetchRoutePoints = async () => {
+      setIsLoadingRoute(true);
+      setRouteError(null);
+      try {
+        const response = await getOfferRoutePointsApi(trip.id);
+        if (isMounted) {
+          if (response && response.code === 200) {
+            setRoutePoints(response.data || []);
+          } else {
+            setRoutePoints(response?.data ?? response ?? []);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching route points:', err);
+        if (isMounted) {
+          setRouteError(err.message || 'Không thể tải lộ trình chuyến đi.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingRoute(false);
+        }
+      }
+    };
+
+    fetchRoutePoints();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [trip?.id]);
+
+  useEffect(() => {
+    const driverId = trip?.driverId;
+    if (!driverId) {
+      setDriverInfo(null);
+      return;
+    }
+
+    let isMounted = true;
+    const fetchDriverInfo = async () => {
+      setIsLoadingDriver(true);
+      setDriverError(null);
+      try {
+        const response = await getDriverByIdApi(driverId);
+        if (isMounted) {
+          if (response && response.code === 200) {
+            setDriverInfo(response.data);
+          } else {
+            setDriverInfo(response?.data ?? response);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching driver info:', err);
+        if (isMounted) {
+          setDriverError(err.message || 'Không thể tải thông tin tài xế.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingDriver(false);
+        }
+      }
+    };
+
+    fetchDriverInfo();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [trip?.driverId]);
 
   // Realistic mock data generated based on trip operator
   const getMockDetails = (operator) => {
@@ -145,6 +241,22 @@ const TripDetails = ({ trip, onClose }) => {
 
   const details = getMockDetails(trip.operator);
 
+  const displayPickups = routePoints
+    ? [...routePoints].filter(pt => pt.stopType === 1 || pt.stopType === 2 || pt.stopType === 3).sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
+    : [];
+
+  const displayDropoffs = routePoints
+    ? [...routePoints].filter(pt => pt.stopType === 4 || pt.stopType === 5).sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
+    : [];
+
+  const driverName = driverInfo?.fullName || 'Chưa cập nhật';
+  const driverPhone = driverInfo?.phoneNumber || 'Chưa cập nhật';
+  const driverLicense = driverInfo?.licenseClass && driverInfo?.licenseClass !== 'string' ? driverInfo.licenseClass : 'Chưa cập nhật';
+  const driverRating = driverInfo?.driverRatingAverage ?? 0;
+  const driverTripsCount = driverInfo?.driverRatingCount ?? 0;
+  const driverAvatar = driverInfo?.avatarUrl ? getFullImageUrl(driverInfo.avatarUrl) : logoGroupCar;
+  const driverExperience = `Tài xế chuyên nghiệp hạng ${driverLicense}. Đã được xác minh thông tin và có lịch sử hoạt động tốt trên hệ thống.`;
+
   const tabs = [
     { id: 'pickupDropoff', label: 'Đón/trả' },
     { id: 'driver', label: 'Tài xế' },
@@ -200,82 +312,142 @@ const TripDetails = ({ trip, onClose }) => {
               {details.pickupDropoff.notice}
             </div>
 
-            {/* Pick-up / Drop-off Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-2">
-              
-              {/* Pickup Column */}
-              <div className="flex flex-col gap-4">
-                <h4 className="text-base font-extrabold text-slate-900 border-b border-slate-200 pb-2">Điểm đón</h4>
-                <div className="flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-2">
-                  {details.pickupDropoff.pickups.map((pt, i) => (
-                    <div key={i} className="flex gap-3 items-start text-slate-700 text-sm">
-                      <div className="font-extrabold text-slate-900 shrink-0 mt-0.5">{pt.time}</div>
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 shrink-0" />
-                      <div>
-                        {pt.isDoorToDoor && (
-                          <span className="inline-block bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-md mr-1.5 tracking-wide">
-                            Đón tận nơi
-                          </span>
-                        )}
-                        <span className="font-medium">{pt.address}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            {isLoadingRoute ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                <span className="ml-3 text-slate-500 font-semibold">Đang tải lộ trình chuyến xe...</span>
               </div>
-
-              {/* Dropoff Column */}
-              <div className="flex flex-col gap-4">
-                <h4 className="text-base font-extrabold text-slate-900 border-b border-slate-200 pb-2">Điểm trả</h4>
-                <div className="flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin">
-                  {details.pickupDropoff.dropoffs.map((pt, i) => (
-                    <div key={i} className="flex gap-3 items-start text-slate-700 text-sm">
-                      <div className="font-extrabold text-slate-900 shrink-0 mt-0.5">{pt.time}</div>
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 shrink-0" />
-                      <div>
-                        {pt.isDoorToDoor && (
-                          <span className="inline-block bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-md mr-1.5 tracking-wide">
-                            Trả tận nơi
-                          </span>
-                        )}
-                        <span className="font-medium">{pt.address}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            ) : routeError ? (
+              <div className="bg-red-50 text-red-700 text-sm font-semibold p-6 rounded-3xl border border-red-200 shadow-sm flex flex-col gap-2">
+                <strong className="text-red-800 text-base">Lỗi tải lộ trình</strong>
+                <p>{routeError}</p>
               </div>
+            ) : !routePoints || routePoints.length === 0 ? (
+              <div className="bg-slate-100 text-slate-600 text-sm font-semibold p-6 rounded-3xl text-center">
+                Không tìm thấy thông tin lộ trình chuyến xe từ hệ thống.
+              </div>
+            ) : (
+              /* Pick-up / Drop-off Grid */
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-2">
+                
+                {/* Pickup Column */}
+                <div className="flex flex-col gap-4">
+                  <h4 className="text-base font-extrabold text-slate-900 border-b border-slate-200 pb-2">Điểm đón</h4>
+                  <div className="flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-2">
+                    {displayPickups.map((pt, i) => (
+                      <div key={pt.id || i} className="flex gap-3 items-start text-slate-700 text-sm">
+                        <div className="font-extrabold text-slate-900 shrink-0 mt-0.5">
+                          Điểm {pt.sequence}
+                        </div>
+                        <div className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 shrink-0" />
+                        <div>
+                          {pt.stopType === 1 && (
+                            <span className="inline-block bg-blue-100 text-blue-800 text-[10px] font-black px-2 py-0.5 rounded-md mr-1.5 tracking-wide">
+                              Khởi hành
+                            </span>
+                          )}
+                          {pt.stopType === 2 && (
+                            <span className="inline-block bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-md mr-1.5 tracking-wide">
+                              Điểm đón
+                            </span>
+                          )}
+                          {pt.stopType === 3 && (
+                            <span className="inline-block bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-md mr-1.5 tracking-wide">
+                              Trung chuyển
+                            </span>
+                          )}
+                          <span className="font-medium">{pt.locationName}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-            </div>
+                {/* Dropoff Column */}
+                <div className="flex flex-col gap-4">
+                  <h4 className="text-base font-extrabold text-slate-900 border-b border-slate-200 pb-2">Điểm trả</h4>
+                  <div className="flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin">
+                    {displayDropoffs.map((pt, i) => (
+                      <div key={pt.id || i} className="flex gap-3 items-start text-slate-700 text-sm">
+                        <div className="font-extrabold text-slate-900 shrink-0 mt-0.5">
+                          Điểm {pt.sequence}
+                        </div>
+                        <div className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 shrink-0" />
+                        <div>
+                          {pt.stopType === 4 && (
+                            <span className="inline-block bg-indigo-100 text-indigo-800 text-[10px] font-black px-2 py-0.5 rounded-md mr-1.5 tracking-wide">
+                              Điểm trả
+                            </span>
+                          )}
+                          {pt.stopType === 5 && (
+                            <span className="inline-block bg-purple-100 text-purple-800 text-[10px] font-black px-2 py-0.5 rounded-md mr-1.5 tracking-wide">
+                              Kết thúc
+                            </span>
+                          )}
+                          <span className="font-medium">{pt.locationName}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+            )}
           </div>
         )}
 
         {/* TAB 2: DRIVER INFO */}
         {activeTab === 'driver' && (
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row gap-6 max-w-2xl">
-            <img 
-              src={details.driver.avatar} 
-              alt={details.driver.name} 
-              className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover shrink-0 border border-slate-100"
-            />
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-3 flex-wrap">
-                <h3 className="text-lg font-bold text-slate-900">{details.driver.name}</h3>
-                <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
-                  Bằng {details.driver.license}
-                </span>
+          <div className="flex flex-col gap-4">
+            {isLoadingDriver ? (
+              <div className="flex items-center justify-center py-12 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm max-w-2xl">
+                <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                <span className="ml-3 text-slate-500 font-semibold">Đang tải thông tin tài xế...</span>
               </div>
-              <div className="text-sm font-semibold text-slate-500 flex items-center gap-1.5">
-                <span>SĐT:</span>
-                <span className="text-slate-800">{details.driver.phone}</span>
-                <span className="text-slate-300">|</span>
-                <span className="text-amber-500 font-bold">★</span>
-                <span className="text-slate-800">{details.driver.rating}</span>
-                <span className="text-slate-400">({details.driver.tripsCount} chuyến lái)</span>
+            ) : driverError ? (
+              <div className="bg-red-50 text-red-700 text-sm font-semibold p-6 rounded-3xl border border-red-200 max-w-2xl shadow-sm flex flex-col gap-2">
+                <strong className="text-red-800 text-base">Lỗi tải thông tin tài xế</strong>
+                <p>{driverError}</p>
               </div>
-              <p className="text-slate-600 text-sm leading-relaxed mt-1 font-medium">
-                {details.driver.experience}
-              </p>
-            </div>
+            ) : !trip.driverId ? (
+              <div className="bg-amber-50 text-amber-800 text-sm font-semibold p-6 rounded-3xl border border-amber-200 max-w-2xl">
+                Chuyến đi này chưa được gán tài xế chính thức.
+              </div>
+            ) : !driverInfo ? (
+              <div className="bg-slate-100 text-slate-600 text-sm font-semibold p-6 rounded-3xl text-center max-w-2xl">
+                Không tìm thấy thông tin tài xế trên hệ thống.
+              </div>
+            ) : (
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row gap-6 max-w-2xl">
+                <img 
+                  src={driverAvatar} 
+                  alt={driverName} 
+                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover shrink-0 border border-slate-100"
+                  onError={(e) => {
+                    e.target.src = logoGroupCar;
+                  }}
+                />
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h3 className="text-lg font-bold text-slate-900">{driverName}</h3>
+                    <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
+                      Bằng {driverLicense}
+                    </span>
+                  </div>
+                  <div className="text-sm font-semibold text-slate-500 flex items-center gap-1.5">
+                    <span>SĐT:</span>
+                    <span className="text-slate-800">{driverPhone}</span>
+                    <span className="text-slate-300">|</span>
+                    <span className="text-amber-500 font-bold">★</span>
+                    <span className="text-slate-800">{driverRating}</span>
+                    <span className="text-slate-400">({driverTripsCount} chuyến lái)</span>
+                  </div>
+                  <p className="text-slate-600 text-sm leading-relaxed mt-1 font-medium">
+                    {driverExperience}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
