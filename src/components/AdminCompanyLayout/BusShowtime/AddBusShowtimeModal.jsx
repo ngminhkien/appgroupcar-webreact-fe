@@ -26,10 +26,10 @@ const AddBusShowtimeModal = ({ isOpen, onClose, onAdded }) => {
             getCompanyVehiclesApi({ PageSize: 1000 }),
             getBusRoutesApi({ PageSize: 1000 })
           ]);
-          
+
           const vehData = vehRes?.data?.items || vehRes?.items || vehRes?.data || vehRes || [];
           const routeData = routeRes?.data?.items || routeRes?.items || routeRes?.data || routeRes || [];
-          
+
           setVehicles(Array.isArray(vehData) ? vehData : []);
           setRoutes(Array.isArray(routeData) ? routeData : []);
         } catch (error) {
@@ -38,9 +38,9 @@ const AddBusShowtimeModal = ({ isOpen, onClose, onAdded }) => {
           setIsLoadingData(false);
         }
       };
-      
+
       fetchData();
-      
+
       // Reset form
       setFormData({
         companyVehicleId: '',
@@ -61,7 +61,7 @@ const AddBusShowtimeModal = ({ isOpen, onClose, onAdded }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.companyVehicleId || !formData.routeId || !formData.departureDate || !formData.departureTime || !formData.price) {
       toast.error('Vui lòng điền đầy đủ thông tin (chọn xe, tuyến, ngày, giờ, giá vé)');
       return;
@@ -96,7 +96,7 @@ const AddBusShowtimeModal = ({ isOpen, onClose, onAdded }) => {
             </svg>
           </button>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Chọn Tuyến xe */}

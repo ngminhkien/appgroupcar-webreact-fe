@@ -6,13 +6,13 @@ import BookingSearchBar from './BookingSearchBar';
 
 const UserPublicLayout = () => {
   const { pathname } = useLocation();
-  const showSearchBar = pathname === '/booking' || pathname === '/create-request';
+  const showSearchBar = pathname === '/booking';
 
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
       {showSearchBar && (
-        <div className="bg-slate-50 pt-8 px-6 flex justify-center w-full relative z-20">
+        <div className="bg-[#c9ced4] pt-8 px-6 flex justify-center w-full relative z-20">
           <BookingSearchBar />
         </div>
       )}

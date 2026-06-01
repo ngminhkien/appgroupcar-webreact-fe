@@ -124,10 +124,16 @@ const MOCK_EXPRESS_REQUESTS = [
 ];
 
 const CreateRequestPage = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const serviceCode = searchParams.get('service') || 'carpool';
   const fromLoc = searchParams.get('from') || '';
   const toLoc = searchParams.get('to') || '';
+
+  const handleTabChange = (code) => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set('service', code);
+    setSearchParams(nextParams);
+  };
 
   // Requests state list
   const [requests, setRequests] = useState([...MOCK_CARPOOL_REQUESTS, ...MOCK_EXPRESS_REQUESTS]);
@@ -221,23 +227,7 @@ const CreateRequestPage = () => {
     return result;
   }, [allRequests, fromLoc, toLoc, selectedTimes, maxPrice, sortBy]);
 
-  if (!fromLoc.trim() || !toLoc.trim()) {
-    return (
-      <div className="bg-[#c9ced4] min-h-[60vh] w-full flex items-center justify-center py-16 px-6">
-        <div className="bg-white border border-slate-200 rounded-3xl p-10 max-w-lg w-full text-center shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-6 text-emerald-500">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-extrabold text-slate-800 mb-3">Vui lòng nhập hành trình của bạn</h2>
-          <p className="text-slate-500 text-sm font-medium leading-relaxed">
-            Bạn cần nhập đầy đủ <strong className="text-slate-700">điểm đi</strong> và <strong className="text-slate-700">điểm đến</strong> ở thanh tìm kiếm phía trên để xem các yêu cầu tương ứng.
-          </p>
-        </div>
-      </div>
-    );
-  }
+
 
   const isExpressView = serviceCode === 'express';
 
@@ -273,6 +263,39 @@ const CreateRequestPage = () => {
 
         {/* Right column: Results List */}
         <div className="flex-grow flex flex-col gap-6">
+
+          {/* Service Tabs */}
+          <div className="flex bg-white/70 backdrop-blur-md rounded-2xl p-1.5 shadow-sm border border-slate-100/50 self-start">
+            <button
+              onClick={() => handleTabChange('carpool')}
+              className={`px-6 py-2.5 text-xs font-black rounded-xl transition-all duration-300 cursor-pointer flex items-center gap-2 ${
+                serviceCode === 'carpool'
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/10'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              }`}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+              </svg>
+              Yêu cầu Xe ghép
+            </button>
+            <button
+              onClick={() => handleTabChange('express')}
+              className={`px-6 py-2.5 text-xs font-black rounded-xl transition-all duration-300 cursor-pointer flex items-center gap-2 ${
+                serviceCode === 'express'
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/10'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              }`}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8z" />
+                <circle cx="5.5" cy="18.5" r="2.5" />
+                <circle cx="18.5" cy="18.5" r="2.5" />
+              </svg>
+              Yêu cầu Xe tải / Gửi hàng
+            </button>
+          </div>
 
           {/* Header Summary & Add Request Button */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

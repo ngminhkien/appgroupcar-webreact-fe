@@ -89,3 +89,11 @@ export const BusShowtimeStatus = Object.freeze({
   Cancelled: 4,
   Hidden: 5,
 });
+
+export const RouteStopType = Object.freeze({
+  Start: 1,
+  Pickup: 2,
+  Transit: 3,
+  Dropoff: 4,
+  End: 5,
+});

@@ -40,16 +40,20 @@ const Header = () => {
     return `${baseUrl}${formattedUrl}`;
   };
 
-  // Helper to preserve search query params, while adapting type & service defaults for specific pages
+  // Helper to preserve search query params, while adapting service defaults for specific pages
   const getPathWithQuery = (path) => {
     const params = new URLSearchParams(location.search);
     
     if (path === '/booking') {
-      params.set('type', 'booking');
-      params.set('service', 'bus');
+      params.delete('type');
+      if (!params.has('service')) {
+        params.set('service', 'bus');
+      }
     } else if (path === '/create-request') {
-      params.set('type', 'request');
-      params.set('service', 'carpool');
+      params.delete('type');
+      if (!params.has('service')) {
+        params.set('service', 'carpool');
+      }
     }
     
     const searchString = params.toString();

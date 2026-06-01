@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { getLocationsApi } from '@/services/locationService';
 
 const getTodayString = () => {
   const date = new Date();
@@ -15,46 +16,54 @@ const BookingSearchBar = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [selectedType, setSelectedType] = useState(searchParams.get('type') || 'booking');
   const [fromCity, setFromCity] = useState(searchParams.get('from') || '');
   const [toCity, setToCity] = useState(searchParams.get('to') || '');
   const [departureDate, setDepartureDate] = useState(searchParams.get('date') || TODAY_DATE);
   const [selectedService, setSelectedService] = useState(searchParams.get('service') || 'bus');
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
 
   const dropdownRef = useRef(null);
-  const typeDropdownRef = useRef(null);
+  const fromInputRef = useRef(null);
+  const toInputRef = useRef(null);
 
-  const services = selectedType === 'request'
-    ? [
-      { id: 'carpool', label: 'Xe ghép' },
-      { id: 'express', label: 'Gửi hàng' }
-    ]
-    : [
-      { id: 'bus', label: 'Xe khách' },
-      { id: 'carpool', label: 'Đi chung xe' },
-      { id: 'express', label: 'Gửi hàng' }
-    ];
+  const services = [
+    { id: 'bus', label: 'Xe khách' },
+    { id: 'carpool', label: 'Xe ghép' },
+    { id: 'express', label: 'Xe tải' }
+  ];
 
+  // Autocomplete suggestions states
+  const [fromLocationId, setFromLocationId] = useState(searchParams.get('PickupLocationId') || '');
+  const [showFromDropdown, setShowFromDropdown] = useState(false);
+  const [fromSuggestions, setFromSuggestions] = useState([]);
+  const [isFromLoading, setIsFromLoading] = useState(false);
+
+  const [toLocationId, setToLocationId] = useState(searchParams.get('DropoffLocationId') || '');
+  const [showToDropdown, setShowToDropdown] = useState(false);
+  const [toSuggestions, setToSuggestions] = useState([]);
+  const [isToLoading, setIsToLoading] = useState(false);
+
+  // Sync inputs with URL parameters
   useEffect(() => {
-    const urlType = searchParams.get('type') || 'booking';
-    const defaultService = urlType === 'request' ? 'carpool' : 'bus';
-
-    setSelectedType(urlType);
     setFromCity(searchParams.get('from') || '');
     setToCity(searchParams.get('to') || '');
     setDepartureDate(searchParams.get('date') || TODAY_DATE);
-    setSelectedService(searchParams.get('service') || defaultService);
+    setSelectedService(searchParams.get('service') || 'bus');
+    setFromLocationId(searchParams.get('PickupLocationId') || '');
+    setToLocationId(searchParams.get('DropoffLocationId') || '');
   }, [searchParams]);
 
+  // Click outside to close dropdowns
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setDropdownOpen(false);
       }
-      if (typeDropdownRef.current && !typeDropdownRef.current.contains(event.target)) {
-        setTypeDropdownOpen(false);
+      if (fromInputRef.current && !fromInputRef.current.contains(event.target)) {
+        setShowFromDropdown(false);
+      }
+      if (toInputRef.current && !toInputRef.current.contains(event.target)) {
+        setShowToDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -63,77 +72,91 @@ const BookingSearchBar = () => {
     };
   }, []);
 
+  // Debounced suggestion loader for Source City (fromCity)
+  useEffect(() => {
+    if (!fromCity.trim()) {
+      setFromSuggestions([]);
+      setShowFromDropdown(false);
+      return;
+    }
+
+    // Check if the current value matches an already selected suggestion
+    const matchedSuggestion = fromSuggestions.find(
+      s => (s.displayName || s.name || s.locationName || '') === fromCity.trim()
+    );
+    if (matchedSuggestion && matchedSuggestion.id === fromLocationId) {
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsFromLoading(true);
+      try {
+        const res = await getLocationsApi({ query: fromCity.trim(), PageNumber: 1, PageSize: 10 });
+        const items = res?.data?.items || res?.data || res || [];
+        setFromSuggestions(Array.isArray(items) ? items : []);
+        setShowFromDropdown(true);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsFromLoading(false);
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [fromCity]);
+
+  // Debounced suggestion loader for Destination City (toCity)
+  useEffect(() => {
+    if (!toCity.trim()) {
+      setToSuggestions([]);
+      setShowToDropdown(false);
+      return;
+    }
+
+    // Check if the current value matches an already selected suggestion
+    const matchedSuggestion = toSuggestions.find(
+      s => (s.displayName || s.name || s.locationName || '') === toCity.trim()
+    );
+    if (matchedSuggestion && matchedSuggestion.id === toLocationId) {
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsToLoading(true);
+      try {
+        const res = await getLocationsApi({ query: toCity.trim(), PageNumber: 1, PageSize: 10 });
+        const items = res?.data?.items || res?.data || res || [];
+        setToSuggestions(Array.isArray(items) ? items : []);
+        setShowToDropdown(true);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsToLoading(false);
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [toCity]);
+
   const handleSearch = () => {
     const params = new URLSearchParams();
-    if (selectedType) params.append('type', selectedType);
     if (fromCity.trim()) params.append('from', fromCity.trim());
+    if (fromLocationId) params.append('PickupLocationId', fromLocationId);
     if (toCity.trim()) params.append('to', toCity.trim());
+    if (toLocationId) params.append('DropoffLocationId', toLocationId);
     if (departureDate) params.append('date', departureDate);
     if (selectedService) params.append('service', selectedService);
 
-    const targetPath = selectedType === 'request' ? '/create-request' : '/booking';
-    navigate(`${targetPath}?${params.toString()}`);
+    navigate(`/booking?${params.toString()}`);
   };
 
   return (
     <div className="w-full max-w-5xl mx-auto">
       <div className="bg-white/95 backdrop-blur-md rounded-3xl lg:rounded-[36px] p-2.5 shadow-2xl border border-white/20 flex flex-col lg:flex-row items-center gap-3">
-        <div className="w-full lg:flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-0">
-
-          {/* LỰA CHỌN */}
-          <div className="flex flex-col px-6 py-2 border-b sm:border-b-0 sm:border-r border-slate-200 text-left relative" ref={typeDropdownRef}>
-            <span className="text-[10px] font-bold text-slate-500 tracking-wider mb-1">LỰA CHỌN</span>
-            <div
-              className="flex items-center gap-2 cursor-pointer select-none"
-              onClick={() => setTypeDropdownOpen(!typeDropdownOpen)}
-            >
-              <svg className="w-5 h-5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-              <div className="w-full bg-transparent text-sm font-semibold text-slate-800 pr-6 truncate">
-                {selectedType === 'booking' ? 'Đặt vé' : 'Yêu cầu'}
-              </div>
-              <div className="absolute right-6 pointer-events-none text-slate-500">
-                <svg className={`w-4 h-4 transition-transform duration-200 ${typeDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-            {typeDropdownOpen && (
-              <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden py-1">
-                {[
-                  { id: 'booking', label: 'Đặt vé' },
-                  { id: 'request', label: 'Yêu cầu' }
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedType(item.id);
-                      setTypeDropdownOpen(false);
-                      if (item.id === 'request' && selectedService === 'bus') {
-                        setSelectedService('carpool');
-                      }
-                    }}
-                    className={`w-full text-left px-6 py-3 text-sm font-semibold transition-colors duration-200 flex items-center justify-between ${selectedType === item.id
-                      ? 'bg-emerald-50 text-emerald-600'
-                      : 'text-slate-700 hover:bg-slate-50'
-                      }`}
-                  >
-                    <span>{item.label}</span>
-                    {selectedType === item.id && (
-                      <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+        <div className="w-full lg:flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-0">
 
           {/* ĐIỂM ĐI */}
-          <div className="flex flex-col px-6 py-2 border-b sm:border-b-0 sm:border-r border-slate-200 text-left">
+          <div className="flex flex-col px-6 py-2 border-b sm:border-b-0 sm:border-r border-slate-200 text-left relative" ref={fromInputRef}>
             <span className="text-[10px] font-bold text-slate-500 tracking-wider mb-1">ĐIỂM ĐI</span>
             <div className="flex items-center gap-2">
               <svg className="w-5 h-5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -145,13 +168,45 @@ const BookingSearchBar = () => {
                 placeholder="Thành phố xuất phát"
                 value={fromCity}
                 onChange={(e) => setFromCity(e.target.value)}
+                onFocus={() => fromCity && setShowFromDropdown(true)}
                 className="w-full bg-transparent text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none"
               />
             </div>
+            {showFromDropdown && (
+              <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden py-1 max-h-60 overflow-y-auto">
+                {isFromLoading ? (
+                  <div className="px-6 py-3 text-xs font-semibold text-slate-500 flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4 text-emerald-500" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    <span>Đang tìm kiếm...</span>
+                  </div>
+                ) : fromSuggestions.length > 0 ? (
+                  fromSuggestions.map((loc) => (
+                    <button
+                      key={loc.id}
+                      type="button"
+                      onClick={() => {
+                        const name = loc.displayName || loc.name || loc.locationName || '';
+                        setFromCity(name);
+                        setFromLocationId(loc.id);
+                        setShowFromDropdown(false);
+                      }}
+                      className="w-full text-left px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors duration-200 cursor-pointer"
+                    >
+                      {loc.displayName || loc.name || loc.locationName}
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-6 py-3 text-xs font-semibold text-slate-400">Không tìm thấy địa điểm</div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* ĐIỂM ĐẾN */}
-          <div className="flex flex-col px-6 py-2 border-b sm:border-b-0 sm:border-r lg:border-r border-slate-200 text-left">
+          <div className="flex flex-col px-6 py-2 border-b sm:border-b-0 sm:border-r lg:border-r border-slate-200 text-left relative" ref={toInputRef}>
             <span className="text-[10px] font-bold text-slate-500 tracking-wider mb-1">ĐIỂM ĐẾN</span>
             <div className="flex items-center gap-2">
               <svg className="w-5 h-5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -162,9 +217,41 @@ const BookingSearchBar = () => {
                 placeholder="Thành phố đến"
                 value={toCity}
                 onChange={(e) => setToCity(e.target.value)}
+                onFocus={() => toCity && setShowToDropdown(true)}
                 className="w-full bg-transparent text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none"
               />
             </div>
+            {showToDropdown && (
+              <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden py-1 max-h-60 overflow-y-auto">
+                {isToLoading ? (
+                  <div className="px-6 py-3 text-xs font-semibold text-slate-500 flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4 text-emerald-500" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    <span>Đang tìm kiếm...</span>
+                  </div>
+                ) : toSuggestions.length > 0 ? (
+                  toSuggestions.map((loc) => (
+                    <button
+                      key={loc.id}
+                      type="button"
+                      onClick={() => {
+                        const name = loc.displayName || loc.name || loc.locationName || '';
+                        setToCity(name);
+                        setToLocationId(loc.id);
+                        setShowToDropdown(false);
+                      }}
+                      className="w-full text-left px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors duration-200 cursor-pointer"
+                    >
+                      {loc.displayName || loc.name || loc.locationName}
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-6 py-3 text-xs font-semibold text-slate-400">Không tìm thấy địa điểm</div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* NGÀY ĐI */}
@@ -194,7 +281,7 @@ const BookingSearchBar = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
               </svg>
               <div className="w-full bg-transparent text-sm font-semibold text-slate-800 pr-6 truncate">
-                {services.find(s => s.id === selectedService)?.label || 'Gửi hàng'}
+                {services.find(s => s.id === selectedService)?.label || 'Xe khách'}
               </div>
               <div className="absolute right-6 pointer-events-none text-slate-500">
                 <svg className={`w-4 h-4 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">

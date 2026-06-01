@@ -1,232 +1,284 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { FilterSidebar, TripCard } from '@/components/UserPublicLayout';
+import { getLocationsApi } from '@/services/locationService';
+import { getSharedRidesApi, getShipmentsApi } from '@/services/offerService';
+import { getBusShowtimesApi } from '@/services/busShowtimeService';
 
-const MOCK_BUS_TRIPS = [
-  {
-    id: 1,
-    operator: 'Hải Âu VIP',
-    service: 'bus',
-    type: 'Limousine',
-    rating: 4.8,
-    reviewsCount: 128,
-    price: 250000,
-    departureTime: '14:00',
-    arrivalTime: '15:30',
-    duration: '1h 30m',
-    isDirect: true,
-    stopoverType: 'Trực tiếp',
-    from: 'Hà Nội',
-    to: 'Hải Phòng',
-    availableSeats: 4,
-    tag: 'LIMOUSINE',
-    image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&q=80'
-  },
-  {
-    id: 2,
-    operator: 'Hoàng Long',
-    service: 'bus',
-    type: 'Giường nằm',
-    rating: 4.5,
-    reviewsCount: 452,
-    price: 180000,
-    departureTime: '15:15',
-    arrivalTime: '17:15',
-    duration: '2h 00m',
-    isDirect: true,
-    stopoverType: 'Trực tiếp',
-    from: 'Hà Nội',
-    to: 'Hải Phòng',
-    availableSeats: 12,
-    tag: 'GIƯỜNG NẰM',
-    image: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?w=600&q=80'
-  },
-  {
-    id: 3,
-    operator: 'Anh Huy Đất Cảng',
-    service: 'bus',
-    type: 'Limousine',
-    rating: 4.6,
-    reviewsCount: 89,
-    price: 230000,
-    departureTime: '16:30',
-    arrivalTime: '18:15',
-    duration: '1h 45m',
-    isDirect: false,
-    stopoverType: 'Tuyến nhanh',
-    from: 'Hà Nội',
-    to: 'Hải Phòng',
-    availableSeats: 2,
-    tag: 'LIMOUSINE',
-    image: 'https://images.unsplash.com/photo-1557223562-6c77ef16210f?w=600&q=80'
-  },
-  {
-    id: 4,
-    operator: 'Hải Âu VIP',
-    service: 'bus',
-    type: 'Limousine',
-    rating: 4.9,
-    reviewsCount: 64,
-    price: 250000,
-    departureTime: '08:30',
-    arrivalTime: '10:00',
-    duration: '1h 30m',
-    isDirect: true,
-    stopoverType: 'Trực tiếp',
-    from: 'Hà Nội',
-    to: 'Hải Phòng',
-    availableSeats: 6,
-    tag: 'LIMOUSINE',
-    image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&q=80'
-  },
-  {
-    id: 5,
-    operator: 'Hoàng Long',
-    service: 'bus',
-    type: 'Ghế ngồi',
-    rating: 4.2,
-    reviewsCount: 154,
-    price: 130000,
-    departureTime: '09:00',
-    arrivalTime: '11:30',
-    duration: '2h 30m',
-    isDirect: false,
-    stopoverType: 'Nhiều điểm dừng',
-    from: 'Hà Nội',
-    to: 'Hải Phòng',
-    availableSeats: 18,
-    tag: 'GHẾ NGỒI',
-    image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&q=80'
-  },
-  {
-    id: 6,
-    operator: 'Anh Huy Đất Cảng',
-    service: 'bus',
-    type: 'Ghế ngồi',
-    rating: 4.4,
-    reviewsCount: 92,
-    price: 140000,
-    departureTime: '19:00',
-    arrivalTime: '21:00',
-    duration: '2h 00m',
-    isDirect: true,
-    stopoverType: 'Trực tiếp',
-    from: 'Hà Nội',
-    to: 'Hải Phòng',
-    availableSeats: 15,
-    tag: 'GHẾ NGỒI',
-    image: 'https://images.unsplash.com/photo-1557223562-6c77ef16210f?w=600&q=80'
-  }
-];
 
-const MOCK_EXPRESS_TRIPS = [
-  {
-    id: 101,
-    operator: 'Hải Âu VIP',
-    service: 'express',
-    type: 'Limousine',
-    rating: 4.7,
-    reviewsCount: 88,
-    price: 120000,
-    departureTime: '10:00',
-    arrivalTime: '11:30',
-    duration: '1h 30m',
-    isDirect: true,
-    stopoverType: 'Trực tiếp',
-    from: 'Hà Nội',
-    to: 'Hải Phòng',
-    availableSeats: '500 kg',
-    tag: 'LIMOUSINE',
-    image: 'https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=600&q=80'
-  },
-  {
-    id: 102,
-    operator: 'Hoàng Long',
-    service: 'express',
-    type: 'Giường nằm',
-    rating: 4.3,
-    reviewsCount: 120,
-    price: 90000,
-    departureTime: '14:00',
-    arrivalTime: '16:00',
-    duration: '2h 00m',
-    isDirect: true,
-    stopoverType: 'Trực tiếp',
-    from: 'Hà Nội',
-    to: 'Hải Phòng',
-    availableSeats: '1.2 tấn',
-    tag: 'GIƯỜNG NẰM',
-    image: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=1000&q=80'
-  }
-];
 
-const MOCK_CARPOOL_TRIPS = [
-  {
-    id: 201,
-    operator: 'Anh Huy Đất Cảng',
-    service: 'carpool',
-    type: 'Limousine',
-    rating: 4.9,
-    reviewsCount: 42,
-    price: 150000,
-    departureTime: '07:30',
-    arrivalTime: '09:00',
-    duration: '1h 30m',
-    isDirect: true,
-    stopoverType: 'Trực tiếp',
-    from: 'Hà Nội',
-    to: 'Hải Phòng',
-    availableSeats: 3,
-    tag: 'LIMOUSINE',
-    image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&q=80'
-  },
-  {
-    id: 202,
-    operator: 'Hoàng Long',
-    service: 'carpool',
-    type: 'Ghế ngồi',
-    rating: 4.8,
-    reviewsCount: 31,
-    price: 130000,
-    departureTime: '13:00',
-    arrivalTime: '14:30',
-    duration: '1h 30m',
-    isDirect: true,
-    stopoverType: 'Trực tiếp',
-    from: 'Hà Nội',
-    to: 'Hải Phòng',
-    availableSeats: 4,
-    tag: 'GHẾ NGỒI',
-    image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&q=80'
-  }
-];
 
 const BookingPage = () => {
   const [searchParams] = useSearchParams();
   const serviceCode = searchParams.get('service') || 'bus';
-  const fromLoc = searchParams.get('from') || '';
-  const toLoc = searchParams.get('to') || '';
+  const pickupLocQuery = searchParams.get('PickupLocationId') || searchParams.get('from') || '';
+  const dropoffLocQuery = searchParams.get('DropoffLocationId') || searchParams.get('to') || '';
+  const dateLoc = searchParams.get('date') || '';
+
+  // Human-readable location names for the UI header/cards
+  const [resolvedFrom, setResolvedFrom] = useState(pickupLocQuery);
+  const [resolvedTo, setResolvedTo] = useState(dropoffLocQuery);
 
   // Filters State
   const [selectedTimes, setSelectedTimes] = useState([]);
   const [selectedOperators, setSelectedOperators] = useState([]);
   const [selectedTypes, setSelectedTypes] = useState([]);
-  const [maxPrice, setMaxPrice] = useState(1000000);
+  
+  const defaultMaxPrice = useMemo(() => {
+    if (serviceCode === 'bus') return 1000000;
+    return 50000000;
+  }, [serviceCode]);
+
+  const [maxPrice, setMaxPrice] = useState(defaultMaxPrice);
+
+  useEffect(() => {
+    setMaxPrice(defaultMaxPrice);
+  }, [defaultMaxPrice]);
+
   const [sortBy, setSortBy] = useState('early');
 
-  // Load suitable trips based on URL service type
+  // API Trips and Loading States
+  const [apiTrips, setApiTrips] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [locations, setLocations] = useState([]);
+
+  // Resolve descriptive location names for UI display
+  useEffect(() => {
+    const isUUID = (str) => {
+      return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
+    };
+
+    if (isUUID(pickupLocQuery)) {
+      const matched = locations.find(loc => loc.id === pickupLocQuery);
+      if (matched) {
+        setResolvedFrom(matched.displayName || matched.name || matched.locationName || pickupLocQuery);
+      }
+    } else {
+      setResolvedFrom(pickupLocQuery);
+    }
+
+    if (isUUID(dropoffLocQuery)) {
+      const matched = locations.find(loc => loc.id === dropoffLocQuery);
+      if (matched) {
+        setResolvedTo(matched.displayName || matched.name || matched.locationName || dropoffLocQuery);
+      }
+    } else {
+      setResolvedTo(dropoffLocQuery);
+    }
+  }, [pickupLocQuery, dropoffLocQuery, locations]);
+
+  // Fetch data dynamically from endpoints /shared-ride, /shipment, and /bus-showtimes
+  useEffect(() => {
+    if (!pickupLocQuery.trim() || !dropoffLocQuery.trim()) return;
+
+    let isMounted = true;
+
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // 1. Fetch locations if not already fetched
+        let currentLocations = locations;
+        if (currentLocations.length === 0) {
+          const res = await getLocationsApi({ PageSize: 1000 });
+          const locData = res?.data?.items || res?.data || res || [];
+          currentLocations = Array.isArray(locData) ? locData : [];
+          if (isMounted) {
+            setLocations(currentLocations);
+          }
+        }
+
+        // 2. Resolve IDs (either check if they are UUIDs or search by name match)
+        const isUUID = (str) => {
+          return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
+        };
+
+        let pickupLocId = isUUID(pickupLocQuery) ? pickupLocQuery : '';
+        let dropoffLocId = isUUID(dropoffLocQuery) ? dropoffLocQuery : '';
+
+        const normalizeStr = (str) => {
+          if (!str) return '';
+          return str
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/^(tỉnh|thành phố|tp\.?|t\.?)\s+/g, '')
+            .trim();
+        };
+
+        if (!pickupLocId) {
+          const cleanFrom = normalizeStr(pickupLocQuery);
+          const matched = currentLocations.find(loc => {
+            const name = normalizeStr(loc.displayName || loc.name || loc.locationName || '');
+            return name.includes(cleanFrom) || cleanFrom.includes(name);
+          });
+          pickupLocId = matched?.id || '';
+        }
+
+        if (!dropoffLocId) {
+          const cleanTo = normalizeStr(dropoffLocQuery);
+          const matched = currentLocations.find(loc => {
+            const name = normalizeStr(loc.displayName || loc.name || loc.locationName || '');
+            return name.includes(cleanTo) || cleanTo.includes(name);
+          });
+          dropoffLocId = matched?.id || '';
+        }
+
+        // Determine descriptive location names for UI display
+        const pickupLocName = currentLocations.find(loc => loc.id === pickupLocId)?.displayName || currentLocations.find(loc => loc.id === pickupLocId)?.name || pickupLocQuery;
+        const dropoffLocName = currentLocations.find(loc => loc.id === dropoffLocId)?.displayName || currentLocations.find(loc => loc.id === dropoffLocId)?.name || dropoffLocQuery;
+
+        // 3. Prepare parameters for the API call
+        const pageNumberLoc = parseInt(searchParams.get('PageNumber') || searchParams.get('pageNumber') || '1', 10);
+        const pageSizeLoc = parseInt(searchParams.get('PageSize') || searchParams.get('pageSize') || '10', 10);
+
+        const params = {
+          PickupLocationId: pickupLocId || undefined,
+          DropoffLocationId: dropoffLocId || undefined,
+          startTime: dateLoc ? `${dateLoc}T00:00:00` : undefined,
+          PageNumber: pageNumberLoc,
+          PageSize: pageSizeLoc
+        };
+
+        let responseData = null;
+        if (serviceCode === 'carpool') {
+          responseData = await getSharedRidesApi(params);
+        } else if (serviceCode === 'express') {
+          responseData = await getShipmentsApi(params);
+        } else if (serviceCode === 'bus') {
+          const busParams = {
+            PickupLocationId: pickupLocId || undefined,
+            DropoffLocationId: dropoffLocId || undefined,
+            DepartureDate: dateLoc || undefined,
+            PageNumber: pageNumberLoc,
+            PageSize: pageSizeLoc
+          };
+          responseData = await getBusShowtimesApi(busParams);
+        }
+
+        const items = responseData?.data?.items || responseData?.data || responseData?.items || [];
+        if (!Array.isArray(items)) {
+          throw new Error('Định dạng dữ liệu trả về không hợp lệ');
+        }
+
+        // 4. Map the API items to the UI trip format
+        const mapped = items.map(item => {
+          let depTimeStr = '12:00';
+          if (item.departureTime) {
+            if (item.departureTime.includes(':')) {
+              depTimeStr = item.departureTime.substring(0, 5);
+            } else {
+              const dt = new Date(item.departureTime);
+              if (!isNaN(dt.getTime())) {
+                depTimeStr = dt.toTimeString().slice(0, 5); // "HH:MM"
+              }
+            }
+          }
+          
+          let arrTimeStr = '14:00';
+          if (depTimeStr && depTimeStr.includes(':')) {
+            const [h, m] = depTimeStr.split(':').map(Number);
+            const totalMins = h * 60 + m + 90; // Add 1h 30m default duration
+            const arrH = Math.floor(totalMins / 60) % 24;
+            const arrM = totalMins % 60;
+            arrTimeStr = `${String(arrH).padStart(2, '0')}:${String(arrM).padStart(2, '0')}`;
+          }
+
+          const driverName = item.driverName && item.driverName !== 'string' ? item.driverName : '';
+          const vehicleName = item.vehicleName && item.vehicleName !== 'string' ? item.vehicleName : '';
+          
+          let operatorName = '';
+          if (serviceCode === 'carpool') {
+            operatorName = driverName || vehicleName || 'Tài xế Xe ghép';
+          } else if (serviceCode === 'express') {
+            operatorName = driverName || vehicleName || 'Nhà xe Tải';
+          } else {
+            operatorName = item.companyName || item.plateNumber || 'Nhà xe Hải Âu';
+          }
+
+          let typeName = '';
+          if (serviceCode === 'bus') {
+            typeName = item.vehicleType || 'Xe khách';
+          } else if (serviceCode === 'express') {
+            typeName = item.vehicleName || 'Xe tải';
+          } else {
+            typeName = item.vehicleName || 'Limousine';
+          }
+
+          const tripFrom = item.startPoint?.displayName || item.startPoint?.locationName || item.startPoint?.name || (item.routeName ? item.routeName.split('-')[0].trim() : pickupLocName);
+          const tripTo = item.endPoint?.displayName || item.endPoint?.locationName || item.endPoint?.name || (item.routeName ? item.routeName.split('-')[1].trim() : dropoffLocName);
+
+          return {
+            id: item.id || Math.random().toString(),
+            operator: operatorName,
+            service: serviceCode,
+            type: typeName,
+            rating: 4.8,
+            reviewsCount: 15,
+            price: item.price || item.basePrice || 0,
+            departureTime: depTimeStr,
+            arrivalTime: arrTimeStr,
+            duration: '1h 30m',
+            isDirect: true,
+            stopoverType: 'Trực tiếp',
+            from: tripFrom,
+            to: tripTo,
+            availableSeats: serviceCode === 'carpool' ? (item.availableSeats ?? 4) : (serviceCode === 'express' ? '1.5 tấn' : (item.seatCount || 9)),
+            tag: serviceCode === 'carpool' ? 'XE GHÉP' : (serviceCode === 'express' ? 'XE TẢI' : 'XE KHÁCH'),
+            image: item.vehicleUrlImage || item.imageUrl || (serviceCode === 'carpool' 
+              ? 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&q=80'
+              : (serviceCode === 'express' 
+                ? 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=1000&q=80'
+                : 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&q=80'))
+          };
+        });
+
+        if (isMounted) {
+          setApiTrips(mapped);
+        }
+      } catch (err) {
+        console.error(err);
+        if (isMounted) {
+          setError(err.message || 'Lỗi khi lấy danh sách chuyến xe');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [serviceCode, pickupLocQuery, dropoffLocQuery, dateLoc, searchParams]);
+
+  // Load suitable trips based on URL service type or API response
   const allTrips = useMemo(() => {
-    if (serviceCode === 'express') return MOCK_EXPRESS_TRIPS;
-    if (serviceCode === 'carpool') return MOCK_CARPOOL_TRIPS;
-    return MOCK_BUS_TRIPS;
-  }, [serviceCode]);
+    return apiTrips;
+  }, [apiTrips]);
+
+  // Get unique operators and types from allTrips for the filter sidebar
+  const uniqueOperators = useMemo(() => {
+    const ops = allTrips.map(trip => trip.operator).filter(Boolean);
+    return Array.from(new Set(ops));
+  }, [allTrips]);
+
+  const uniqueTypes = useMemo(() => {
+    const types = allTrips.map(trip => trip.type).filter(Boolean);
+    return Array.from(new Set(types));
+  }, [allTrips]);
 
   // Handle Reset Filters
   const handleResetFilters = () => {
     setSelectedTimes([]);
     setSelectedOperators([]);
     setSelectedTypes([]);
-    setMaxPrice(1000000);
+    setMaxPrice(defaultMaxPrice);
     setSortBy('early');
   };
 
@@ -275,7 +327,7 @@ const BookingPage = () => {
     return result;
   }, [allTrips, selectedTimes, selectedOperators, selectedTypes, maxPrice, sortBy]);
 
-  if (!fromLoc.trim() || !toLoc.trim()) {
+  if (!pickupLocQuery.trim() || !dropoffLocQuery.trim()) {
     return (
       <div className="bg-[#c9ced4] min-h-[60vh] w-full flex items-center justify-center py-16 px-6">
         <div className="bg-white border border-slate-100 rounded-3xl p-10 max-w-lg w-full text-center shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -301,6 +353,9 @@ const BookingPage = () => {
         {/* Left column: Filters Sidebar */}
         <div className="w-full lg:w-80 shrink-0">
           <FilterSidebar
+            serviceCode={serviceCode}
+            operators={uniqueOperators}
+            vehicleTypes={uniqueTypes}
             selectedTimes={selectedTimes}
             setSelectedTimes={setSelectedTimes}
             selectedOperators={selectedOperators}
@@ -319,7 +374,7 @@ const BookingPage = () => {
           {/* Header Summary */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="text-slate-600 text-sm font-medium">
-              Tìm thấy <span className="font-extrabold text-slate-900">{filteredTrips.length} chuyến xe</span> từ {fromLoc} đến {toLoc}
+              Tìm thấy <span className="font-extrabold text-slate-900">{filteredTrips.length} chuyến xe</span> từ {searchParams.get('from') || ''} đến {searchParams.get('to') || ''}
             </div>
 
             {/* Sort Options */}
@@ -347,7 +402,22 @@ const BookingPage = () => {
 
           {/* Cards List */}
           <div className="flex flex-col gap-5">
-            {filteredTrips.length > 0 ? (
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center p-16 bg-white border border-slate-100 rounded-3xl shadow-md min-h-[300px]">
+                <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p className="text-slate-600 font-semibold">Đang tìm kiếm chuyến xe phù hợp...</p>
+              </div>
+            ) : error ? (
+              <div className="flex flex-col items-center justify-center p-16 bg-white border border-red-100 rounded-3xl shadow-md min-h-[300px]">
+                <div className="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <p className="text-red-600 font-bold mb-2">Đã xảy ra lỗi khi tải dữ liệu</p>
+                <p className="text-slate-500 text-sm">{error}</p>
+              </div>
+            ) : filteredTrips.length > 0 ? (
               filteredTrips.map((trip) => (
                 <TripCard key={trip.id} trip={trip} />
               ))

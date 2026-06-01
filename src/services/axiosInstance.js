@@ -83,7 +83,7 @@ axiosInstance.interceptors.response.use(
 
     try {
       const { data } = await axios.post(
-        `${import.meta.env.VITE_API_URL}/refresh-token`,
+        `${import.meta.env.VITE_API_URL}auth/refresh-token`,
         { accessToken, refreshToken },
         {
           headers: {
