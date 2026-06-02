@@ -17,3 +17,8 @@ export const getShipmentsApi = async (params) => {
   const response = await axiosInstance.get('Offer/shipment', { params });
   return response.data;
 };
+
+export const createBookingApi = async (data) => {
+  const response = await axiosInstance.post('/booking', data);
+  return response.data;
+};

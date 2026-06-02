@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import TripDetails from './TripDetails';
 import TripBooking from './TripBooking';
+import logoGroupCar from '@/assets/logoGroupCar.png';
 
 const TripCard = ({ trip }) => {
   const [showDetails, setShowDetails] = useState(false);
@@ -30,9 +31,20 @@ const TripCard = ({ trip }) => {
         {/* Vehicle Image with Tag */}
         <div className="relative w-full md:w-56 h-48 shrink-0 overflow-hidden bg-slate-100">
           <img
-            src={trip.image}
+            src={(() => {
+              const img = trip.image;
+              if (!img || img === 'string' || img === '') return logoGroupCar;
+              if (img.startsWith('/') || (!img.startsWith('http') && !img.startsWith('data:'))) {
+                let baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                baseUrl = baseUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
+                const formattedUrl = img.startsWith('/') ? img : `/${img}`;
+                return `${baseUrl}${formattedUrl}`;
+              }
+              return img;
+            })()}
             alt={trip.operator}
             loading="lazy"
+            onError={(e) => { e.target.src = logoGroupCar; }}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
           <span className={`absolute top-4 left-4 px-3 py-1 rounded-full text-[10px] font-black tracking-wide uppercase ${getTagStyles(trip.tag)}`}>

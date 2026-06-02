@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { getOfferRoutePointsApi } from '@/services/offerRoutePointService';
 import { createShipmentRequestApi, createShipmentOfferApi } from '@/services/shipmentService';
 import { getUserProfileApi } from '@/services/userService';
+import { createBookingApi } from '@/services/offerService';
 
 // Steering wheel icon
 const SteeringWheelIcon = ({ className = '' }) => (
@@ -61,8 +62,19 @@ const SeatIcon = ({ className = '', type = 'cuoi', isSelected = false, isBlocked
 const TripBooking = ({ trip, onClose }) => {
   const [step, setStep] = useState(1);
   const [selectedSeats, setSelectedSeats] = useState([]);
-  const [selectedPickup, setSelectedPickup] = useState(null);
-  const [selectedDropoff, setSelectedDropoff] = useState(null);
+  const [carpoolSeatsCount, setCarpoolSeatsCount] = useState(1);
+  const [selectedPickups, setSelectedPickups] = useState([]);
+  const [selectedDropoffs, setSelectedDropoffs] = useState([]);
+
+  const activeSeats = useMemo(() => {
+    if (trip.service === 'carpool') {
+      return Array.from({ length: carpoolSeatsCount }, (_, i) => ({
+        code: `Chỗ ${i + 1}`,
+        price: trip.price || 0
+      }));
+    }
+    return selectedSeats;
+  }, [trip.service, trip.price, carpoolSeatsCount, selectedSeats]);
 
   // New States for Step 3 & 4
   const [passengerName, setPassengerName] = useState('');
@@ -161,13 +173,13 @@ const TripBooking = ({ trip, onClose }) => {
 
   // Default select first item of pickup/dropoff once loaded
   useEffect(() => {
-    if (pickups.length > 0 && !selectedPickup) {
-      setSelectedPickup(pickups[0]);
+    if (pickups.length > 0 && selectedPickups.length === 0) {
+      setSelectedPickups([pickups[0]]);
     }
-    if (dropoffs.length > 0 && !selectedDropoff) {
-      setSelectedDropoff(dropoffs[0]);
+    if (dropoffs.length > 0 && selectedDropoffs.length === 0) {
+      setSelectedDropoffs([dropoffs[0]]);
     }
-  }, [routePoints, pickups, dropoffs, selectedPickup, selectedDropoff]);
+  }, [routePoints, pickups, dropoffs, selectedPickups, selectedDropoffs]);
 
   // Generate random booking code once
   useEffect(() => {
@@ -188,6 +200,44 @@ const TripBooking = ({ trip, onClose }) => {
       setSelectedSeats([...selectedSeats, seat]);
     }
     setErrorMessage('');
+  };
+
+  const handlePickupSelect = (item) => {
+    const isSelected = selectedPickups.some(p => p.id === item.id);
+    const maxSelect = trip.service === 'carpool' ? carpoolSeatsCount : 1;
+    
+    if (isSelected) {
+      setSelectedPickups(selectedPickups.filter(p => p.id !== item.id));
+    } else {
+      if (selectedPickups.length < maxSelect) {
+        setSelectedPickups([...selectedPickups, item]);
+      } else {
+        if (maxSelect === 1) {
+          setSelectedPickups([item]);
+        } else {
+          toast.error(`Bạn chỉ được chọn tối đa ${maxSelect} điểm đón.`);
+        }
+      }
+    }
+  };
+
+  const handleDropoffSelect = (item) => {
+    const isSelected = selectedDropoffs.some(d => d.id === item.id);
+    const maxSelect = trip.service === 'carpool' ? carpoolSeatsCount : 1;
+    
+    if (isSelected) {
+      setSelectedDropoffs(selectedDropoffs.filter(d => d.id !== item.id));
+    } else {
+      if (selectedDropoffs.length < maxSelect) {
+        setSelectedDropoffs([...selectedDropoffs, item]);
+      } else {
+        if (maxSelect === 1) {
+          setSelectedDropoffs([item]);
+        } else {
+          toast.error(`Bạn chỉ được chọn tối đa ${maxSelect} điểm trả.`);
+        }
+      }
+    }
   };
 
   const [isBookingProcessing, setIsBookingProcessing] = useState(false);
@@ -214,6 +264,12 @@ const TripBooking = ({ trip, onClose }) => {
         setErrorMessage('Vui lòng nhập mô tả hàng hóa.');
         return;
       }
+    } else if (trip.service === 'carpool') {
+      const maxSeats = parseInt(trip.availableSeats, 10) || 4;
+      if (carpoolSeatsCount < 1 || carpoolSeatsCount > maxSeats) {
+        setErrorMessage(`Vui lòng chọn số lượng ghế hợp lệ (từ 1 đến ${maxSeats} ghế).`);
+        return;
+      }
     } else {
       if (selectedSeats.length === 0) {
         setErrorMessage('Vui lòng chọn ít nhất 1 chỗ ngồi trước khi tiếp tục.');
@@ -225,8 +281,8 @@ const TripBooking = ({ trip, onClose }) => {
   };
 
   const handlePickupContinue = () => {
-    if (!selectedPickup || !selectedDropoff) {
-      setErrorMessage('Vui lòng chọn đầy đủ 1 điểm đón và 1 điểm trả.');
+    if (selectedPickups.length === 0 || selectedDropoffs.length === 0) {
+      setErrorMessage('Vui lòng chọn ít nhất 1 điểm đón và 1 điểm trả.');
       return;
     }
     setStep(3);
@@ -268,11 +324,11 @@ const TripBooking = ({ trip, onClose }) => {
         if (imageFile) {
           formData.append('ImageUrl', imageFile);
         }
-        if (selectedPickup?.locationId) {
-          formData.append('PickupLocationId', selectedPickup.locationId);
+        if (selectedPickups[0]?.locationId) {
+          formData.append('PickupLocationId', selectedPickups[0].locationId);
         }
-        if (selectedDropoff?.locationId) {
-          formData.append('DropoffLocationId', selectedDropoff.locationId);
+        if (selectedDropoffs[0]?.locationId) {
+          formData.append('DropoffLocationId', selectedDropoffs[0].locationId);
         }
 
         const reqResponse = await createShipmentRequestApi(formData);
@@ -302,6 +358,43 @@ const TripBooking = ({ trip, onClose }) => {
       } finally {
         setIsBookingProcessing(false);
       }
+    } else if (trip.service === 'carpool') {
+      setIsBookingProcessing(true);
+      try {
+        // Construct the itemRequestDTOs array of length carpoolSeatsCount
+        const itemRequestDTOs = Array.from({ length: carpoolSeatsCount }, (_, i) => {
+          const pickupItem = i < selectedPickups.length 
+            ? selectedPickups[i] 
+            : selectedPickups[selectedPickups.length - 1];
+            
+          const dropoffItem = i < selectedDropoffs.length 
+            ? selectedDropoffs[i] 
+            : selectedDropoffs[selectedDropoffs.length - 1];
+
+          return {
+            pickupLocationId: pickupItem.locationId || pickupItem.id,
+            dropoffLocationId: dropoffItem.locationId || dropoffItem.id,
+            price: trip.price || 0
+          };
+        });
+
+        const bookingData = {
+          offerId: trip.id,
+          itemRequestDTOs: itemRequestDTOs
+        };
+
+        await createBookingApi(bookingData);
+
+        toast.success("Đặt vé xe ghép thành công!");
+        setBookingSuccess(true);
+      } catch (err) {
+        console.error("Booking error:", err);
+        const errMsg = err.response?.data?.message || err.message || "Đã xảy ra lỗi trong quá trình đặt vé. Vui lòng thử lại.";
+        setErrorMessage(errMsg);
+        toast.error(errMsg);
+      } finally {
+        setIsBookingProcessing(false);
+      }
     } else {
       toast.success("Đặt vé thành công!");
       setBookingSuccess(true);
@@ -312,7 +405,7 @@ const TripBooking = ({ trip, onClose }) => {
     if (trip.service === 'express') {
       return parseFloat(proposedPrice) || 0;
     }
-    return selectedSeats.reduce((acc, curr) => acc + (curr.price || 0), 0);
+    return activeSeats.reduce((acc, curr) => acc + (curr.price || 0), 0);
   };
 
   const formatPrice = (price) => {
@@ -385,8 +478,8 @@ const TripBooking = ({ trip, onClose }) => {
               </>
             ) : (
               <div className="flex justify-between">
-                <span className="text-slate-400">Số ghế đã chọn:</span>
-                <span className="font-extrabold text-slate-800">{selectedSeats.map(s => s.code).join(', ')}</span>
+                <span className="text-slate-400">{trip.service === 'carpool' ? 'Số lượng ghế đặt:' : 'Số ghế đã chọn:'}</span>
+                <span className="font-extrabold text-slate-800">{activeSeats.map(s => s.code).join(', ')}</span>
               </div>
             )}
 
@@ -404,16 +497,32 @@ const TripBooking = ({ trip, onClose }) => {
             {/* Selected locations */}
             <div className="flex flex-col gap-1.5">
               <span className="text-slate-400">Điểm đón khách:</span>
-              <div className="bg-slate-50/70 rounded-xl p-2.5 border border-slate-100">
-                <strong className="text-slate-800 text-xs font-extrabold block">{selectedPickup?.locationName}</strong>
-                <span className="text-slate-500 text-[11px] font-medium leading-tight mt-0.5 block">Thứ tự điểm đón: {selectedPickup?.sequence}</span>
+              <div className="flex flex-col gap-1.5">
+                {selectedPickups.map((pickup, idx) => (
+                  <div key={pickup.id} className="bg-slate-50/70 rounded-xl p-2.5 border border-slate-100">
+                    <strong className="text-slate-800 text-xs font-extrabold block">
+                      {selectedPickups.length > 1 ? `${idx + 1}. ` : ''}{pickup?.locationName}
+                    </strong>
+                    <span className="text-slate-500 text-[11px] font-medium leading-tight mt-0.5 block">
+                      Thứ tự điểm đón: {pickup?.sequence}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
             <div className="flex flex-col gap-1.5">
               <span className="text-slate-400">Điểm trả khách:</span>
-              <div className="bg-slate-50/70 rounded-xl p-2.5 border border-slate-100">
-                <strong className="text-slate-800 text-xs font-extrabold block">{selectedDropoff?.locationName}</strong>
-                <span className="text-slate-500 text-[11px] font-medium leading-tight mt-0.5 block">Thứ tự điểm trả: {selectedDropoff?.sequence}</span>
+              <div className="flex flex-col gap-1.5">
+                {selectedDropoffs.map((dropoff, idx) => (
+                  <div key={dropoff.id} className="bg-slate-50/70 rounded-xl p-2.5 border border-slate-100">
+                    <strong className="text-slate-800 text-xs font-extrabold block">
+                      {selectedDropoffs.length > 1 ? `${idx + 1}. ` : ''}{dropoff?.locationName}
+                    </strong>
+                    <span className="text-slate-500 text-[11px] font-medium leading-tight mt-0.5 block">
+                      Thứ tự điểm trả: {dropoff?.sequence}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -467,7 +576,7 @@ const TripBooking = ({ trip, onClose }) => {
           {step === 1 ? (
             <div className="flex items-center gap-2 text-sm font-extrabold text-slate-800">
               <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-[11px] font-black flex items-center justify-center">1</span>
-              <span>{trip.service === 'express' ? 'Thông tin hàng hóa' : 'Chỗ mong muốn'}</span>
+              <span>{trip.service === 'express' ? 'Thông tin hàng hóa' : (trip.service === 'carpool' ? 'Số lượng ghế' : 'Chỗ mong muốn')}</span>
             </div>
           ) : (
             <button
@@ -479,7 +588,7 @@ const TripBooking = ({ trip, onClose }) => {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <span>{trip.service === 'express' ? 'Thông tin hàng hóa' : 'Chỗ mong muốn'}</span>
+              <span>{trip.service === 'express' ? 'Thông tin hàng hóa' : (trip.service === 'carpool' ? 'Số lượng ghế' : 'Chỗ mong muốn')}</span>
             </button>
           )}
         </div>
@@ -681,6 +790,59 @@ const TripBooking = ({ trip, onClose }) => {
                 />
               </div>
             </div>
+          ) : trip.service === 'carpool' ? (
+            /* CARPOOL SEATS SELECTOR */
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col items-center justify-center gap-6 min-h-[300px]">
+              <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center shadow-inner">
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+
+              <div className="text-center">
+                <h4 className="text-lg font-black text-slate-800">Chọn số lượng ghế đặt</h4>
+                <p className="text-slate-500 text-xs font-semibold mt-1">Số ghế còn trống trên xe: <span className="text-emerald-600 font-extrabold text-sm">{trip.availableSeats || 4} ghế</span></p>
+              </div>
+
+              {/* Counter Control */}
+              <div className="flex items-center gap-6 bg-slate-50 border border-slate-200 rounded-2xl p-2.5">
+                <button
+                  type="button"
+                  disabled={carpoolSeatsCount <= 1}
+                  onClick={() => setCarpoolSeatsCount(prev => prev - 1)}
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg transition-colors cursor-pointer ${
+                    carpoolSeatsCount <= 1 
+                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed' 
+                      : 'bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 active:scale-95'
+                  }`}
+                >
+                  −
+                </button>
+                
+                <span className="text-2xl font-black text-slate-800 w-12 text-center select-none">
+                  {carpoolSeatsCount}
+                </span>
+
+                <button
+                  type="button"
+                  disabled={carpoolSeatsCount >= (parseInt(trip.availableSeats, 10) || 4)}
+                  onClick={() => setCarpoolSeatsCount(prev => prev + 1)}
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg transition-colors cursor-pointer ${
+                    carpoolSeatsCount >= (parseInt(trip.availableSeats, 10) || 4)
+                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed' 
+                      : 'bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 active:scale-95'
+                  }`}
+                >
+                  +
+                </button>
+              </div>
+              
+              <div className="text-center max-w-sm">
+                <p className="text-[11px] font-medium text-slate-400 leading-normal">
+                  Bạn có thể đặt tối đa bằng số lượng ghế còn lại của chuyến xe. Giá vé mỗi ghế là <span className="font-extrabold text-slate-700">{formatPrice(trip.price || 0)}</span>.
+                </p>
+              </div>
+            </div>
           ) : (
             /* SEAT SELECTOR FOR PASSENGER TRIPS */
             <>
@@ -789,12 +951,12 @@ const TripBooking = ({ trip, onClose }) => {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 pt-5 border-t border-slate-200">
             <div>
               <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
-                {trip.service === 'express' ? 'Khối lượng / Thể tích' : 'Số ghế chọn'}
+                {trip.service === 'express' ? 'Khối lượng / Thể tích' : (trip.service === 'carpool' ? 'Số lượng ghế đặt' : 'Số ghế chọn')}
               </div>
               <div className="text-sm font-extrabold text-slate-800 mt-0.5">
                 {trip.service === 'express'
                   ? (weight || volume ? `${weight || 0} kg • ${volume || 0} m³` : 'Chưa nhập')
-                  : (selectedSeats.length > 0 ? selectedSeats.map(s => s.code).join(', ') : 'Chưa chọn')}
+                  : (activeSeats.length > 0 ? activeSeats.map(s => s.code).join(', ') : 'Chưa chọn')}
               </div>
             </div>
 
@@ -851,11 +1013,11 @@ const TripBooking = ({ trip, onClose }) => {
 
                 <div className="flex flex-col max-h-[300px] overflow-y-auto pr-1">
                   {pickups.map((item) => {
-                    const isSelected = selectedPickup?.id === item.id;
+                    const isSelected = selectedPickups.some(p => p.id === item.id);
                     return (
                       <div
                         key={item.id}
-                        onClick={() => setSelectedPickup(item)}
+                        onClick={() => handlePickupSelect(item)}
                         className={`flex items-start justify-between gap-4 p-4 border-b border-slate-100 relative cursor-pointer hover:bg-slate-50 transition-colors ${isSelected ? 'border-l-4 border-l-blue-600 pl-3' : ''}`}
                       >
                         <div className="flex items-start gap-3">
@@ -870,7 +1032,7 @@ const TripBooking = ({ trip, onClose }) => {
                           </div>
                           <div className="text-xs text-left">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-extrabold text-slate-900 text-sm">Điểm {item.sequence}</span>
+                              <span className="font-extrabold text-slate-900 text-sm">Điểm</span>
                               <span className="font-extrabold text-slate-800 text-sm">{item.locationName}</span>
                             </div>
                             <div className="mt-1.5 flex gap-2 flex-wrap">
@@ -906,11 +1068,11 @@ const TripBooking = ({ trip, onClose }) => {
 
                 <div className="flex flex-col max-h-[300px] overflow-y-auto pr-1">
                   {dropoffs.map((item) => {
-                    const isSelected = selectedDropoff?.id === item.id;
+                    const isSelected = selectedDropoffs.some(d => d.id === item.id);
                     return (
                       <div
                         key={item.id}
-                        onClick={() => setSelectedDropoff(item)}
+                        onClick={() => handleDropoffSelect(item)}
                         className={`flex items-start justify-between gap-4 p-4 border-b border-slate-100 relative cursor-pointer hover:bg-slate-50 transition-colors ${isSelected ? 'border-l-4 border-l-blue-600 pl-3' : ''}`}
                       >
                         <div className="flex items-start gap-3">
@@ -925,7 +1087,7 @@ const TripBooking = ({ trip, onClose }) => {
                           </div>
                           <div className="text-xs text-left">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-extrabold text-slate-900 text-sm">Điểm {item.sequence}</span>
+                              <span className="font-extrabold text-slate-900 text-sm">Điểm</span>
                               <span className="font-extrabold text-slate-800 text-sm">{item.locationName}</span>
                             </div>
                             <div className="mt-1.5 flex gap-2 flex-wrap">
@@ -969,7 +1131,7 @@ const TripBooking = ({ trip, onClose }) => {
 
             <div className="flex items-center gap-6">
               <div className="text-right">
-                <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Tổng cộng ({trip.service === 'express' ? 'Vận chuyển' : `${selectedSeats.length} vé`})</div>
+                <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Tổng cộng ({trip.service === 'express' ? 'Vận chuyển' : `${activeSeats.length} vé`})</div>
                 <div className="text-lg font-black text-emerald-600 mt-0.5">
                   {formatPrice(calculateTotalPrice())}
                 </div>
@@ -1071,22 +1233,28 @@ const TripBooking = ({ trip, onClose }) => {
                 ) : (
                   <div className="flex justify-between">
                     <span className="text-slate-400">Vị trí ghế:</span>
-                    <span className="font-extrabold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{selectedSeats.map(s => s.code).join(', ')}</span>
+                    <span className="font-extrabold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{activeSeats.map(s => s.code).join(', ')}</span>
                   </div>
                 )}
 
                 <div className="border-t border-slate-100 my-1" />
 
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1.5">
                   <span className="text-slate-400 text-[10px] uppercase font-bold">Địa điểm đón:</span>
-                  <span className="text-slate-800 font-extrabold">{selectedPickup?.time} • {selectedPickup?.name}</span>
-                  <span className="text-slate-500 leading-normal">{selectedPickup?.address}</span>
+                  {selectedPickups.map((pickup, idx) => (
+                    <div key={pickup.id} className="text-slate-800 font-semibold border-b border-slate-100 pb-1 last:border-0 text-xs">
+                      {selectedPickups.length > 1 ? `${idx + 1}. ` : ''}<span className="font-extrabold">{pickup?.locationName}</span> (Thứ tự: {pickup?.sequence})
+                    </div>
+                  ))}
                 </div>
 
-                <div className="flex flex-col gap-1 mt-1">
+                <div className="flex flex-col gap-1.5 mt-1">
                   <span className="text-slate-400 text-[10px] uppercase font-bold">Địa điểm trả:</span>
-                  <span className="text-slate-800 font-extrabold">{selectedDropoff?.time} • {selectedDropoff?.name}</span>
-                  <span className="text-slate-500 leading-normal">{selectedDropoff?.address}</span>
+                  {selectedDropoffs.map((dropoff, idx) => (
+                    <div key={dropoff.id} className="text-slate-800 font-semibold border-b border-slate-100 pb-1 last:border-0 text-xs">
+                      {selectedDropoffs.length > 1 ? `${idx + 1}. ` : ''}<span className="font-extrabold">{dropoff?.locationName}</span> (Thứ tự: {dropoff?.sequence})
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

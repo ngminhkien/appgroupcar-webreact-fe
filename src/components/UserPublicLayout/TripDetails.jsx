@@ -337,7 +337,7 @@ const TripDetails = ({ trip, onClose }) => {
                     {displayPickups.map((pt, i) => (
                       <div key={pt.id || i} className="flex gap-3 items-start text-slate-700 text-sm">
                         <div className="font-extrabold text-slate-900 shrink-0 mt-0.5">
-                          Điểm {pt.sequence}
+                          Điểm
                         </div>
                         <div className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 shrink-0" />
                         <div>
@@ -370,7 +370,7 @@ const TripDetails = ({ trip, onClose }) => {
                     {displayDropoffs.map((pt, i) => (
                       <div key={pt.id || i} className="flex gap-3 items-start text-slate-700 text-sm">
                         <div className="font-extrabold text-slate-900 shrink-0 mt-0.5">
-                          Điểm {pt.sequence}
+                          Điểm
                         </div>
                         <div className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 shrink-0" />
                         <div>
