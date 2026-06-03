@@ -15,6 +15,11 @@ export const getBusRouteByIdApi = async (id) => {
   return response.data;
 };
 
+export const getBusRouteDetailByIdApi = async (id) => {
+  const response = await axiosInstance.get(`/bus-routes/detail/${id}`);
+  return response.data;
+};
+
 export const updateBusRouteApi = async (id, data) => {
   const response = await axiosInstance.put(`/bus-routes/${id}`, data);
   return response.data;

@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { updateBusRouteApi, getBusRouteByIdApi } from '@/services/busRouteService';
 import { getLocationsApi } from '@/services/locationService';
+import LocationSearchInput from './LocationSearchInput';
 
 const EditBusRouteModal = ({ isOpen, onClose, onUpdated, route }) => {
   const [formData, setFormData] = useState({
     name: '',
+    estimatedDurationMinutes: '',
     routePoints: []
   });
   
@@ -36,13 +38,21 @@ const EditBusRouteModal = ({ isOpen, onClose, onUpdated, route }) => {
               ? [...detailData.routePoints].sort((a, b) => a.sequence - b.sequence)
               : [];
               
-            setFormData({
-              name: detailData.name || '',
-              routePoints: sortedPoints.map(p => ({
+            const resolvedLocations = Array.isArray(locData) ? locData : [];
+            const mapPoint = (p) => {
+              const locName = p.locationName || resolvedLocations.find(l => String(l.id) === String(p.locationId))?.name || resolvedLocations.find(l => String(l.id) === String(p.locationId))?.displayName || resolvedLocations.find(l => String(l.id) === String(p.locationId))?.locationName || '';
+              return {
                 locationId: p.locationId || '',
+                locationName: locName,
                 pickupAllowed: p.pickupAllowed ?? true,
                 dropoffAllowed: p.dropoffAllowed ?? true
-              }))
+              };
+            };
+              
+            setFormData({
+              name: detailData.name || '',
+              estimatedDurationMinutes: detailData.estimatedDurationMinutes || '',
+              routePoints: sortedPoints.map(mapPoint)
             });
             
             // Ensure at least 2 points
@@ -50,8 +60,8 @@ const EditBusRouteModal = ({ isOpen, onClose, onUpdated, route }) => {
               setFormData(prev => ({
                 ...prev,
                 routePoints: [
-                  { locationId: '', pickupAllowed: true, dropoffAllowed: true },
-                  { locationId: '', pickupAllowed: true, dropoffAllowed: true }
+                  { locationId: '', locationName: '', pickupAllowed: true, dropoffAllowed: true },
+                  { locationId: '', locationName: '', pickupAllowed: true, dropoffAllowed: true }
                 ]
               }));
             } else if (sortedPoints.length === 1) {
@@ -59,7 +69,7 @@ const EditBusRouteModal = ({ isOpen, onClose, onUpdated, route }) => {
                 ...prev,
                 routePoints: [
                   ...prev.routePoints,
-                  { locationId: '', pickupAllowed: true, dropoffAllowed: true }
+                  { locationId: '', locationName: '', pickupAllowed: true, dropoffAllowed: true }
                 ]
               }));
             }
@@ -92,7 +102,7 @@ const EditBusRouteModal = ({ isOpen, onClose, onUpdated, route }) => {
       ...prev,
       routePoints: [
         ...prev.routePoints,
-        { locationId: '', pickupAllowed: true, dropoffAllowed: true }
+        { locationId: '', locationName: '', pickupAllowed: true, dropoffAllowed: true }
       ]
     }));
   };
@@ -107,7 +117,11 @@ const EditBusRouteModal = ({ isOpen, onClose, onUpdated, route }) => {
   const handleChangePoint = (index, field, value) => {
     setFormData(prev => {
       const newPoints = [...prev.routePoints];
-      newPoints[index][field] = value;
+      if (typeof field === 'object') {
+        newPoints[index] = { ...newPoints[index], ...field };
+      } else {
+        newPoints[index][field] = value;
+      }
       return { ...prev, routePoints: newPoints };
     });
   };
@@ -116,6 +130,10 @@ const EditBusRouteModal = ({ isOpen, onClose, onUpdated, route }) => {
     e.preventDefault();
     if (!formData.name.trim()) {
       toast.error('Vui lòng nhập tên tuyến xe');
+      return;
+    }
+    if (!formData.estimatedDurationMinutes || Number(formData.estimatedDurationMinutes) <= 0) {
+      toast.error('Vui lòng nhập thời gian di chuyển hợp lệ (phút)');
       return;
     }
     if (formData.routePoints.length < 2) {
@@ -133,12 +151,22 @@ const EditBusRouteModal = ({ isOpen, onClose, onUpdated, route }) => {
     // Format data for API
     const payload = {
       name: formData.name,
-      routePoints: formData.routePoints.map((p, idx) => ({
-        locationId: p.locationId,
-        sequence: idx + 1,
-        pickupAllowed: true,
-        dropoffAllowed: true
-      }))
+      estimatedDurationMinutes: Number(formData.estimatedDurationMinutes),
+      routePoints: formData.routePoints.map((p, idx) => {
+        let stopType = 3;
+        if (idx === 0) {
+          stopType = 1;
+        } else if (idx === formData.routePoints.length - 1) {
+          stopType = 5;
+        }
+        return {
+          locationId: p.locationId,
+          sequence: idx + 1,
+          pickupAllowed: true,
+          dropoffAllowed: true,
+          stopType
+        };
+      })
     };
 
     setIsSubmitting(true);
@@ -176,17 +204,32 @@ const EditBusRouteModal = ({ isOpen, onClose, onUpdated, route }) => {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
-            <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-slate-700">Tên tuyến xe <span className="text-red-500">*</span></label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChangeName}
-                placeholder="VD: Hà Nội - Hải Phòng"
-                className="admin-filter-btn w-full outline-none"
-                disabled={isSubmitting}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-slate-700">Tên tuyến xe <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChangeName}
+                  placeholder="VD: Hà Nội - Hải Phòng"
+                  className="admin-filter-btn w-full outline-none"
+                  disabled={isSubmitting}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-slate-700">Thời gian di chuyển (phút) <span className="text-red-500">*</span></label>
+                <input
+                  type="number"
+                  name="estimatedDurationMinutes"
+                  value={formData.estimatedDurationMinutes}
+                  onChange={(e) => setFormData(prev => ({ ...prev, estimatedDurationMinutes: e.target.value }))}
+                  placeholder="VD: 120"
+                  min="1"
+                  className="admin-filter-btn w-full outline-none"
+                  disabled={isSubmitting}
+                />
+              </div>
             </div>
             
             <div className="space-y-3">
@@ -216,19 +259,13 @@ const EditBusRouteModal = ({ isOpen, onClose, onUpdated, route }) => {
                     </div>
                     
                     <div className="flex-1 space-y-3">
-                      <select
+                      <LocationSearchInput
                         value={point.locationId}
-                        onChange={(e) => handleChangePoint(index, 'locationId', e.target.value)}
-                        className="admin-filter-btn w-full outline-none bg-white min-h-[42px]"
+                        locationName={point.locationName}
+                        onChange={(id, name) => handleChangePoint(index, { locationId: id, locationName: name })}
+                        initialLocations={locations}
                         disabled={isSubmitting}
-                      >
-                        <option value="">Chọn địa điểm</option>
-                        {locations.map(loc => (
-                          <option key={loc.id} value={loc.id}>
-                            {loc.name || loc.locationName || loc.id}
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </div>
 
                     <button

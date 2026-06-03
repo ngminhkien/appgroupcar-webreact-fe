@@ -24,3 +24,9 @@ export const deleteBusShowtimeApi = async (id) => {
   const response = await axiosInstance.delete(`/bus-showtimes/${id}`);
   return response.data;
 };
+
+export const searchBusShowtimesApi = async (params) => {
+  const response = await axiosInstance.get('/bus-showtimes/search', { params });
+  return response.data;
+};
+

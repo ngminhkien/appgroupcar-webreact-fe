@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { getOfferRoutePointsApi } from '@/services/offerRoutePointService';
+import { getBusRouteDetailByIdApi } from '@/services/busRouteService';
 import { createShipmentRequestApi, createShipmentOfferApi } from '@/services/shipmentService';
 import { getUserProfileApi } from '@/services/userService';
 import { createBookingApi } from '@/services/offerService';
@@ -128,13 +129,33 @@ const TripBooking = ({ trip, onClose }) => {
     const fetchRoute = async () => {
       setIsLoadingRoute(true);
       try {
-        const response = await getOfferRoutePointsApi(trip.id);
-        if (isMounted) {
-          if (response && response.code === 200) {
-            setRoutePoints(response.data || []);
+        let points = [];
+        if (trip.service === 'bus' || trip.tag === 'XE KHÁCH') {
+          const routeId = trip.routeId || trip.rawItem?.routeId || trip.rawItem?.busRouteId;
+          if (routeId) {
+            const response = await getBusRouteDetailByIdApi(routeId);
+            const data = response?.data ?? response;
+            const item = Array.isArray(data?.items) ? data.items[0] : data;
+            points = item?.routePoints || [];
           } else {
-            setRoutePoints(response?.data ?? response ?? []);
+            console.warn("No route ID found for bus service booking, falling back to offer route points.");
+            const response = await getOfferRoutePointsApi(trip.id);
+            if (response && response.code === 200) {
+              points = response.data || [];
+            } else {
+              points = response?.data ?? response ?? [];
+            }
           }
+        } else {
+          const response = await getOfferRoutePointsApi(trip.id);
+          if (response && response.code === 200) {
+            points = response.data || [];
+          } else {
+            points = response?.data ?? response ?? [];
+          }
+        }
+        if (isMounted) {
+          setRoutePoints(points);
         }
       } catch (err) {
         console.error("Error fetching route points for booking:", err);
@@ -146,7 +167,7 @@ const TripBooking = ({ trip, onClose }) => {
     };
     fetchRoute();
     return () => { isMounted = false; };
-  }, [trip?.id]);
+  }, [trip?.id, trip.routeId, trip.rawItem?.routeId, trip.rawItem?.busRouteId]);
 
   // Dynamically generate seat layout based on availableSeats
   useEffect(() => {

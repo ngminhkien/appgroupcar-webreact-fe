@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { FilterSidebar, TripCard } from '@/components/UserPublicLayout';
 import { getLocationsApi } from '@/services/locationService';
 import { getSharedRidesApi, getShipmentsApi } from '@/services/offerService';
-import { getBusShowtimesApi } from '@/services/busShowtimeService';
+import { getBusShowtimesApi, searchBusShowtimesApi } from '@/services/busShowtimeService';
 
 
 
@@ -157,15 +157,47 @@ const BookingPage = () => {
         } else if (serviceCode === 'express') {
           responseData = await getShipmentsApi(params);
         } else if (serviceCode === 'bus') {
+          const getTodayStr = () => {
+            const date = new Date();
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+          };
+          const queryDate = dateLoc || getTodayStr();
+
+          let startTimeStr = '00:00:00';
+          let endTimeStr = '23:59:59';
+          if (selectedTimes.length > 0) {
+            const timeRange = selectedTimes[0];
+            if (timeRange === 'morning') {
+              startTimeStr = '06:00:00';
+              endTimeStr = '12:00:00';
+            } else if (timeRange === 'afternoon') {
+              startTimeStr = '12:00:00';
+              endTimeStr = '18:00:00';
+            } else if (timeRange === 'evening') {
+              startTimeStr = '18:00:00';
+              endTimeStr = '23:59:59';
+            } else if (timeRange === 'night') {
+              startTimeStr = '00:00:00';
+              endTimeStr = '06:00:00';
+            }
+          }
+
           const busParams = {
             PickupLocationId: pickupLocId || undefined,
             DropoffLocationId: dropoffLocId || undefined,
-            DepartureDate: dateLoc || undefined,
-            startTime: startTimeVal,
+            StartDate: queryDate,
+            EndDate: queryDate,
+            StartTime: startTimeStr,
+            EndTime: endTimeStr,
+            StartPrice: 0,
+            EndPrice: maxPrice,
             PageNumber: pageNumberLoc,
             PageSize: pageSizeLoc
           };
-          responseData = await getBusShowtimesApi(busParams);
+          responseData = await searchBusShowtimesApi(busParams);
         }
 
         const items = responseData?.data?.items || responseData?.data || responseData?.items || [];
@@ -242,8 +274,10 @@ const BookingPage = () => {
               : (serviceCode === 'express' 
                 ? 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=1000&q=80'
                 : 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&q=80')),
-            driverId: item.driverId || item.marketDriverId || item.driver?.id || item.marketDriver?.id || item.userId || null,
-            vehicleId: item.vehicleId || item.vehicle?.id || null,
+            driverId: item.companyDriverId || item.driverId || item.marketDriverId || item.driver?.id || item.marketDriver?.id || item.userId || null,
+            vehicleId: item.companyVehicleId || item.vehicleId || item.vehicle?.id || null,
+            routeId: item.routeId || item.busRouteId || null,
+            companyId: item.companyId || null,
             rawItem: item
           };
         });
@@ -263,12 +297,16 @@ const BookingPage = () => {
       }
     };
 
-    fetchData();
+    // Debounce to prevent multiple API requests when sliding price rapidly
+    const timer = setTimeout(() => {
+      fetchData();
+    }, 200);
 
     return () => {
       isMounted = false;
+      clearTimeout(timer);
     };
-  }, [serviceCode, pickupLocQuery, dropoffLocQuery, dateLoc, searchParams, selectedTimes]);
+  }, [serviceCode, pickupLocQuery, dropoffLocQuery, dateLoc, searchParams, selectedTimes, maxPrice]);
 
   // Load suitable trips based on URL service type or API response
   const allTrips = useMemo(() => {

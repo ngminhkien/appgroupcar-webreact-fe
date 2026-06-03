@@ -3,17 +3,20 @@ import toast from 'react-hot-toast';
 import { createBusShowtimeApi } from '@/services/busShowtimeService';
 import { getCompanyVehiclesApi } from '@/services/companyVehicleService';
 import { getBusRoutesApi } from '@/services/busRouteService';
+import { getCompanyDriversApi } from '@/services/companyDriverService';
 
 const AddBusShowtimeModal = ({ isOpen, onClose, onAdded }) => {
   const [formData, setFormData] = useState({
     companyVehicleId: '',
     routeId: '',
+    companyDriverId: '',
     departureDate: '',
     departureTime: '',
     price: ''
   });
   const [vehicles, setVehicles] = useState([]);
   const [routes, setRoutes] = useState([]);
+  const [drivers, setDrivers] = useState([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -22,18 +25,22 @@ const AddBusShowtimeModal = ({ isOpen, onClose, onAdded }) => {
       const fetchData = async () => {
         setIsLoadingData(true);
         try {
-          const [vehRes, routeRes] = await Promise.all([
+          const companyId = localStorage.getItem('companyId');
+          const [vehRes, routeRes, driverRes] = await Promise.all([
             getCompanyVehiclesApi({ PageSize: 1000 }),
-            getBusRoutesApi({ PageSize: 1000 })
+            getBusRoutesApi({ PageSize: 1000 }),
+            getCompanyDriversApi(companyId, { companyId, PageSize: 1000 })
           ]);
 
           const vehData = vehRes?.data?.items || vehRes?.items || vehRes?.data || vehRes || [];
           const routeData = routeRes?.data?.items || routeRes?.items || routeRes?.data || routeRes || [];
+          const driverData = driverRes?.data?.items || driverRes?.items || driverRes?.data || driverRes || [];
 
           setVehicles(Array.isArray(vehData) ? vehData : []);
           setRoutes(Array.isArray(routeData) ? routeData : []);
+          setDrivers(Array.isArray(driverData) ? driverData : []);
         } catch (error) {
-          toast.error('Lỗi khi tải dữ liệu xe và tuyến');
+          toast.error('Lỗi khi tải dữ liệu xe, tuyến và tài xế');
         } finally {
           setIsLoadingData(false);
         }
@@ -45,6 +52,7 @@ const AddBusShowtimeModal = ({ isOpen, onClose, onAdded }) => {
       setFormData({
         companyVehicleId: '',
         routeId: '',
+        companyDriverId: '',
         departureDate: '',
         departureTime: '',
         price: ''
@@ -62,8 +70,8 @@ const AddBusShowtimeModal = ({ isOpen, onClose, onAdded }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.companyVehicleId || !formData.routeId || !formData.departureDate || !formData.departureTime || !formData.price) {
-      toast.error('Vui lòng điền đầy đủ thông tin (chọn xe, tuyến, ngày, giờ, giá vé)');
+    if (!formData.companyVehicleId || !formData.routeId || !formData.companyDriverId || !formData.departureDate || !formData.departureTime || !formData.price) {
+      toast.error('Vui lòng điền đầy đủ thông tin (chọn xe, tuyến, tài xế, ngày, giờ, giá vé)');
       return;
     }
 
@@ -134,6 +142,28 @@ const AddBusShowtimeModal = ({ isOpen, onClose, onAdded }) => {
                   return (
                     <option key={val} value={val}>
                       {v.licensePlate || v.plateNumber || val}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            <div className="space-y-1.5 md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700">Tài xế <span className="text-red-500">*</span></label>
+              <select
+                name="companyDriverId"
+                value={formData.companyDriverId}
+                onChange={handleChange}
+                className="admin-filter-btn w-full outline-none bg-white min-h-[42px]"
+                disabled={isSubmitting || isLoadingData}
+              >
+                <option value="">Chọn tài xế</option>
+                {drivers.map(d => {
+                  const val = d.id || d.driverId || d.userId;
+                  const name = d.fullName || d.name || d.driver?.fullName || d.driver?.name || d.user?.fullName || d.user?.name || val;
+                  return (
+                    <option key={val} value={val}>
+                      {name}
                     </option>
                   );
                 })}

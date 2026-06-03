@@ -16,8 +16,8 @@ const BookingSearchBar = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [fromCity, setFromCity] = useState(searchParams.get('from') || sessionStorage.getItem('booking_fromCity') || '');
-  const [toCity, setToCity] = useState(searchParams.get('to') || sessionStorage.getItem('booking_toCity') || '');
+  const [fromCity, setFromCity] = useState(searchParams.get('from') || localStorage.getItem('booking_fromCity') || '');
+  const [toCity, setToCity] = useState(searchParams.get('to') || localStorage.getItem('booking_toCity') || '');
   const [departureDate, setDepartureDate] = useState(searchParams.get('date') || TODAY_DATE);
   const [selectedService, setSelectedService] = useState(searchParams.get('service') || 'bus');
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -26,8 +26,8 @@ const BookingSearchBar = () => {
   const fromInputRef = useRef(null);
   const toInputRef = useRef(null);
 
-  const lastSelectedFromRef = useRef(searchParams.get('from') || sessionStorage.getItem('booking_fromCity') || '');
-  const lastSelectedToRef = useRef(searchParams.get('to') || sessionStorage.getItem('booking_toCity') || '');
+  const lastSelectedFromRef = useRef(searchParams.get('from') || localStorage.getItem('booking_fromCity') || '');
+  const lastSelectedToRef = useRef(searchParams.get('to') || localStorage.getItem('booking_toCity') || '');
 
   const services = [
     { id: 'bus', label: 'Xe khách' },
@@ -36,20 +36,20 @@ const BookingSearchBar = () => {
   ];
 
   // Autocomplete suggestions states
-  const [fromLocationId, setFromLocationId] = useState(searchParams.get('PickupLocationId') || sessionStorage.getItem('booking_fromLocationId') || '');
+  const [fromLocationId, setFromLocationId] = useState(searchParams.get('PickupLocationId') || localStorage.getItem('booking_fromLocationId') || '');
   const [showFromDropdown, setShowFromDropdown] = useState(false);
   const [fromSuggestions, setFromSuggestions] = useState([]);
   const [isFromLoading, setIsFromLoading] = useState(false);
 
-  const [toLocationId, setToLocationId] = useState(searchParams.get('DropoffLocationId') || sessionStorage.getItem('booking_toLocationId') || '');
+  const [toLocationId, setToLocationId] = useState(searchParams.get('DropoffLocationId') || localStorage.getItem('booking_toLocationId') || '');
   const [showToDropdown, setShowToDropdown] = useState(false);
   const [toSuggestions, setToSuggestions] = useState([]);
   const [isToLoading, setIsToLoading] = useState(false);
 
   // Sync inputs with URL parameters
   useEffect(() => {
-    const urlFrom = searchParams.get('from') || sessionStorage.getItem('booking_fromCity') || '';
-    const urlTo = searchParams.get('to') || sessionStorage.getItem('booking_toCity') || '';
+    const urlFrom = searchParams.get('from') || localStorage.getItem('booking_fromCity') || '';
+    const urlTo = searchParams.get('to') || localStorage.getItem('booking_toCity') || '';
     
     setFromCity(urlFrom);
     setToCity(urlTo);
@@ -59,8 +59,8 @@ const BookingSearchBar = () => {
 
     setDepartureDate(searchParams.get('date') || TODAY_DATE);
     setSelectedService(searchParams.get('service') || 'bus');
-    setFromLocationId(searchParams.get('PickupLocationId') || sessionStorage.getItem('booking_fromLocationId') || '');
-    setToLocationId(searchParams.get('DropoffLocationId') || sessionStorage.getItem('booking_toLocationId') || '');
+    setFromLocationId(searchParams.get('PickupLocationId') || localStorage.getItem('booking_fromLocationId') || '');
+    setToLocationId(searchParams.get('DropoffLocationId') || localStorage.getItem('booking_toLocationId') || '');
   }, [searchParams]);
 
   // Click outside to close dropdowns and restore empty values
@@ -72,8 +72,8 @@ const BookingSearchBar = () => {
       if (fromInputRef.current && !fromInputRef.current.contains(event.target)) {
         setShowFromDropdown(false);
         if (!fromCity.trim()) {
-          const storedCity = sessionStorage.getItem('booking_fromCity');
-          const storedId = sessionStorage.getItem('booking_fromLocationId');
+          const storedCity = localStorage.getItem('booking_fromCity');
+          const storedId = localStorage.getItem('booking_fromLocationId');
           if (storedCity) {
             setFromCity(storedCity);
             lastSelectedFromRef.current = storedCity;
@@ -84,8 +84,8 @@ const BookingSearchBar = () => {
       if (toInputRef.current && !toInputRef.current.contains(event.target)) {
         setShowToDropdown(false);
         if (!toCity.trim()) {
-          const storedCity = sessionStorage.getItem('booking_toCity');
-          const storedId = sessionStorage.getItem('booking_toLocationId');
+          const storedCity = localStorage.getItem('booking_toCity');
+          const storedId = localStorage.getItem('booking_toLocationId');
           if (storedCity) {
             setToCity(storedCity);
             lastSelectedToRef.current = storedCity;
@@ -103,19 +103,19 @@ const BookingSearchBar = () => {
   // Save non-empty values to session storage
   useEffect(() => {
     if (fromCity.trim()) {
-      sessionStorage.setItem('booking_fromCity', fromCity.trim());
+      localStorage.setItem('booking_fromCity', fromCity.trim());
     }
     if (fromLocationId) {
-      sessionStorage.setItem('booking_fromLocationId', fromLocationId);
+      localStorage.setItem('booking_fromLocationId', fromLocationId);
     }
   }, [fromCity, fromLocationId]);
 
   useEffect(() => {
     if (toCity.trim()) {
-      sessionStorage.setItem('booking_toCity', toCity.trim());
+      localStorage.setItem('booking_toCity', toCity.trim());
     }
     if (toLocationId) {
-      sessionStorage.setItem('booking_toLocationId', toLocationId);
+      localStorage.setItem('booking_toLocationId', toLocationId);
     }
   }, [toCity, toLocationId]);
 
@@ -228,8 +228,8 @@ const BookingSearchBar = () => {
     let finalToId = toLocationId;
 
     if (!finalFromCity) {
-      finalFromCity = sessionStorage.getItem('booking_fromCity') || '';
-      finalFromId = sessionStorage.getItem('booking_fromLocationId') || '';
+      finalFromCity = localStorage.getItem('booking_fromCity') || '';
+      finalFromId = localStorage.getItem('booking_fromLocationId') || '';
       if (finalFromCity) {
         setFromCity(finalFromCity);
         lastSelectedFromRef.current = finalFromCity;
@@ -238,8 +238,8 @@ const BookingSearchBar = () => {
     }
 
     if (!finalToCity) {
-      finalToCity = sessionStorage.getItem('booking_toCity') || '';
-      finalToId = sessionStorage.getItem('booking_toLocationId') || '';
+      finalToCity = localStorage.getItem('booking_toCity') || '';
+      finalToId = localStorage.getItem('booking_toLocationId') || '';
       if (finalToCity) {
         setToCity(finalToCity);
         lastSelectedToRef.current = finalToCity;

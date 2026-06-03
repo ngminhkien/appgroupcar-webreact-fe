@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { getOfferRoutePointsApi } from '@/services/offerRoutePointService';
 import { getDriverByIdApi } from '@/services/driverService';
+import { getBusRouteDetailByIdApi } from '@/services/busRouteService';
+import { getCompanyDriverByIdApi } from '@/services/companyDriverService';
 import logoGroupCar from '@/assets/logoGroupCar.png';
 
 const TripDetails = ({ trip, onClose }) => {
@@ -33,13 +35,33 @@ const TripDetails = ({ trip, onClose }) => {
       setIsLoadingRoute(true);
       setRouteError(null);
       try {
-        const response = await getOfferRoutePointsApi(trip.id);
-        if (isMounted) {
-          if (response && response.code === 200) {
-            setRoutePoints(response.data || []);
+        let points = [];
+        if (trip.service === 'bus' || trip.tag === 'XE KHÁCH') {
+          const routeId = trip.routeId || trip.rawItem?.routeId || trip.rawItem?.busRouteId;
+          if (routeId) {
+            const response = await getBusRouteDetailByIdApi(routeId);
+            const data = response?.data ?? response;
+            const item = Array.isArray(data?.items) ? data.items[0] : data;
+            points = item?.routePoints || [];
           } else {
-            setRoutePoints(response?.data ?? response ?? []);
+            console.warn("No route ID found for bus service, falling back to offer route points.");
+            const response = await getOfferRoutePointsApi(trip.id);
+            if (response && response.code === 200) {
+              points = response.data || [];
+            } else {
+              points = response?.data ?? response ?? [];
+            }
           }
+        } else {
+          const response = await getOfferRoutePointsApi(trip.id);
+          if (response && response.code === 200) {
+            points = response.data || [];
+          } else {
+            points = response?.data ?? response ?? [];
+          }
+        }
+        if (isMounted) {
+          setRoutePoints(points);
         }
       } catch (err) {
         console.error('Error fetching route points:', err);
@@ -58,7 +80,7 @@ const TripDetails = ({ trip, onClose }) => {
     return () => {
       isMounted = false;
     };
-  }, [trip?.id]);
+  }, [trip?.id, trip.routeId, trip.rawItem?.routeId, trip.rawItem?.busRouteId]);
 
   useEffect(() => {
     const driverId = trip?.driverId;
@@ -72,13 +94,24 @@ const TripDetails = ({ trip, onClose }) => {
       setIsLoadingDriver(true);
       setDriverError(null);
       try {
-        const response = await getDriverByIdApi(driverId);
-        if (isMounted) {
-          if (response && response.code === 200) {
-            setDriverInfo(response.data);
-          } else {
-            setDriverInfo(response?.data ?? response);
+        let driverData = null;
+        if (trip.service === 'bus' || trip.tag === 'XE KHÁCH') {
+          const companyId = trip.companyId || trip.rawItem?.companyId;
+          const response = await getCompanyDriverByIdApi(driverId, companyId);
+          driverData = response?.data ?? response;
+          if (Array.isArray(driverData?.items)) {
+            driverData = driverData.items[0];
           }
+        } else {
+          const response = await getDriverByIdApi(driverId);
+          if (response && response.code === 200) {
+            driverData = response.data;
+          } else {
+            driverData = response?.data ?? response;
+          }
+        }
+        if (isMounted) {
+          setDriverInfo(driverData);
         }
       } catch (err) {
         console.error('Error fetching driver info:', err);
