@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getOfferRoutePointsApi } from '@/services/offerRoutePointService';
 import { getDriverByIdApi } from '@/services/driverService';
 import { getBusRouteDetailByIdApi } from '@/services/busRouteService';
@@ -274,13 +274,35 @@ const TripDetails = ({ trip, onClose }) => {
 
   const details = getMockDetails(trip.operator);
 
-  const displayPickups = routePoints
-    ? [...routePoints].filter(pt => pt.stopType === 1 || pt.stopType === 2 || pt.stopType === 3).sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
-    : [];
+  const sortedPoints = useMemo(() => {
+    return routePoints
+      ? [...routePoints].sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
+      : [];
+  }, [routePoints]);
 
-  const displayDropoffs = routePoints
-    ? [...routePoints].filter(pt => pt.stopType === 4 || pt.stopType === 5).sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
-    : [];
+  const displayPickups = useMemo(() => {
+    return sortedPoints.length > 1
+      ? sortedPoints.slice(0, sortedPoints.length - 1).map((pt, idx) => {
+          if (idx === 0) {
+            return { ...pt, displayStopType: 1 };
+          } else {
+            return { ...pt, displayStopType: 3 };
+          }
+        })
+      : sortedPoints.map(pt => ({ ...pt, displayStopType: pt.stopType }));
+  }, [sortedPoints]);
+
+  const displayDropoffs = useMemo(() => {
+    return sortedPoints.length > 1
+      ? sortedPoints.slice(1).map((pt, idx, arr) => {
+          if (idx === arr.length - 1) {
+            return { ...pt, displayStopType: 5 };
+          } else {
+            return { ...pt, displayStopType: 3 };
+          }
+        })
+      : sortedPoints.map(pt => ({ ...pt, displayStopType: pt.stopType }));
+  }, [sortedPoints]);
 
   const driverName = driverInfo?.fullName || 'Chưa cập nhật';
   const driverPhone = driverInfo?.phoneNumber || 'Chưa cập nhật';
@@ -374,17 +396,17 @@ const TripDetails = ({ trip, onClose }) => {
                         </div>
                         <div className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 shrink-0" />
                         <div>
-                          {pt.stopType === 1 && (
+                          {pt.displayStopType === 1 && (
                             <span className="inline-block bg-blue-100 text-blue-800 text-[10px] font-black px-2 py-0.5 rounded-md mr-1.5 tracking-wide">
                               Khởi hành
                             </span>
                           )}
-                          {pt.stopType === 2 && (
+                          {pt.displayStopType === 2 && (
                             <span className="inline-block bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-md mr-1.5 tracking-wide">
                               Điểm đón
                             </span>
                           )}
-                          {pt.stopType === 3 && (
+                          {pt.displayStopType === 3 && (
                             <span className="inline-block bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-md mr-1.5 tracking-wide">
                               Trung chuyển
                             </span>
@@ -407,12 +429,17 @@ const TripDetails = ({ trip, onClose }) => {
                         </div>
                         <div className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 shrink-0" />
                         <div>
-                          {pt.stopType === 4 && (
+                          {pt.displayStopType === 3 && (
+                            <span className="inline-block bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-md mr-1.5 tracking-wide">
+                              Trung chuyển
+                            </span>
+                          )}
+                          {pt.displayStopType === 4 && (
                             <span className="inline-block bg-indigo-100 text-indigo-800 text-[10px] font-black px-2 py-0.5 rounded-md mr-1.5 tracking-wide">
                               Điểm trả
                             </span>
                           )}
-                          {pt.stopType === 5 && (
+                          {pt.displayStopType === 5 && (
                             <span className="inline-block bg-purple-100 text-purple-800 text-[10px] font-black px-2 py-0.5 rounded-md mr-1.5 tracking-wide">
                               Kết thúc
                             </span>

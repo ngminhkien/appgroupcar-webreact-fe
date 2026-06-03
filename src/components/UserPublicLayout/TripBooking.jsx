@@ -5,6 +5,8 @@ import { getBusRouteDetailByIdApi } from '@/services/busRouteService';
 import { createShipmentRequestApi, createShipmentOfferApi } from '@/services/shipmentService';
 import { getUserProfileApi } from '@/services/userService';
 import { createBookingApi } from '@/services/offerService';
+import { getShowtimeSeatMapApi } from '@/services/showtimeService';
+import { createBusBookingApi } from '@/services/busBookingService';
 
 // Steering wheel icon
 const SteeringWheelIcon = ({ className = '' }) => (
@@ -35,16 +37,9 @@ const SeatIcon = ({ className = '', type = 'cuoi', isSelected = false, isBlocked
     );
   }
 
-  // Base configurations for outline seats
-  let strokeColor = '#7E3AF2'; // Default purple for "Ghế đầu"
-  let fillColor = '#F3E8FF';
-  if (type === 'cuoi') {
-    strokeColor = '#84CC16'; // Lime green
-    fillColor = '#ECFDF5';
-  } else if (type === 'giua') {
-    strokeColor = '#F59E0B'; // Orange
-    fillColor = '#FFFBEB';
-  }
+  // Base configurations for outline seats (uniform blue color)
+  let strokeColor = '#3B82F6'; // Blue
+  let fillColor = '#EFF6FF';   // Light blue
 
   return (
     <svg className={`${className} w-8 h-8`} viewBox="0 0 24 24" strokeWidth="2" stroke={strokeColor} fill="none">
@@ -103,6 +98,10 @@ const TripBooking = ({ trip, onClose }) => {
 
   // Dynamic Seat Layout
   const [seatLayout, setSeatLayout] = useState([]);
+  const [isLoadingSeats, setIsLoadingSeats] = useState(false);
+  const [seatsError, setSeatsError] = useState(null);
+  const [layoutRows, setLayoutRows] = useState(8);
+  const [layoutCols, setLayoutCols] = useState(5);
 
   // Fetch current user profile on mount to fill in passenger info
   useEffect(() => {
@@ -169,28 +168,118 @@ const TripBooking = ({ trip, onClose }) => {
     return () => { isMounted = false; };
   }, [trip?.id, trip.routeId, trip.rawItem?.routeId, trip.rawItem?.busRouteId]);
 
-  // Dynamically generate seat layout based on availableSeats
+  // Fetch seat map dynamically for passenger (bus) trips
   useEffect(() => {
-    if (trip.service !== 'express') {
-      const seatsCount = parseInt(trip.availableSeats, 10) || 9;
-      const layout = [];
-      for (let i = 1; i <= seatsCount; i++) {
-        layout.push({
-          code: `Ghế ${String(i).padStart(2, '0')}`,
-          type: i <= 3 ? 'dau' : (i <= 6 ? 'giua' : 'cuoi'),
-          price: trip.price || 230000,
-          originalPrice: (trip.price || 230000) + 40000,
-          isBlocked: false,
-          row: Math.ceil(i / 3)
-        });
-      }
-      setSeatLayout(layout);
+    if (trip.service === 'express' || trip.service === 'carpool') {
+      return;
     }
-  }, [trip.availableSeats, trip.price, trip.service]);
+    if (!trip?.id) return;
+
+    let isMounted = true;
+    const fetchSeatMap = async () => {
+      setIsLoadingSeats(true);
+      setSeatsError(null);
+      try {
+        const response = await getShowtimeSeatMapApi(trip.id);
+        const data = response?.data ?? response;
+
+        const seatLayoutData = data?.seatLayout;
+        const layoutJson = seatLayoutData?.layoutJson;
+        const layoutSeats = Array.isArray(layoutJson?.seats) ? layoutJson.seats : [];
+        const dynamicSeats = Array.isArray(data?.seats) ? data.seats : [];
+
+        const maxRows = typeof layoutJson?.rows === 'number' ? layoutJson.rows : 8;
+        const maxCols = typeof layoutJson?.cols === 'number' ? layoutJson.cols : 5;
+
+        const statusMap = {};
+        dynamicSeats.forEach(ds => {
+          if (ds.seatNumber) {
+            statusMap[ds.seatNumber] = ds.status;
+          }
+        });
+
+        if (isMounted) {
+          setLayoutRows(maxRows);
+          setLayoutCols(maxCols);
+
+          let mappedSeats = [];
+          if (layoutSeats.length > 0) {
+            mappedSeats = layoutSeats.map((seat, index) => {
+              const seatNumber = seat.seatNumber;
+              const status = statusMap[seatNumber] || 'Available';
+              const isBlocked = seat.type === 'driver' || status !== 'Available';
+
+              let type = 'giua';
+              if (seat.type === 'driver') {
+                type = 'driver';
+              } else if (seat.isLastRow) {
+                type = 'cuoi';
+              } else if (seat.row <= 1) {
+                type = 'dau';
+              }
+
+              return {
+                ...seat,
+                code: seatNumber,
+                type,
+                price: trip.price || 230000,
+                originalPrice: (trip.price || 230000) + 40000,
+                isBlocked,
+                row: seat.row,
+                col: seat.col
+              };
+            });
+          }
+          setSeatLayout(mappedSeats);
+        }
+      } catch (err) {
+        console.error("Error fetching seat map:", err);
+        if (isMounted) {
+          setSeatsError("Không thể tải sơ đồ ghế từ hệ thống.");
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingSeats(false);
+        }
+      }
+    };
+
+    fetchSeatMap();
+    return () => {
+      isMounted = false;
+    };
+  }, [trip?.id, trip.price, trip.service]);
 
   // Pickups and dropoffs extracted from route points
-  const pickups = routePoints.filter(pt => pt.stopType === 1 || pt.stopType === 2 || pt.stopType === 3).sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
-  const dropoffs = routePoints.filter(pt => pt.stopType === 4 || pt.stopType === 5).sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+  const sortedPoints = useMemo(() => {
+    return routePoints
+      ? [...routePoints].sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
+      : [];
+  }, [routePoints]);
+
+  const pickups = useMemo(() => {
+    return sortedPoints.length > 1
+      ? sortedPoints.slice(0, sortedPoints.length - 1).map((pt, idx) => {
+        if (idx === 0) {
+          return { ...pt, displayStopType: 1 };
+        } else {
+          return { ...pt, displayStopType: 3 };
+        }
+      })
+      : sortedPoints.map(pt => ({ ...pt, displayStopType: pt.stopType }));
+  }, [sortedPoints]);
+
+  const dropoffs = useMemo(() => {
+    return sortedPoints.length > 1
+      ? sortedPoints.slice(1).map((pt, idx, arr) => {
+        if (idx === arr.length - 1) {
+          return { ...pt, displayStopType: 5 };
+        } else {
+          return { ...pt, displayStopType: 3 };
+        }
+      })
+      : sortedPoints.map(pt => ({ ...pt, displayStopType: pt.stopType }));
+  }, [sortedPoints]);
 
   // Default select first item of pickup/dropoff once loaded
   useEffect(() => {
@@ -226,7 +315,7 @@ const TripBooking = ({ trip, onClose }) => {
   const handlePickupSelect = (item) => {
     const isSelected = selectedPickups.some(p => p.id === item.id);
     const maxSelect = trip.service === 'carpool' ? carpoolSeatsCount : 1;
-    
+
     if (isSelected) {
       setSelectedPickups(selectedPickups.filter(p => p.id !== item.id));
     } else {
@@ -245,7 +334,7 @@ const TripBooking = ({ trip, onClose }) => {
   const handleDropoffSelect = (item) => {
     const isSelected = selectedDropoffs.some(d => d.id === item.id);
     const maxSelect = trip.service === 'carpool' ? carpoolSeatsCount : 1;
-    
+
     if (isSelected) {
       setSelectedDropoffs(selectedDropoffs.filter(d => d.id !== item.id));
     } else {
@@ -384,12 +473,12 @@ const TripBooking = ({ trip, onClose }) => {
       try {
         // Construct the itemRequestDTOs array of length carpoolSeatsCount
         const itemRequestDTOs = Array.from({ length: carpoolSeatsCount }, (_, i) => {
-          const pickupItem = i < selectedPickups.length 
-            ? selectedPickups[i] 
+          const pickupItem = i < selectedPickups.length
+            ? selectedPickups[i]
             : selectedPickups[selectedPickups.length - 1];
-            
-          const dropoffItem = i < selectedDropoffs.length 
-            ? selectedDropoffs[i] 
+
+          const dropoffItem = i < selectedDropoffs.length
+            ? selectedDropoffs[i]
             : selectedDropoffs[selectedDropoffs.length - 1];
 
           return {
@@ -417,8 +506,26 @@ const TripBooking = ({ trip, onClose }) => {
         setIsBookingProcessing(false);
       }
     } else {
-      toast.success("Đặt vé thành công!");
-      setBookingSuccess(true);
+      setIsBookingProcessing(true);
+      try {
+        const bookingData = {
+          showtimeId: trip.id,
+          status: 1,
+          seatNumbers: selectedSeats.map(s => s.code)
+        };
+
+        await createBusBookingApi(bookingData);
+
+        toast.success("Đặt vé thành công!");
+        setBookingSuccess(true);
+      } catch (err) {
+        console.error("Booking error:", err);
+        const errMsg = err.response?.data?.message || err.message || "Đã xảy ra lỗi trong quá trình đặt vé. Vui lòng thử lại.";
+        setErrorMessage(errMsg);
+        toast.error(errMsg);
+      } finally {
+        setIsBookingProcessing(false);
+      }
     }
   };
 
@@ -831,15 +938,14 @@ const TripBooking = ({ trip, onClose }) => {
                   type="button"
                   disabled={carpoolSeatsCount <= 1}
                   onClick={() => setCarpoolSeatsCount(prev => prev - 1)}
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg transition-colors cursor-pointer ${
-                    carpoolSeatsCount <= 1 
-                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed' 
-                      : 'bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 active:scale-95'
-                  }`}
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg transition-colors cursor-pointer ${carpoolSeatsCount <= 1
+                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    : 'bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 active:scale-95'
+                    }`}
                 >
                   −
                 </button>
-                
+
                 <span className="text-2xl font-black text-slate-800 w-12 text-center select-none">
                   {carpoolSeatsCount}
                 </span>
@@ -848,16 +954,15 @@ const TripBooking = ({ trip, onClose }) => {
                   type="button"
                   disabled={carpoolSeatsCount >= (parseInt(trip.availableSeats, 10) || 4)}
                   onClick={() => setCarpoolSeatsCount(prev => prev + 1)}
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg transition-colors cursor-pointer ${
-                    carpoolSeatsCount >= (parseInt(trip.availableSeats, 10) || 4)
-                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed' 
-                      : 'bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 active:scale-95'
-                  }`}
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg transition-colors cursor-pointer ${carpoolSeatsCount >= (parseInt(trip.availableSeats, 10) || 4)
+                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    : 'bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 active:scale-95'
+                    }`}
                 >
                   +
                 </button>
               </div>
-              
+
               <div className="text-center max-w-sm">
                 <p className="text-[11px] font-medium text-slate-400 leading-normal">
                   Bạn có thể đặt tối đa bằng số lượng ghế còn lại của chuyến xe. Giá vé mỗi ghế là <span className="font-extrabold text-slate-700">{formatPrice(trip.price || 0)}</span>.
@@ -887,7 +992,7 @@ const TripBooking = ({ trip, onClose }) => {
                   <div className="flex flex-col gap-4">
                     <div className="flex items-center gap-3">
                       <SeatIcon isBlocked={true} />
-                      <span className="text-xs font-semibold text-slate-500">Ghế không bán</span>
+                      <span className="text-xs font-semibold text-slate-500">Đã được đặt</span>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -896,26 +1001,10 @@ const TripBooking = ({ trip, onClose }) => {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <SeatIcon type="cuoi" />
+                      <SeatIcon />
                       <div className="flex flex-col">
-                        <span className="text-xs font-bold text-slate-800">Ghế cuối</span>
-                        <span className="text-xs font-semibold text-slate-500">{formatPrice(trip.price || 220000)} <span className="line-through text-slate-400 ml-1">{formatPrice((trip.price || 220000) + 40000)}</span></span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <SeatIcon type="giua" />
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-slate-800">Ghế giữa</span>
-                        <span className="text-xs font-semibold text-slate-500">{formatPrice(trip.price || 230000)} <span className="line-through text-slate-400 ml-1">{formatPrice((trip.price || 230000) + 40000)}</span></span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <SeatIcon type="dau" />
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-slate-800">Ghế đầu</span>
-                        <span className="text-xs font-semibold text-slate-500">{formatPrice(trip.price || 210000)} <span className="line-through text-slate-400 ml-1">{formatPrice((trip.price || 210000) + 40000)}</span></span>
+                        <span className="text-xs font-bold text-slate-800">Ghế trống</span>
+                        <span className="text-xs font-semibold text-slate-500">{formatPrice(trip.price || 230000)}</span>
                       </div>
                     </div>
                   </div>
@@ -923,36 +1012,64 @@ const TripBooking = ({ trip, onClose }) => {
 
                 {/* Seat Map Column */}
                 <div className="md:col-span-7 flex justify-center">
-                  <div className="bg-slate-100/70 p-6 rounded-[32px] border border-slate-200/50 w-full max-w-[260px] flex flex-col items-center">
+                  <div className="bg-slate-100/70 p-6 rounded-[32px] border border-slate-200/50 w-full max-w-[260px] flex flex-col items-center min-h-[250px] justify-center">
 
-                    <div className="w-full flex justify-between items-center mb-6 px-3">
-                      <SteeringWheelIcon className="w-7 h-7" />
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-200/40 py-1 px-2.5 rounded-full border border-slate-200">Khoang lái</span>
-                    </div>
+                    {isLoadingSeats ? (
+                      <div className="flex flex-col items-center justify-center py-8">
+                        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                        <span className="ml-3 text-slate-500 font-semibold text-xs mt-2">Đang tải sơ đồ ghế...</span>
+                      </div>
+                    ) : seatsError ? (
+                      <div className="text-red-500 text-xs font-semibold text-center py-8">
+                        {seatsError}
+                      </div>
+                    ) : seatLayout.length === 0 ? (
+                      <div className="text-slate-500 text-xs font-semibold text-center py-8">
+                        Không có sơ đồ ghế cho chuyến này.
+                      </div>
+                    ) : (
+                      <>
+                        <div className="w-full flex justify-between items-center mb-6 px-3">
+                          <SteeringWheelIcon className="w-7 h-7" />
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-200/40 py-1 px-2.5 rounded-full border border-slate-200">Khoang lái</span>
+                        </div>
 
-                    <div className="flex flex-col gap-4 w-full">
-                      {/* Dynamically grouped seat layout rows */}
-                      {Array.from(new Set(seatLayout.map(s => s.row))).sort((a, b) => a - b).map((rowNum) => {
-                        const rowSeats = seatLayout.filter(s => s.row === rowNum);
-                        return (
-                          <div key={rowNum} className="grid grid-cols-3 gap-5 justify-items-center w-full">
-                            {rowNum !== 1 && <div />} {/* blank corridor for middle/back rows */}
-                            {rowSeats.map((seat) => (
-                              <div
-                                key={seat.code}
-                                onClick={() => handleSeatClick(seat)}
-                                className="cursor-pointer transition-transform hover:scale-105 active:scale-95"
-                              >
-                                <SeatIcon
-                                  type={seat.type}
-                                  isSelected={selectedSeats.some(s => s.code === seat.code)}
-                                />
+                        <div className="flex flex-col gap-4 w-full">
+                          {Array.from({ length: layoutRows }).map((_, rowNum) => {
+                            return (
+                              <div key={rowNum} className="grid gap-3 justify-items-center w-full" style={{ gridTemplateColumns: `repeat(${layoutCols}, minmax(0, 1fr))` }}>
+                                {Array.from({ length: layoutCols }).map((_, colIdx) => {
+                                  const seat = seatLayout.find(s => s.row === rowNum && s.col === colIdx);
+                                  if (!seat) {
+                                    return <div key={colIdx} className="w-8 h-8" />;
+                                  }
+                                  if (seat.type === 'driver') {
+                                    return (
+                                      <div key={colIdx} className="w-8 h-8 flex items-center justify-center">
+                                        <SteeringWheelIcon className="w-7 h-7" />
+                                      </div>
+                                    );
+                                  }
+                                  return (
+                                    <div
+                                      key={seat.code}
+                                      onClick={() => handleSeatClick(seat)}
+                                      className="cursor-pointer transition-transform hover:scale-105 active:scale-95"
+                                    >
+                                      <SeatIcon
+                                        type={seat.type}
+                                        isBlocked={seat.isBlocked}
+                                        isSelected={selectedSeats.some(s => s.code === seat.code)}
+                                      />
+                                    </div>
+                                  );
+                                })}
                               </div>
-                            ))}
-                          </div>
-                        );
-                      })}
-                    </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
 
                   </div>
                 </div>
@@ -1057,17 +1174,17 @@ const TripBooking = ({ trip, onClose }) => {
                               <span className="font-extrabold text-slate-800 text-sm">{item.locationName}</span>
                             </div>
                             <div className="mt-1.5 flex gap-2 flex-wrap">
-                              {item.stopType === 1 && (
+                              {item.displayStopType === 1 && (
                                 <span className="inline-block bg-blue-100 text-blue-800 text-[10px] font-black px-2 py-0.5 rounded-md tracking-wide">
                                   Khởi hành
                                 </span>
                               )}
-                              {item.stopType === 2 && (
+                              {item.displayStopType === 2 && (
                                 <span className="inline-block bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-md tracking-wide">
                                   Điểm đón
                                 </span>
                               )}
-                              {item.stopType === 3 && (
+                              {item.displayStopType === 3 && (
                                 <span className="inline-block bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-md tracking-wide">
                                   Trung chuyển
                                 </span>
@@ -1112,12 +1229,17 @@ const TripBooking = ({ trip, onClose }) => {
                               <span className="font-extrabold text-slate-800 text-sm">{item.locationName}</span>
                             </div>
                             <div className="mt-1.5 flex gap-2 flex-wrap">
-                              {item.stopType === 4 && (
+                              {item.displayStopType === 3 && (
+                                <span className="inline-block bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-md tracking-wide">
+                                  Trung chuyển
+                                </span>
+                              )}
+                              {item.displayStopType === 4 && (
                                 <span className="inline-block bg-indigo-100 text-indigo-800 text-[10px] font-black px-2 py-0.5 rounded-md tracking-wide">
                                   Điểm trả
                                 </span>
                               )}
-                              {item.stopType === 5 && (
+                              {item.displayStopType === 5 && (
                                 <span className="inline-block bg-purple-100 text-purple-800 text-[10px] font-black px-2 py-0.5 rounded-md tracking-wide">
                                   Kết thúc
                                 </span>
@@ -1338,7 +1460,7 @@ const TripBooking = ({ trip, onClose }) => {
 
               <div className="flex flex-col gap-3">
                 {/* Bank Transfer Option */}
-                <div
+                {/* <div
                   onClick={() => setPaymentMethod('transfer')}
                   className={`flex items-start gap-4 p-4 border rounded-2xl cursor-pointer hover:bg-slate-50/60 transition-all ${paymentMethod === 'transfer' ? 'border-blue-500 bg-blue-50/10' : 'border-slate-200'}`}
                 >
@@ -1355,7 +1477,7 @@ const TripBooking = ({ trip, onClose }) => {
                     <h5 className="font-extrabold text-slate-900 text-sm">Chuyển khoản Ngân hàng (Internet Banking)</h5>
                     <p className="text-slate-400 font-medium mt-0.5">Quét mã QR hoặc chuyển khoản thông tin tài khoản ngân hàng Techcombank nhanh chóng.</p>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Cash Option */}
                 <div
@@ -1451,9 +1573,10 @@ const TripBooking = ({ trip, onClose }) => {
 
               <button
                 onClick={handlePaymentConfirm}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black py-3.5 px-8 rounded-xl cursor-pointer shadow-md hover:shadow-emerald-600/10 transition-all duration-300"
+                disabled={isBookingProcessing}
+                className={`bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black py-3.5 px-8 rounded-xl shadow-md hover:shadow-emerald-600/10 transition-all duration-300 ${isBookingProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               >
-                Đặt vé &amp; Hoàn tất
+                {isBookingProcessing ? 'Đang xử lý...' : 'Đặt vé & Hoàn tất'}
               </button>
             </div>
           </div>
