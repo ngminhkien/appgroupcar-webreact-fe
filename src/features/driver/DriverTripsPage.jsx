@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getMyOffersApi } from '@/services/offerService';
-import { DriverTripCard } from '@/components/DriverComponents';
+import { DriverTripCard, AddTripModal } from '@/components/DriverComponents';
 
 const DriverTripsPage = () => {
+  const [showAddModal, setShowAddModal] = useState(false);
   const [serviceFilter, setServiceFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -61,13 +62,13 @@ const DriverTripsPage = () => {
           </div>
           
           <button 
-            onClick={() => refetch()}
-            className="self-start md:self-auto bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-extrabold py-2.5 px-4 rounded-xl text-xs flex items-center gap-2 shadow-sm transition-colors cursor-pointer"
+            onClick={() => setShowAddModal(true)}
+            className="self-start md:self-auto bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-2.5 px-4 rounded-xl text-xs flex items-center gap-2 shadow-sm shadow-emerald-600/10 transition-colors cursor-pointer"
           >
-            <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 11H18.79" />
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            Tải lại dữ liệu
+            Thêm chuyến đi
           </button>
         </div>
 
@@ -172,6 +173,12 @@ const DriverTripsPage = () => {
         </div>
 
       </div>
+
+      <AddTripModal 
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSuccess={() => refetch()}
+      />
     </div>
   );
 };

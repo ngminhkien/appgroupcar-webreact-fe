@@ -60,4 +60,20 @@ export const cancelBookingApi = async (bookingId) => {
   return response.data;
 };
 
+/**
+ * Create a shared ride offer (Carpool)
+ */
+export const createSharedRideOfferApi = async (data) => {
+  const response = await axiosInstance.post('/offer/shared-ride', data);
+  return response.data;
+};
+
+/**
+ * Create a shipment offer (Truck)
+ */
+export const createShipmentOfferApi = async (data) => {
+  const response = await axiosInstance.post('/offer/shipment', data);
+  return response.data;
+};
+
 

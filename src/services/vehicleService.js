@@ -9,6 +9,11 @@ export const getVehiclesApi = async (params) => {
   return response.data;
 };
 
+export const getMyVehiclesApi = async () => {
+  const response = await axiosInstance.get('/vehicle/my-vehicles');
+  return response.data;
+};
+
 export const getVehicleByIdApi = async (id) => {
   const response = await axiosInstance.get(`/vehicle/${id}`);
   return response.data;

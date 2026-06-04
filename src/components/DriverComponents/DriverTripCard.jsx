@@ -209,7 +209,7 @@ const DriverTripCard = ({ trip }) => {
           <button className="bg-slate-200/80 hover:bg-slate-200 text-slate-700 text-xs font-black py-2 px-4 rounded-xl cursor-pointer transition-colors duration-200">
             Chi tiết
           </button>
-          {status !== OfferStatus.Complete && (
+          {status === OfferStatus.Active && (
             <button 
               onClick={() => setShowPendingModal(true)}
               className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black py-2.5 px-4 rounded-xl cursor-pointer shadow-sm hover:shadow-emerald-600/10 transition-all duration-200"
