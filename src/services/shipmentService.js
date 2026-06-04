@@ -20,3 +20,13 @@ export const createShipmentOfferApi = async (body) => {
   const response = await axiosInstance.post('/ShipmentOffer/offer', body);
   return response.data;
 };
+
+export const getMyShipmentsApi = async () => {
+  const response = await axiosInstance.get('/shipment/me');
+  return response.data;
+};
+
+export const getMyShipmentRequestsApi = async () => {
+  const response = await axiosInstance.get('/ShipmentRequest/me');
+  return response.data;
+};

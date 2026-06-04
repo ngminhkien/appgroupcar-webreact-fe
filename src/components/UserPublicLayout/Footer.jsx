@@ -1,7 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/store/AuthContext';
 
 const Footer = () => {
+  const { isAuthenticated, user } = useAuth();
+  const userRole = user?.Roles || user?.role || user?.Role || '';
+  const isDriver = Array.isArray(userRole) ? userRole.includes('Driver') : userRole === 'Driver';
+
   return (
     <footer className="bg-slate-950 text-slate-400 py-16 border-t border-slate-900">
       <div className="max-w-7xl mx-auto px-6 w-full grid grid-cols-1 md:grid-cols-4 gap-12">
@@ -28,9 +33,11 @@ const Footer = () => {
             <li>
               <Link to="/booking" className="hover:text-white transition-colors duration-200">Đặt vé</Link>
             </li>
-            <li>
-              <Link to="/create-request" className="hover:text-white transition-colors duration-200">Tạo yêu cầu</Link>
-            </li>
+            {isAuthenticated && isDriver && (
+              <li>
+                <Link to="/create-request" className="hover:text-white transition-colors duration-200">Tạo yêu cầu</Link>
+              </li>
+            )}
             <li>
               <Link to="/history" className="hover:text-white transition-colors duration-200">Lịch sử hành trình</Link>
             </li>

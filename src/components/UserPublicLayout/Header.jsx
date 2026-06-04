@@ -66,10 +66,16 @@ const Header = () => {
     navigate(getPathWithQuery('/'));
   };
 
+  const userRole = user?.Roles || user?.role || user?.Role || '';
+  const isDriver = Array.isArray(userRole) ? userRole.includes('Driver') : userRole === 'Driver';
+
   const navItems = [
     { name: 'Trang chủ', path: '/' },
     { name: 'Đặt vé', path: '/booking' },
-    { name: 'Tạo yêu cầu', path: '/create-request' },
+    ...(isDriver ? [
+      { name: 'Tạo yêu cầu', path: '/create-request' },
+      { name: 'Chuyến đi của tôi', path: '/driver/trips' }
+    ] : []),
     { name: 'Lịch sử', path: '/history' },
   ];
 

@@ -22,3 +22,17 @@ export const createBookingApi = async (data) => {
   const response = await axiosInstance.post('/booking', data);
   return response.data;
 };
+
+export const getMyBookingsApi = async () => {
+  const response = await axiosInstance.get('/booking/me');
+  return response.data;
+};
+
+/**
+ * Get driver's own offers
+ */
+export const getMyOffersApi = async () => {
+  const response = await axiosInstance.get('/offer/me');
+  return response.data;
+};
+

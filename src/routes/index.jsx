@@ -22,6 +22,7 @@ import BusShowtimePage from '@/features/company-admin/BusShowtimePage';
 import { PublicLayout } from '@/components/PublicLayout';
 import { UserPublicLayout } from '@/components/UserPublicLayout';
 import { BookingPage, CreateRequestPage, HistoryPage, ProfilePage } from '@/features/user';
+import { DriverTripsPage } from '@/features/driver';
 import { AdminSysLayout } from '@/components/AdminSysLayout';
 import { AdminCompanyLayout } from '@/components/AdminCompanyLayout';
 import ProtectedRoute from './ProtectedRoute';
@@ -34,7 +35,13 @@ const AppRoutes = () => {
         <Route element={<UserPublicLayout />}>
           <Route path="/" element={<LandingPage />} />
           <Route path="/booking" element={<BookingPage />} />
-          <Route path="/create-request" element={<CreateRequestPage />} />
+
+          {/* Protected request creation — only for Driver */}
+          <Route element={<ProtectedRoute allowedRoles={['Driver']} />}>
+            <Route path="/create-request" element={<CreateRequestPage />} />
+            <Route path="/driver/trips" element={<DriverTripsPage />} />
+          </Route>
+
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
