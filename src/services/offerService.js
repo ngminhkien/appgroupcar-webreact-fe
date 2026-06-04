@@ -36,3 +36,28 @@ export const getMyOffersApi = async () => {
   return response.data;
 };
 
+/**
+ * Get pending bookings for a specific offer
+ */
+export const getPendingBookingsApi = async (offerId) => {
+  const response = await axiosInstance.get(`/booking/offer/${offerId}/pending`);
+  return response.data;
+};
+
+/**
+ * Confirm a booking request
+ */
+export const confirmBookingApi = async (bookingId) => {
+  const response = await axiosInstance.post(`/booking/${bookingId}/accept`);
+  return response.data;
+};
+
+/**
+ * Cancel/reject a booking request
+ */
+export const cancelBookingApi = async (bookingId) => {
+  const response = await axiosInstance.post(`/booking/${bookingId}/reject`);
+  return response.data;
+};
+
+

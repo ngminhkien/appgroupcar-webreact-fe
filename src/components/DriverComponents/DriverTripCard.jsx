@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ServiceType, OfferStatus } from '@/types/enums';
 import logoGroupCar from '@/assets/logoGroupCar.png';
+import PendingBookingModal from './PendingBookingModal';
 
 const DriverTripCard = ({ trip }) => {
+  const [showPendingModal, setShowPendingModal] = useState(false);
   const {
     id,
     vehicleName,
@@ -203,12 +205,27 @@ const DriverTripCard = ({ trip }) => {
           <span className="text-xl font-black text-emerald-600 block mt-0.5">{formatPrice(basePrice)}</span>
         </div>
 
-        <div className="flex gap-2 w-auto md:w-full md:mt-4">
-          <button className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black py-2.5 px-4 rounded-xl cursor-pointer shadow-sm hover:shadow-emerald-600/10 transition-all duration-200">
+        <div className="flex flex-row md:flex-col gap-2 w-auto md:w-full md:mt-4">
+          <button className="bg-slate-200/80 hover:bg-slate-200 text-slate-700 text-xs font-black py-2 px-4 rounded-xl cursor-pointer transition-colors duration-200">
             Chi tiết
           </button>
+          {status !== OfferStatus.Complete && (
+            <button 
+              onClick={() => setShowPendingModal(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black py-2.5 px-4 rounded-xl cursor-pointer shadow-sm hover:shadow-emerald-600/10 transition-all duration-200"
+            >
+              Duyệt đặt vé
+            </button>
+          )}
         </div>
       </div>
+
+      {showPendingModal && (
+        <PendingBookingModal 
+          offerId={id} 
+          onClose={() => setShowPendingModal(false)} 
+        />
+      )}
 
     </div>
   );

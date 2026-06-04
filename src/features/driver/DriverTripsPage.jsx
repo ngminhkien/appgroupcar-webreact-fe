@@ -4,7 +4,6 @@ import { getMyOffersApi } from '@/services/offerService';
 import { DriverTripCard } from '@/components/DriverComponents';
 
 const DriverTripsPage = () => {
-  const [searchTerm, setSearchTerm] = useState('');
   const [serviceFilter, setServiceFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -21,7 +20,7 @@ const DriverTripsPage = () => {
   // Ensure data is array
   const offersList = Array.isArray(rawOffers) ? rawOffers : [];
 
-  // Filter list based on search and selected options
+  // Filter list based on selected options
   const filteredOffers = useMemo(() => {
     return offersList.filter((trip) => {
       // 1. Service Type filter
@@ -34,22 +33,11 @@ const DriverTripsPage = () => {
         return false;
       }
 
-      // 3. Location Search filter
-      if (searchTerm.trim() !== '') {
-        const query = searchTerm.toLowerCase();
-        const startMatch = trip.startPoint?.locationName?.toLowerCase().includes(query);
-        const endMatch = trip.endPoint?.locationName?.toLowerCase().includes(query);
-        const vehicleMatch = trip.vehicleName?.toLowerCase().includes(query);
-        const plateMatch = trip.plateNumber?.toLowerCase().includes(query);
-        return startMatch || endMatch || vehicleMatch || plateMatch;
-      }
-
       return true;
     });
-  }, [offersList, searchTerm, serviceFilter, statusFilter]);
+  }, [offersList, serviceFilter, statusFilter]);
 
   const clearFilters = () => {
-    setSearchTerm('');
     setServiceFilter('all');
     setStatusFilter('all');
   };
@@ -85,25 +73,8 @@ const DriverTripsPage = () => {
 
         {/* Filters Panel */}
         <div className="bg-white rounded-3xl p-6 shadow-md border border-slate-200/60 flex flex-col gap-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             
-            {/* Search Input */}
-            <div className="relative">
-              <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Tìm địa điểm / xe</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Tìm điểm đi, điểm đến, biển số..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-xs font-semibold text-slate-800 focus:outline-none focus:border-emerald-500 focus:bg-white transition-all shadow-sm"
-                />
-                <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-            </div>
-
             {/* Service Type Filter */}
             <div>
               <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Loại dịch vụ</label>
