@@ -9,3 +9,9 @@ export const getMyRideRequestsApi = async () => {
   const response = await axiosInstance.get('/RideRequest/me');
   return response.data;
 };
+
+export const getRideRequestsApi = async (params) => {
+  const response = await axiosInstance.get('/riderequest', { params });
+  return response.data;
+};
+

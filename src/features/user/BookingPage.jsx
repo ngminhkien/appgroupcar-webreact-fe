@@ -8,16 +8,24 @@ import { getBusShowtimesApi, searchBusShowtimesApi } from '@/services/busShowtim
 
 
 
+const getTodayString = () => {
+  const date = new Date();
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
 const BookingPage = () => {
   const [searchParams] = useSearchParams();
   const serviceCode = searchParams.get('service') || 'bus';
-  const pickupLocQuery = searchParams.get('PickupLocationId') || searchParams.get('from') || '';
-  const dropoffLocQuery = searchParams.get('DropoffLocationId') || searchParams.get('to') || '';
-  const dateLoc = searchParams.get('date') || '';
+  const pickupLocQuery = searchParams.get('PickupLocationId') || searchParams.get('from') || localStorage.getItem('booking_fromLocationId') || localStorage.getItem('booking_fromCity') || '';
+  const dropoffLocQuery = searchParams.get('DropoffLocationId') || searchParams.get('to') || localStorage.getItem('booking_toLocationId') || localStorage.getItem('booking_toCity') || '';
+  const dateLoc = searchParams.get('date') || getTodayString();
 
   // Human-readable location names for the UI header/cards
-  const [resolvedFrom, setResolvedFrom] = useState(pickupLocQuery);
-  const [resolvedTo, setResolvedTo] = useState(dropoffLocQuery);
+  const [resolvedFrom, setResolvedFrom] = useState(searchParams.get('from') || localStorage.getItem('booking_fromCity') || pickupLocQuery);
+  const [resolvedTo, setResolvedTo] = useState(searchParams.get('to') || localStorage.getItem('booking_toCity') || dropoffLocQuery);
 
   // Filters State
   const [selectedTimes, setSelectedTimes] = useState([]);
@@ -49,7 +57,10 @@ const BookingPage = () => {
       return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
     };
 
-    if (isUUID(pickupLocQuery)) {
+    const nameFrom = searchParams.get('from') || localStorage.getItem('booking_fromCity');
+    if (nameFrom) {
+      setResolvedFrom(nameFrom);
+    } else if (isUUID(pickupLocQuery)) {
       const matched = locations.find(loc => loc.id === pickupLocQuery);
       if (matched) {
         setResolvedFrom(matched.displayName || matched.name || matched.locationName || pickupLocQuery);
@@ -58,7 +69,10 @@ const BookingPage = () => {
       setResolvedFrom(pickupLocQuery);
     }
 
-    if (isUUID(dropoffLocQuery)) {
+    const nameTo = searchParams.get('to') || localStorage.getItem('booking_toCity');
+    if (nameTo) {
+      setResolvedTo(nameTo);
+    } else if (isUUID(dropoffLocQuery)) {
       const matched = locations.find(loc => loc.id === dropoffLocQuery);
       if (matched) {
         setResolvedTo(matched.displayName || matched.name || matched.locationName || dropoffLocQuery);
@@ -66,7 +80,7 @@ const BookingPage = () => {
     } else {
       setResolvedTo(dropoffLocQuery);
     }
-  }, [pickupLocQuery, dropoffLocQuery, locations]);
+  }, [pickupLocQuery, dropoffLocQuery, locations, searchParams]);
 
   // Fetch data dynamically from endpoints /shared-ride, /shipment, and /bus-showtimes
   useEffect(() => {
@@ -433,7 +447,7 @@ const BookingPage = () => {
           {/* Header Summary */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="text-slate-600 text-sm font-medium">
-              Tìm thấy <span className="font-extrabold text-slate-900">{filteredTrips.length} chuyến xe</span> từ {searchParams.get('from') || ''} đến {searchParams.get('to') || ''}
+              Tìm thấy <span className="font-extrabold text-slate-900">{filteredTrips.length} chuyến xe</span> từ {resolvedFrom || ''} đến {resolvedTo || ''}
             </div>
 
             {/* Sort Options */}

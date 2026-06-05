@@ -42,17 +42,16 @@ const Header = () => {
 
   // Helper to preserve search query params, while adapting service defaults for specific pages
   const getPathWithQuery = (path) => {
+    if (path === '/create-request' || path === '/history' || path === '/driver/trips') {
+      return path;
+    }
+
     const params = new URLSearchParams(location.search);
     
     if (path === '/booking') {
       params.delete('type');
       if (!params.has('service')) {
         params.set('service', 'bus');
-      }
-    } else if (path === '/create-request') {
-      params.delete('type');
-      if (!params.has('service')) {
-        params.set('service', 'carpool');
       }
     }
     

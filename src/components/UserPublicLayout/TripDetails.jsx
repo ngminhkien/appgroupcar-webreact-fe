@@ -3,6 +3,7 @@ import { getOfferRoutePointsApi } from '@/services/offerRoutePointService';
 import { getDriverByIdApi } from '@/services/driverService';
 import { getBusRouteDetailByIdApi } from '@/services/busRouteService';
 import { getCompanyDriverByIdApi } from '@/services/companyDriverService';
+import { getSharedRideDetailApi, getShipmentDetailApi } from '@/services/offerService';
 import logoGroupCar from '@/assets/logoGroupCar.png';
 
 const TripDetails = ({ trip, onClose }) => {
@@ -10,10 +11,19 @@ const TripDetails = ({ trip, onClose }) => {
 
   const [routePoints, setRoutePoints] = useState([]);
   const [driverInfo, setDriverInfo] = useState(null);
+  const [vehicleInfo, setVehicleInfo] = useState(null);
+  const [cargoDetailInfo, setCargoDetailInfo] = useState(null);
+  
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const [isLoadingDriver, setIsLoadingDriver] = useState(false);
+  const [isLoadingVehicle, setIsLoadingVehicle] = useState(false);
+  
   const [routeError, setRouteError] = useState(null);
   const [driverError, setDriverError] = useState(null);
+  const [vehicleError, setVehicleError] = useState(null);
+
+  const isSharedRide = trip.service === 'carpool' || trip.tag === 'XE GHÉP' || trip.serviceType === 1 || trip.rawItem?.serviceType === 1;
+  const isTruck = trip.service === 'express' || trip.tag === 'XE TẢI' || trip.serviceType === 3 || trip.rawItem?.serviceType === 3;
 
   // Helper to format full image urls (for avatars etc)
   const getFullImageUrl = (url) => {
@@ -31,106 +41,126 @@ const TripDetails = ({ trip, onClose }) => {
     if (!trip?.id) return;
 
     let isMounted = true;
-    const fetchRoutePoints = async () => {
+
+    const fetchAllDetails = async () => {
       setIsLoadingRoute(true);
+      setIsLoadingDriver(true);
+      setIsLoadingVehicle(true);
       setRouteError(null);
+      setDriverError(null);
+      setVehicleError(null);
+
       try {
         let points = [];
-        if (trip.service === 'bus' || trip.tag === 'XE KHÁCH') {
-          const routeId = trip.routeId || trip.rawItem?.routeId || trip.rawItem?.busRouteId;
-          if (routeId) {
-            const response = await getBusRouteDetailByIdApi(routeId);
-            const data = response?.data ?? response;
-            const item = Array.isArray(data?.items) ? data.items[0] : data;
-            points = item?.routePoints || [];
-          } else {
-            console.warn("No route ID found for bus service, falling back to offer route points.");
-            const response = await getOfferRoutePointsApi(trip.id);
-            if (response && response.code === 200) {
-              points = response.data || [];
+        let driverData = null;
+        let vehicleData = null;
+        let cargoData = null;
+
+        if (isSharedRide) {
+          const response = await getSharedRideDetailApi(trip.id);
+          const detail = response?.data || response;
+          points = detail?.routePoints || [];
+          driverData = detail?.driver || null;
+          vehicleData = detail?.vehicle || null;
+        } else if (isTruck) {
+          const response = await getShipmentDetailApi(trip.id);
+          const detail = response?.data || response;
+          points = detail?.routePoints || [];
+          driverData = detail?.driver || null;
+          vehicleData = detail?.vehicle || null;
+          cargoData = detail?.cargoDetail || null;
+        } else {
+          // Bus/XE KHÁCH or legacy types
+          // Fetch route points
+          try {
+            if (trip.service === 'bus' || trip.tag === 'XE KHÁCH') {
+              const routeId = trip.routeId || trip.rawItem?.routeId || trip.rawItem?.busRouteId;
+              if (routeId) {
+                const response = await getBusRouteDetailByIdApi(routeId);
+                const data = response?.data ?? response;
+                const item = Array.isArray(data?.items) ? data.items[0] : data;
+                points = item?.routePoints || [];
+              } else {
+                console.warn("No route ID found for bus service, falling back to offer route points.");
+                const response = await getOfferRoutePointsApi(trip.id);
+                if (response && response.code === 200) {
+                  points = response.data || [];
+                } else {
+                  points = response?.data ?? response ?? [];
+                }
+              }
             } else {
-              points = response?.data ?? response ?? [];
+              const response = await getOfferRoutePointsApi(trip.id);
+              if (response && response.code === 200) {
+                points = response.data || [];
+              } else {
+                points = response?.data ?? response ?? [];
+              }
+            }
+          } catch (routeErr) {
+            console.error('Error fetching route points:', routeErr);
+            if (isMounted) {
+              setRouteError(routeErr.message || 'Không thể tải lộ trình chuyến đi.');
             }
           }
-        } else {
-          const response = await getOfferRoutePointsApi(trip.id);
-          if (response && response.code === 200) {
-            points = response.data || [];
-          } else {
-            points = response?.data ?? response ?? [];
+
+          // Fetch driver info
+          const driverId = trip?.driverId;
+          if (driverId) {
+            try {
+              if (trip.service === 'bus' || trip.tag === 'XE KHÁCH') {
+                const companyId = trip.companyId || trip.rawItem?.companyId;
+                const response = await getCompanyDriverByIdApi(driverId, companyId);
+                driverData = response?.data ?? response;
+                if (Array.isArray(driverData?.items)) {
+                  driverData = driverData.items[0];
+                }
+              } else {
+                const response = await getDriverByIdApi(driverId);
+                if (response && response.code === 200) {
+                  driverData = response.data;
+                } else {
+                  driverData = response?.data ?? response;
+                }
+              }
+            } catch (drvErr) {
+              console.error('Error fetching driver info:', drvErr);
+              if (isMounted) {
+                setDriverError(drvErr.message || 'Không thể tải thông tin tài xế.');
+              }
+            }
           }
         }
+
         if (isMounted) {
           setRoutePoints(points);
+          setDriverInfo(driverData);
+          setVehicleInfo(vehicleData);
+          setCargoDetailInfo(cargoData);
         }
       } catch (err) {
-        console.error('Error fetching route points:', err);
+        console.error('Error fetching trip details:', err);
         if (isMounted) {
-          setRouteError(err.message || 'Không thể tải lộ trình chuyến đi.');
+          const errMsg = err.message || 'Không thể tải chi tiết chuyến đi.';
+          setRouteError(errMsg);
+          setDriverError(errMsg);
+          setVehicleError(errMsg);
         }
       } finally {
         if (isMounted) {
           setIsLoadingRoute(false);
-        }
-      }
-    };
-
-    fetchRoutePoints();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [trip?.id, trip.routeId, trip.rawItem?.routeId, trip.rawItem?.busRouteId]);
-
-  useEffect(() => {
-    const driverId = trip?.driverId;
-    if (!driverId) {
-      setDriverInfo(null);
-      return;
-    }
-
-    let isMounted = true;
-    const fetchDriverInfo = async () => {
-      setIsLoadingDriver(true);
-      setDriverError(null);
-      try {
-        let driverData = null;
-        if (trip.service === 'bus' || trip.tag === 'XE KHÁCH') {
-          const companyId = trip.companyId || trip.rawItem?.companyId;
-          const response = await getCompanyDriverByIdApi(driverId, companyId);
-          driverData = response?.data ?? response;
-          if (Array.isArray(driverData?.items)) {
-            driverData = driverData.items[0];
-          }
-        } else {
-          const response = await getDriverByIdApi(driverId);
-          if (response && response.code === 200) {
-            driverData = response.data;
-          } else {
-            driverData = response?.data ?? response;
-          }
-        }
-        if (isMounted) {
-          setDriverInfo(driverData);
-        }
-      } catch (err) {
-        console.error('Error fetching driver info:', err);
-        if (isMounted) {
-          setDriverError(err.message || 'Không thể tải thông tin tài xế.');
-        }
-      } finally {
-        if (isMounted) {
           setIsLoadingDriver(false);
+          setIsLoadingVehicle(false);
         }
       }
     };
 
-    fetchDriverInfo();
+    fetchAllDetails();
 
     return () => {
       isMounted = false;
     };
-  }, [trip?.driverId]);
+  }, [trip?.id, trip.routeId, trip.rawItem?.routeId, trip.rawItem?.busRouteId, trip?.driverId, isSharedRide, isTruck]);
 
   // Realistic mock data generated based on trip operator
   const getMockDetails = (operator) => {
@@ -304,17 +334,18 @@ const TripDetails = ({ trip, onClose }) => {
       : sortedPoints.map(pt => ({ ...pt, displayStopType: pt.stopType }));
   }, [sortedPoints]);
 
-  const driverName = driverInfo?.fullName || 'Chưa cập nhật';
+  const driverName = driverInfo?.name || driverInfo?.fullName || 'Chưa cập nhật';
   const driverPhone = driverInfo?.phoneNumber || 'Chưa cập nhật';
   const driverLicense = driverInfo?.licenseClass && driverInfo?.licenseClass !== 'string' ? driverInfo.licenseClass : 'Chưa cập nhật';
-  const driverRating = driverInfo?.driverRatingAverage ?? 0;
-  const driverTripsCount = driverInfo?.driverRatingCount ?? 0;
+  const driverRating = driverInfo?.ratingAverage ?? driverInfo?.driverRatingAverage ?? 0;
+  const driverTripsCount = driverInfo?.ratingCount ?? driverInfo?.driverRatingCount ?? 0;
   const driverAvatar = driverInfo?.avatarUrl ? getFullImageUrl(driverInfo.avatarUrl) : logoGroupCar;
   const driverExperience = `Tài xế chuyên nghiệp hạng ${driverLicense}. Đã được xác minh thông tin và có lịch sử hoạt động tốt trên hệ thống.`;
 
   const tabs = [
     { id: 'pickupDropoff', label: 'Đón/trả' },
     { id: 'driver', label: 'Tài xế' },
+    { id: 'vehicle', label: 'Phương tiện' },
     { id: 'reviews', label: 'Đánh giá' },
     { id: 'photos', label: 'Hình ảnh' },
     { id: 'policies', label: 'Chính sách' }
@@ -505,6 +536,68 @@ const TripDetails = ({ trip, onClose }) => {
                   <p className="text-slate-600 text-sm leading-relaxed mt-1 font-medium">
                     {driverExperience}
                   </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 2.5: VEHICLE INFO */}
+        {activeTab === 'vehicle' && (
+          <div className="flex flex-col gap-4">
+            {isLoadingVehicle ? (
+              <div className="flex items-center justify-center py-12 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm max-w-2xl">
+                <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                <span className="ml-3 text-slate-500 font-semibold">Đang tải thông tin phương tiện...</span>
+              </div>
+            ) : vehicleError ? (
+              <div className="bg-red-50 text-red-700 text-sm font-semibold p-6 rounded-3xl border border-red-200 max-w-2xl shadow-sm flex flex-col gap-2">
+                <strong className="text-red-800 text-base">Lỗi tải thông tin phương tiện</strong>
+                <p>{vehicleError}</p>
+              </div>
+            ) : !vehicleInfo ? (
+              <div className="bg-slate-100 text-slate-600 text-sm font-semibold p-6 rounded-3xl text-center max-w-2xl">
+                Không tìm thấy thông tin phương tiện trên hệ thống.
+              </div>
+            ) : (
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row gap-6 max-w-2xl">
+                <img 
+                  src={vehicleInfo?.urlImage ? getFullImageUrl(vehicleInfo.urlImage) : logoGroupCar} 
+                  alt={vehicleInfo?.brand || 'Phương tiện'} 
+                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover shrink-0 border border-slate-100 bg-slate-50"
+                  onError={(e) => {
+                    e.target.src = logoGroupCar;
+                  }}
+                />
+                <div className="flex flex-col gap-2 justify-center">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h3 className="text-lg font-bold text-slate-900">{vehicleInfo?.brand || 'Chưa cập nhật'}</h3>
+                    {vehicleInfo?.plateNumber && (
+                      <span className="bg-slate-100 text-slate-800 border border-slate-200 text-xs font-bold px-2.5 py-1 rounded-lg">
+                        BKS: {vehicleInfo.plateNumber}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-sm font-semibold text-slate-500 flex flex-col gap-1.5 mt-1">
+                    <div>
+                      Sức chứa: <strong className="text-slate-800">{vehicleInfo?.seatCapacity || 0} chỗ</strong>
+                    </div>
+                    {isTruck && cargoDetailInfo && (
+                      <div className="flex flex-col gap-1 mt-1 border-t border-slate-100 pt-1.5 text-xs text-slate-500">
+                        <div>
+                          Trọng tải tối đa: <strong className="text-slate-800">{cargoDetailInfo.maxWeight?.toLocaleString() || 0} kg</strong>
+                        </div>
+                        <div>
+                          Thể tích tối đa: <strong className="text-slate-800">{cargoDetailInfo.maxVolume || 0} m³</strong>
+                        </div>
+                        {cargoDetailInfo.acceptFragile && (
+                          <div className="text-emerald-600 font-bold mt-0.5">
+                            ✓ Nhận vận chuyển hàng dễ vỡ
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

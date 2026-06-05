@@ -36,12 +36,12 @@ const BookingSearchBar = () => {
   ];
 
   // Autocomplete suggestions states
-  const [fromLocationId, setFromLocationId] = useState(searchParams.get('PickupLocationId') || localStorage.getItem('booking_fromLocationId') || '');
+  const [fromLocationId, setFromLocationId] = useState(localStorage.getItem('booking_fromLocationId') || '');
   const [showFromDropdown, setShowFromDropdown] = useState(false);
   const [fromSuggestions, setFromSuggestions] = useState([]);
   const [isFromLoading, setIsFromLoading] = useState(false);
 
-  const [toLocationId, setToLocationId] = useState(searchParams.get('DropoffLocationId') || localStorage.getItem('booking_toLocationId') || '');
+  const [toLocationId, setToLocationId] = useState(localStorage.getItem('booking_toLocationId') || '');
   const [showToDropdown, setShowToDropdown] = useState(false);
   const [toSuggestions, setToSuggestions] = useState([]);
   const [isToLoading, setIsToLoading] = useState(false);
@@ -59,8 +59,8 @@ const BookingSearchBar = () => {
 
     setDepartureDate(searchParams.get('date') || TODAY_DATE);
     setSelectedService(searchParams.get('service') || 'bus');
-    setFromLocationId(searchParams.get('PickupLocationId') || localStorage.getItem('booking_fromLocationId') || '');
-    setToLocationId(searchParams.get('DropoffLocationId') || localStorage.getItem('booking_toLocationId') || '');
+    setFromLocationId(localStorage.getItem('booking_fromLocationId') || '');
+    setToLocationId(localStorage.getItem('booking_toLocationId') || '');
   }, [searchParams]);
 
   // Click outside to close dropdowns and restore empty values

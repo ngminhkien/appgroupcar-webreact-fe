@@ -2,9 +2,14 @@ import React, { useState } from 'react';
 
 const RequestCard = ({ request }) => {
   const [hasContacted, setHasContacted] = useState(false);
+  const currentUserId = localStorage.getItem('userId');
+  const isMyRequest = request.customerId && currentUserId && request.customerId === currentUserId;
 
   const formatPrice = (price) => {
-    return `${price.toLocaleString()}đ`;
+    if (price === undefined || price === null || isNaN(Number(price)) || Number(price) <= 0) {
+      return 'Thỏa thuận';
+    }
+    return `${Number(price).toLocaleString()}đ`;
   };
 
   const getInitials = (name) => {
@@ -18,14 +23,14 @@ const RequestCard = ({ request }) => {
   return (
     <div className="w-full bg-white rounded-3xl overflow-hidden shadow-md border border-slate-200 flex flex-col p-6 hover:shadow-lg transition-all duration-300 group">
       <div className="flex flex-col md:flex-row items-stretch justify-between gap-6">
-        
+
         {/* Left Column: User Info & Service Badge */}
         <div className="flex items-start gap-4 shrink-0 md:w-56 text-left">
           {/* Initials Avatar */}
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-black text-lg flex items-center justify-center shadow-md shrink-0">
             {getInitials(request.passengerName)}
           </div>
-          
+
           <div className="flex flex-col gap-1">
             <h3 className="font-extrabold text-slate-800 text-base leading-tight">
               {request.passengerName}
@@ -36,13 +41,12 @@ const RequestCard = ({ request }) => {
             <span className="text-[10px] text-slate-400 font-bold bg-slate-100 py-0.5 px-2 rounded-md w-max mt-1">
               Đăng {request.createdAt}
             </span>
-            
+
             {/* Service Badge */}
-            <span className={`text-[10px] font-black tracking-wide uppercase px-2.5 py-0.5 rounded-full w-max mt-2 border ${
-              isCarpool 
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
+            <span className={`text-[10px] font-black tracking-wide uppercase px-2.5 py-0.5 rounded-full w-max mt-2 border ${isCarpool
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
                 : 'bg-lime-50 text-lime-700 border-lime-100'
-            }`}>
+              }`}>
               {request.serviceLabel}
             </span>
           </div>
@@ -50,7 +54,7 @@ const RequestCard = ({ request }) => {
 
         {/* Center Column: Route & Details */}
         <div className="flex-1 flex flex-col justify-between gap-4 text-left md:border-l md:border-slate-100 md:pl-6">
-          
+
           {/* Departure Date & Time Window */}
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-black text-slate-400 uppercase tracking-wider">Thời gian mong muốn:</span>
@@ -79,7 +83,7 @@ const RequestCard = ({ request }) => {
                 </div>
               )}
             </div>
-            
+
             {request.note && (
               <p className="text-xs italic text-slate-500 font-medium leading-relaxed border-t border-slate-200/60 pt-2 mt-1">
                 &ldquo;{request.note}&rdquo;
@@ -92,14 +96,18 @@ const RequestCard = ({ request }) => {
         {/* Right Column: Price Offered & CTA */}
         <div className="shrink-0 flex flex-row md:flex-col justify-between items-center md:items-end gap-4 md:w-44 text-right border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6">
           <div className="text-left md:text-right">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Ngân sách chi trả:</span>
+            {/* <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Ngân sách chi trả:</span>
             <span className="text-2xl font-black text-emerald-600 mt-1 block">
               {formatPrice(request.budget)}
-            </span>
+            </span> */}
           </div>
 
           <div className="w-full sm:w-auto md:w-full">
-            {hasContacted ? (
+            {isMyRequest ? (
+              <div className="bg-slate-100 border border-slate-200 text-slate-500 text-center font-extrabold py-2.5 px-4 rounded-xl text-xs select-none">
+                Đây là yêu cầu của bản thân
+              </div>
+            ) : hasContacted ? (
               <div className="bg-emerald-50 border border-emerald-100 text-emerald-700 text-center font-bold py-2.5 px-4 rounded-xl text-xs animate-fade-in">
                 ✓ Đã liên hệ nhận
               </div>
@@ -125,7 +133,7 @@ const RequestCard = ({ request }) => {
             </svg>
             <span>Gửi liên hệ thành công! Thông tin của bạn đã được chuyển đến khách hàng.</span>
           </span>
-          <button 
+          <button
             onClick={() => setHasContacted(false)}
             className="text-white hover:text-slate-200 font-extrabold pl-3"
           >

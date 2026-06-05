@@ -30,3 +30,9 @@ export const getMyShipmentRequestsApi = async () => {
   const response = await axiosInstance.get('/ShipmentRequest/me');
   return response.data;
 };
+
+export const getShipmentRequestsApi = async (params) => {
+  const response = await axiosInstance.get('/shipmentRequest', { params });
+  return response.data;
+};
+
