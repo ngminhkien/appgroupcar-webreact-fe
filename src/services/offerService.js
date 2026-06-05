@@ -76,4 +76,61 @@ export const createShipmentOfferApi = async (data) => {
   return response.data;
 };
 
+/**
+ * Get details of a shared ride offer
+ */
+export const getSharedRideDetailApi = async (id) => {
+  const response = await axiosInstance.get(`/offer/shared-ride/${id}/detail`);
+  return response.data;
+};
+
+/**
+ * Get details of a shipment offer
+ */
+export const getShipmentDetailApi = async (id) => {
+  const response = await axiosInstance.get(`/offer/shipment/${id}/detail`);
+  return response.data;
+};
+
+/**
+ * Cancel a shared ride offer
+ */
+export const cancelOfferApi = async (offerId) => {
+  const response = await axiosInstance.post(`/offer/shared-ride/${offerId}/cancel`);
+  return response.data;
+};
+
+/**
+ * Complete a shared ride offer
+ */
+export const completeOfferApi = async (offerId) => {
+  const response = await axiosInstance.post(`/offer/shared-ride/${offerId}/complete`);
+  return response.data;
+};
+
+/**
+ * Get pending shipments for a specific offer
+ */
+export const getPendingShipmentsApi = async (offerId) => {
+  const response = await axiosInstance.get(`/ShipmentOffer/offer/${offerId}/pending`);
+  return response.data;
+};
+
+/**
+ * Driver accepts a pending shipment offer
+ */
+export const driverAcceptShipmentApi = async (shipmentOfferId, offerId) => {
+  const response = await axiosInstance.post(`/ShipmentOffer/${shipmentOfferId}/driver-accept`, null, {
+    params: { offerId }
+  });
+  return response.data;
+};
+
+/**
+ * Driver cancels/rejects a pending shipment offer
+ */
+export const driverCancelShipmentApi = async (shipmentOfferId) => {
+  const response = await axiosInstance.post(`/ShipmentOffer/${shipmentOfferId}/cancel`);
+  return response.data;
+};
 

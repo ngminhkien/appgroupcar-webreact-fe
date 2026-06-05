@@ -2,9 +2,13 @@ import React, { useState } from 'react';
 import { ServiceType, OfferStatus } from '@/types/enums';
 import logoGroupCar from '@/assets/logoGroupCar.png';
 import PendingBookingModal from './PendingBookingModal';
+import PendingShipmentModal from './PendingShipmentModal';
+import TripDetailModal from './TripDetailModal';
+
 
 const DriverTripCard = ({ trip }) => {
   const [showPendingModal, setShowPendingModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const {
     id,
     vehicleName,
@@ -206,7 +210,10 @@ const DriverTripCard = ({ trip }) => {
         </div>
 
         <div className="flex flex-row md:flex-col gap-2 w-auto md:w-full md:mt-4">
-          <button className="bg-slate-200/80 hover:bg-slate-200 text-slate-700 text-xs font-black py-2 px-4 rounded-xl cursor-pointer transition-colors duration-200">
+          <button 
+            onClick={() => setShowDetailModal(true)}
+            className="bg-slate-200/80 hover:bg-slate-200 text-slate-700 text-xs font-black py-2 px-4 rounded-xl cursor-pointer transition-colors duration-200"
+          >
             Chi tiết
           </button>
           {status === OfferStatus.Active && (
@@ -221,9 +228,24 @@ const DriverTripCard = ({ trip }) => {
       </div>
 
       {showPendingModal && (
-        <PendingBookingModal 
-          offerId={id} 
-          onClose={() => setShowPendingModal(false)} 
+        serviceType === ServiceType.Truck ? (
+          <PendingShipmentModal 
+            offerId={id} 
+            onClose={() => setShowPendingModal(false)} 
+          />
+        ) : (
+          <PendingBookingModal 
+            offerId={id} 
+            onClose={() => setShowPendingModal(false)} 
+          />
+        )
+      )}
+
+      {showDetailModal && (
+        <TripDetailModal 
+          id={id} 
+          serviceType={serviceType}
+          onClose={() => setShowDetailModal(false)} 
         />
       )}
 
