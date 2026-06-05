@@ -120,7 +120,7 @@ const LocationSearchSelect = ({ label, value, onChange, placeholder, onRemove, s
 };
 
 // Main AddTripModal Component
-const AddTripModal = ({ isOpen, onClose, onSuccess }) => {
+const AddTripModal = ({ isOpen, onClose, onSuccess, forceVehicleType }) => {
   const [vehicles, setVehicles] = useState([]);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -150,7 +150,10 @@ const AddTripModal = ({ isOpen, onClose, onSuccess }) => {
       setIsLoadingVehicles(true);
       try {
         const vehRes = await getMyVehiclesApi();
-        const vehs = vehRes?.data || vehRes || [];
+        let vehs = vehRes?.data || vehRes || [];
+        if (forceVehicleType) {
+          vehs = vehs.filter(v => v.vehicleType === forceVehicleType);
+        }
         setVehicles(vehs);
       } catch (err) {
         toast.error('Không thể tải danh sách phương tiện của bạn.');
@@ -160,7 +163,7 @@ const AddTripModal = ({ isOpen, onClose, onSuccess }) => {
     };
 
     loadVehicles();
-  }, [isOpen]);
+  }, [isOpen, forceVehicleType]);
 
   if (!isOpen) return null;
 

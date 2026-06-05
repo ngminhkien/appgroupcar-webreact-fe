@@ -36,3 +36,11 @@ export const getShipmentRequestsApi = async (params) => {
   return response.data;
 };
 
+/**
+ * Get driver's active shipment trips
+ */
+export const getActiveShipmentsApi = async () => {
+  const response = await axiosInstance.get('offer/me/shipment/active');
+  return response.data;
+};
+

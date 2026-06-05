@@ -1,9 +1,34 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
+import { useAuth } from '@/store/AuthContext';
+import { AcceptShipmentModal } from '@/components/DriverComponents';
 
 const RequestCard = ({ request }) => {
+  const { user } = useAuth();
   const [hasContacted, setHasContacted] = useState(false);
+  const [showAcceptModal, setShowAcceptModal] = useState(false);
+  
   const currentUserId = localStorage.getItem('userId');
   const isMyRequest = request.customerId && currentUserId && request.customerId === currentUserId;
+
+  const userRole = user?.Roles || user?.role || user?.Role || '';
+  const isDriver = Array.isArray(userRole) ? userRole.includes('Driver') : userRole === 'Driver';
+
+  const handleAcceptClick = () => {
+    if (request.type === 'express') {
+      if (!isDriver) {
+        toast.error('Chỉ tài xế mới được phép nhận chuyến vận chuyển hàng!');
+        return;
+      }
+      setShowAcceptModal(true);
+    } else {
+      setHasContacted(true);
+    }
+  };
+
+  const handleAcceptSuccess = () => {
+    setHasContacted(true);
+  };
 
   const formatPrice = (price) => {
     if (price === undefined || price === null || isNaN(Number(price)) || Number(price) <= 0) {
@@ -113,7 +138,7 @@ const RequestCard = ({ request }) => {
               </div>
             ) : (
               <button
-                onClick={() => setHasContacted(true)}
+                onClick={handleAcceptClick}
                 className="w-full bg-slate-900 hover:bg-black text-white text-xs font-extrabold py-3 px-5 rounded-xl cursor-pointer shadow-md hover:shadow-slate-950/15 transition-all duration-300 text-center"
               >
                 Nhận chuyến
@@ -141,6 +166,13 @@ const RequestCard = ({ request }) => {
           </button>
         </div>
       )}
+      {/* Accept Shipment Modal */}
+      <AcceptShipmentModal
+        isOpen={showAcceptModal}
+        onClose={() => setShowAcceptModal(false)}
+        requestId={request.id}
+        onSuccess={handleAcceptSuccess}
+      />
 
     </div>
   );
