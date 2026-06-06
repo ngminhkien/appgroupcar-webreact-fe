@@ -223,24 +223,45 @@ const BookingPage = () => {
         const mapped = items.map(item => {
           let depTimeStr = '12:00';
           if (item.departureTime) {
-            if (item.departureTime.includes(':')) {
-              depTimeStr = item.departureTime.substring(0, 5);
+            const raw = item.departureTime;
+            if (raw.includes('T')) {
+              // ISO datetime: "2026-06-06T08:30:00" → lấy phần sau T
+              const timePart = raw.split('T')[1] || '';
+              depTimeStr = timePart.substring(0, 5); // "HH:MM"
+            } else if (raw.includes(':')) {
+              // Pure time: "08:30:00" or "08:30"
+              depTimeStr = raw.substring(0, 5); // "HH:MM"
             } else {
-              const dt = new Date(item.departureTime);
+              // Fallback: try parse as Date
+              const dt = new Date(raw);
               if (!isNaN(dt.getTime())) {
                 depTimeStr = dt.toTimeString().slice(0, 5); // "HH:MM"
               }
             }
           }
           
+          // Use estimatedDurationMinutes from API if available, otherwise default to 90 minutes
+          const durationMins = (item.estimatedDurationMinutes && item.estimatedDurationMinutes > 0)
+            ? item.estimatedDurationMinutes
+            : 90;
+
           let arrTimeStr = '14:00';
           if (depTimeStr && depTimeStr.includes(':')) {
             const [h, m] = depTimeStr.split(':').map(Number);
-            const totalMins = h * 60 + m + 90; // Add 1h 30m default duration
+            const totalMins = h * 60 + m + durationMins;
             const arrH = Math.floor(totalMins / 60) % 24;
             const arrM = totalMins % 60;
             arrTimeStr = `${String(arrH).padStart(2, '0')}:${String(arrM).padStart(2, '0')}`;
           }
+
+          // Format duration string from minutes
+          const formatDurationStr = (mins) => {
+            const hours = Math.floor(mins / 60);
+            const minutes = mins % 60;
+            if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`;
+            if (hours > 0) return `${hours}h`;
+            return `${minutes}m`;
+          };
 
           const driverName = item.driverName && item.driverName !== 'string' ? item.driverName : '';
           const vehicleName = item.vehicleName && item.vehicleName !== 'string' ? item.vehicleName : '';
@@ -271,12 +292,12 @@ const BookingPage = () => {
             operator: operatorName,
             service: serviceCode,
             type: typeName,
-            rating: 4.8,
-            reviewsCount: 15,
+            rating: item.driverRatingAverage ?? null,
+            reviewsCount: item.driverRatingCount ?? 0,
             price: item.price || item.basePrice || 0,
             departureTime: depTimeStr,
             arrivalTime: arrTimeStr,
-            duration: '1h 30m',
+            duration: formatDurationStr(durationMins),
             isDirect: true,
             stopoverType: 'Trực tiếp',
             from: tripFrom,
@@ -427,14 +448,8 @@ const BookingPage = () => {
         <div className="w-full lg:w-80 shrink-0">
           <FilterSidebar
             serviceCode={serviceCode}
-            operators={uniqueOperators}
-            vehicleTypes={uniqueTypes}
             selectedTimes={selectedTimes}
             setSelectedTimes={setSelectedTimes}
-            selectedOperators={selectedOperators}
-            setSelectedOperators={setSelectedOperators}
-            selectedTypes={selectedTypes}
-            setSelectedTypes={setSelectedTypes}
             maxPrice={maxPrice}
             setMaxPrice={setMaxPrice}
             onReset={handleResetFilters}

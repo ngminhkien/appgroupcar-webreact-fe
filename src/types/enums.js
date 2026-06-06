@@ -63,6 +63,15 @@ export const BookingStatus = Object.freeze({
   Cancelled: 3,
 });
 
+// Enum riêng cho vé xe ghép (carpool booking)
+export const CarpoolBookingStatus = Object.freeze({
+  Pending: 1,
+  Complete: 2,
+  Cancelled: 3,
+  Accepted: 4,
+  Rejected: 5,
+});
+
 export const PaymentStatus = Object.freeze({
   Unpaid: 1,
   Paid: 2,

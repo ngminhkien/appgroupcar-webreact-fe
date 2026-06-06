@@ -3,8 +3,47 @@ import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { getPendingBookingsApi, confirmBookingApi, cancelBookingApi } from '@/services/offerService';
 
+// ─── Inline Confirm Modal ───────────────────────────────────────────────────
+const ConfirmRejectModal = ({ isOpen, onConfirm, onCancel }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4 z-10 animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center shrink-0">
+            <svg className="w-5 h-5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-sm font-black text-slate-900">Xác nhận từ chối</h3>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">Bạn có chắc muốn từ chối yêu cầu đặt chuyến này?</p>
+          </div>
+        </div>
+        <div className="flex gap-2 justify-end">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+          >
+            Hủy bỏ
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 text-xs font-black text-white bg-rose-500 hover:bg-rose-600 rounded-xl transition-colors cursor-pointer shadow-sm shadow-rose-500/20"
+          >
+            Từ chối
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+// ───────────────────────────────────────────────────────────────────────────
+
 const PendingBookingModal = ({ offerId, onClose }) => {
   const [processingId, setProcessingId] = useState(null);
+  const [confirmReject, setConfirmReject] = useState({ open: false, bookingId: null });
 
   // Fetch pending bookings using react-query
   const { data: rawBookings = [], isLoading, error, refetch } = useQuery({
@@ -24,7 +63,7 @@ const PendingBookingModal = ({ offerId, onClose }) => {
 
   // Helper for customer avatar URL
   const getAvatarUrl = (url) => {
-    if (!url) return 'https://a.storyblok.com/f/191576/1200x800/215e59568f/round_profil_picture_after_.webp';
+    if (!url) return null;
     if (url.startsWith('http') || url.startsWith('data:')) return url;
     let baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
     baseUrl = baseUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
@@ -46,11 +85,15 @@ const PendingBookingModal = ({ offerId, onClose }) => {
     }
   };
 
-  // Handle Reject Booking
-  const handleReject = async (bookingId) => {
-    if (!window.confirm('Bạn có chắc chắn muốn từ chối yêu cầu đặt chuyến này?')) {
-      return;
-    }
+  // Open confirm modal before rejecting
+  const openRejectConfirm = (bookingId) => {
+    setConfirmReject({ open: true, bookingId });
+  };
+
+  // Handle Reject Booking (after confirmation)
+  const handleRejectConfirmed = async () => {
+    const bookingId = confirmReject.bookingId;
+    setConfirmReject({ open: false, bookingId: null });
     setProcessingId(bookingId);
     try {
       await cancelBookingApi(bookingId);
@@ -145,7 +188,7 @@ const PendingBookingModal = ({ offerId, onClose }) => {
                         src={getAvatarUrl(customer.avatarUrl)} 
                         alt={customer.fullName || 'Khách hàng'}
                         className="w-12 h-12 rounded-full object-cover border border-slate-200 shadow-sm"
-                        onError={(e) => { e.target.src = 'https://a.storyblok.com/f/191576/1200x800/215e59568f/round_profil_picture_after_.webp'; }}
+                        onError={(e) => { e.target.style.display = 'none'; }}
                       />
                       <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-black text-slate-800 truncate">{customer.fullName || 'Ẩn danh'}</h4>
@@ -223,9 +266,9 @@ const PendingBookingModal = ({ offerId, onClose }) => {
                         )}
                       </button>
 
-                      {/* Cancel Button */}
+                      {/* Reject Button */}
                       <button
-                        onClick={() => handleReject(booking.bookingId)}
+                        onClick={() => openRejectConfirm(booking.bookingId)}
                         disabled={isProcessing || processingId !== null}
                         className="flex-1 md:flex-initial w-full bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-black py-2.5 px-4 rounded-xl cursor-pointer border border-rose-200 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                       >
@@ -251,6 +294,13 @@ const PendingBookingModal = ({ offerId, onClose }) => {
         </div>
 
       </div>
+
+      {/* ─── Confirm Reject Modal ─── */}
+      <ConfirmRejectModal
+        isOpen={confirmReject.open}
+        onConfirm={handleRejectConfirmed}
+        onCancel={() => setConfirmReject({ open: false, bookingId: null })}
+      />
     </div>
   );
 };

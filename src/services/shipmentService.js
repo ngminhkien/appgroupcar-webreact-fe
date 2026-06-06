@@ -44,3 +44,13 @@ export const getActiveShipmentsApi = async () => {
   return response.data;
 };
 
+/**
+ * Get shipment offers (driver proposals) for a specific shipment request
+ * @param {string} shipmentRequestId
+ */
+export const getShipmentOffersByRequestApi = async (shipmentRequestId) => {
+  const response = await axiosInstance.get(`/ShipmentOffer/shipmentRequestId`, {
+    params: { shipmentRequestId }
+  });
+  return response.data;
+};

@@ -4,14 +4,8 @@ import toast from 'react-hot-toast';
 import {
   getSharedRideDetailApi,
   getShipmentDetailApi,
-  getPendingBookingsApi,
-  confirmBookingApi,
-  cancelBookingApi,
   cancelOfferApi,
-  completeOfferApi,
-  getPendingShipmentsApi,
-  driverAcceptShipmentApi,
-  driverCancelShipmentApi
+  completeOfferApi
 } from '@/services/offerService';
 import logoGroupCar from '@/assets/logoGroupCar.png';
 import { ServiceType, OfferStatus } from '@/types/enums';
@@ -67,23 +61,11 @@ const TripDetailModal = ({ id, serviceType, onClose }) => {
     staleTime: 30 * 1000,
   });
 
-  // Fetch pending bookings
-  const { data: rawBookings = [], isLoading: isLoadingBookings, error: bookingsError, refetch: refetchBookings } = useQuery({
-    queryKey: ['pendingBookingsForDetail', id, serviceType],
-    queryFn: async () => {
-      const response = serviceType === ServiceType.Truck
-        ? await getPendingShipmentsApi(id)
-        : await getPendingBookingsApi(id);
-      return response?.data || response || [];
-    },
-  });
-
   const detail = rawDetail || {};
   const driver = detail.driver || {};
   const vehicle = detail.vehicle || {};
   const sharedRideDetail = detail.sharedRideDetail || {};
   const routePoints = detail.routePoints || [];
-  const bookingsList = Array.isArray(rawBookings) ? rawBookings : [];
 
   // Format price helper
   const formatPrice = (price) => {
@@ -206,51 +188,7 @@ const TripDetailModal = ({ id, serviceType, onClose }) => {
   const serviceInfo = getServiceTypeInfo(detail.serviceType);
   const statusInfo = getStatusInfo(detail.status);
 
-  // Handle Approve Booking
-  const handleApprove = async (bookingId) => {
-    setProcessingId(bookingId);
-    try {
-      if (serviceType === ServiceType.Truck) {
-        await driverAcceptShipmentApi(bookingId, id);
-        toast.success('Duyệt yêu cầu vận chuyển thành công!');
-      } else {
-        await confirmBookingApi(bookingId);
-        toast.success('Duyệt yêu cầu đặt chuyến thành công!');
-      }
-      refetchBookings();
-      refetchDetail();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi duyệt yêu cầu.');
-    } finally {
-      setProcessingId(null);
-    }
-  };
 
-  // Handle Reject Booking
-  const handleReject = async (bookingId) => {
-    const confirmMsg = serviceType === ServiceType.Truck
-      ? 'Bạn có chắc chắn muốn từ chối yêu cầu vận chuyển này?'
-      : 'Bạn có chắc chắn muốn từ chối yêu cầu đặt chuyến này?';
-    if (!window.confirm(confirmMsg)) {
-      return;
-    }
-    setProcessingId(bookingId);
-    try {
-      if (serviceType === ServiceType.Truck) {
-        await driverCancelShipmentApi(bookingId);
-        toast.success('Từ chối yêu cầu vận chuyển thành công!');
-      } else {
-        await cancelBookingApi(bookingId);
-        toast.success('Từ chối yêu cầu đặt chuyến thành công!');
-      }
-      refetchBookings();
-      refetchDetail();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi từ chối yêu cầu.');
-    } finally {
-      setProcessingId(null);
-    }
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -306,15 +244,6 @@ const TripDetailModal = ({ id, serviceType, onClose }) => {
               }`}
           >
             Lộ trình & Điểm dừng ({sortedPoints.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('bookings')}
-            className={`py-3 px-1.5 text-xs font-black uppercase tracking-wider border-b-2 transition-all cursor-pointer ${activeTab === 'bookings'
-              ? 'border-emerald-600 text-emerald-600'
-              : 'border-transparent text-slate-400 hover:text-slate-600'
-              }`}
-          >
-            Duyệt yêu cầu đặt vé ({bookingsList.length})
           </button>
         </div>
 
@@ -581,247 +510,7 @@ const TripDetailModal = ({ id, serviceType, onClose }) => {
                 </div>
               )}
 
-              {/* TAB: BOOKINGS / PASSENGERS */}
-              {activeTab === 'bookings' && (
-                <div className="space-y-4">
-                  {isLoadingBookings ? (
-                    <div className="flex flex-col items-center justify-center py-10">
-                      <svg className="animate-spin h-6 w-6 text-emerald-500 mb-2" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      <span className="text-slate-400 font-bold text-xs uppercase tracking-wider">Đang tải danh sách đặt chỗ...</span>
-                    </div>
-                  ) : bookingsError ? (
-                    <div className="bg-red-50 border border-red-200 rounded-3xl p-6 text-center text-red-600 text-xs font-semibold">
-                      Không thể tải danh sách đặt vé cho chuyến đi.
-                    </div>
-                  ) : bookingsList.length === 0 ? (
-                    <div className="py-16 text-center bg-slate-50 border border-dashed border-slate-200 rounded-3xl">
-                      <svg className="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                      <p className="text-slate-500 font-bold text-sm">Chưa có yêu cầu đặt vé nào</p>
-                      <p className="text-slate-400 text-xs mt-0.5">Mọi yêu cầu đặt chỗ từ khách hàng sẽ hiển thị tại đây.</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 gap-4">
-                      {bookingsList.map((booking) => {
-                        const isProcessing = processingId === (serviceType === ServiceType.Truck ? booking.id : booking.bookingId);
 
-                        let bookingStatusClass = 'bg-slate-50 text-slate-600 border-slate-200';
-                        let bookingStatusLabel = 'Chưa xác định';
-                        
-                        const statusVal = booking.status;
-                        if (statusVal === 1 || statusVal === 'Pending') {
-                          bookingStatusClass = 'bg-amber-50 text-amber-700 border-amber-200';
-                          bookingStatusLabel = 'Chờ tài xế duyệt';
-                        } else if (statusVal === 2 || statusVal === 'Accepted' || statusVal === 'Confirmed') {
-                          bookingStatusClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                          bookingStatusLabel = 'Đã duyệt';
-                        } else if (statusVal === 3 || statusVal === 'Rejected' || statusVal === 'Cancelled') {
-                          bookingStatusClass = 'bg-rose-50 text-rose-700 border-rose-200';
-                          bookingStatusLabel = 'Đã từ chối/Hủy';
-                        }
-
-                        if (serviceType === ServiceType.Truck) {
-                          const shipmentRequest = booking.shipmentRequest || {};
-                          
-                          // Lookup start and end points in routePoints
-                          const startLocation = routePoints.find(pt => pt.locationId === shipmentRequest.pickupLocationId);
-                          const endLocation = routePoints.find(pt => pt.locationId === shipmentRequest.dropoffLocationId);
-                          const startPt = startLocation ? startLocation.locationName : 'Điểm nhận hàng';
-                          const endPt = endLocation ? endLocation.locationName : 'Điểm giao hàng';
-
-                          return (
-                            <div
-                              key={booking.id}
-                              className="bg-white border border-slate-200 rounded-2xl p-5 hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col md:flex-row gap-5 items-stretch"
-                            >
-                              {/* Customer Profile Column */}
-                              <div className="flex items-center md:items-start gap-4 md:w-56 shrink-0 text-left border-b md:border-b-0 md:border-r border-slate-100 pb-4 md:pb-0 md:pr-4">
-                                <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-400 font-black">
-                                  SR
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="text-sm font-black text-slate-800 truncate">Khách gửi hàng</h4>
-                                  <p className="text-xs text-slate-400 truncate mt-0.5">
-                                    Mã KH: {shipmentRequest.customerId ? shipmentRequest.customerId.substring(0, 8).toUpperCase() : 'N/A'}
-                                  </p>
-                                </div>
-                              </div>
-
-                              {/* Shipment Details Column */}
-                              <div className="flex-1 flex flex-col justify-between gap-3 text-left">
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                                  <div>
-                                    <span className="text-slate-400 font-semibold block">Khối lượng:</span>
-                                    <strong className="text-slate-800 font-bold block mt-0.5">{shipmentRequest.weight} kg</strong>
-                                  </div>
-                                  <div>
-                                    <span className="text-slate-400 font-semibold block">Thể tích:</span>
-                                    <strong className="text-slate-800 font-bold block mt-0.5">{shipmentRequest.volume} m³</strong>
-                                  </div>
-                                  <div>
-                                    <span className="text-slate-400 font-semibold block">Giá đề xuất:</span>
-                                    <strong className="text-emerald-600 font-black block mt-0.5">{formatPrice(booking.proposedPrice)}</strong>
-                                  </div>
-                                  <div>
-                                    <span className="text-slate-400 font-semibold block">Ngày giao hàng:</span>
-                                    <strong className="text-slate-700 font-bold block mt-0.5">{formatDateTime(shipmentRequest.deliveryDate)}</strong>
-                                  </div>
-                                </div>
-
-                                {/* Pickup & Dropoff location names */}
-                                <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 text-xs mt-2">
-                                  <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 flex-wrap">
-                                    <span className="text-slate-800 font-bold">{startPt}</span>
-                                    <span>➔</span>
-                                    <span className="text-slate-800 font-bold">{endPt}</span>
-                                  </div>
-                                </div>
-
-                                {/* Description & Handling Note */}
-                                {(shipmentRequest.description || shipmentRequest.handlingNote) && (
-                                  <div className="border-t border-slate-100 pt-2 mt-2 space-y-1 text-xs">
-                                    {shipmentRequest.description && (
-                                      <div className="text-slate-600 font-semibold">
-                                        <span className="text-slate-400">Mô tả:</span> {shipmentRequest.description}
-                                      </div>
-                                    )}
-                                    {shipmentRequest.handlingNote && (
-                                      <div className="text-slate-600 font-semibold">
-                                        <span className="text-slate-400">Ghi chú:</span> {shipmentRequest.handlingNote}
-                                      </div>
-                                    )}
-                                    {shipmentRequest.isFragile !== undefined && (
-                                      <div className="text-slate-600 font-semibold">
-                                        <span className="text-slate-400">Hàng dễ vỡ:</span> {shipmentRequest.isFragile ? <span className="text-rose-600 font-extrabold">Có</span> : 'Không'}
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Status and Action Buttons */}
-                              <div className="flex md:flex-col justify-end items-end gap-2 md:w-36 shrink-0 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-4">
-                                <span className={`inline-block px-3 py-1 rounded-full text-xs font-extrabold border text-center w-full ${bookingStatusClass}`}>
-                                  {bookingStatusLabel}
-                                </span>
-
-                                {(statusVal === 1 || statusVal === 'Pending') && (
-                                  <div className="flex gap-2 w-full mt-2">
-                                    <button
-                                      onClick={() => handleApprove(booking.id)}
-                                      disabled={isProcessing || processingId !== null}
-                                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black py-1.5 px-2 rounded-lg cursor-pointer transition-colors duration-200 disabled:opacity-50"
-                                    >
-                                      Duyệt
-                                    </button>
-                                    <button
-                                      onClick={() => handleReject(booking.id)}
-                                      disabled={isProcessing || processingId !== null}
-                                      className="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-600 text-[10px] font-black py-1.5 px-2 rounded-lg cursor-pointer border border-rose-200 transition-colors duration-200 disabled:opacity-50"
-                                    >
-                                      Từ chối
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        }
-
-                        // Shared-ride booking render logic (original)
-                        const customer = booking.customer || {};
-                        const startPt = booking.routePoints?.find(pt => pt.stopType === 'Start')?.locationName || 'Trạm đón';
-                        const endPt = booking.routePoints?.find(pt => pt.stopType === 'End')?.locationName || 'Trạm trả';
-
-                        return (
-                          <div
-                            key={booking.bookingId || booking.id}
-                            className="bg-white border border-slate-200 rounded-2xl p-5 hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col md:flex-row gap-5 items-stretch"
-                          >
-                            {/* Customer Profile Column */}
-                            <div className="flex items-center md:items-start gap-4 md:w-56 shrink-0 text-left border-b md:border-b-0 md:border-r border-slate-100 pb-4 md:pb-0 md:pr-4">
-                              <img
-                                src={customer.avatarUrl ? getFullImageUrl(customer.avatarUrl) : 'https://a.storyblok.com/f/191576/1200x800/215e59568f/round_profil_picture_after_.webp'}
-                                alt={customer.fullName || 'Khách hàng'}
-                                className="w-12 h-12 rounded-full object-cover border border-slate-200 shadow-sm"
-                                onError={(e) => { e.target.src = 'https://a.storyblok.com/f/191576/1200x800/215e59568f/round_profil_picture_after_.webp'; }}
-                              />
-                              <div className="flex-1 min-w-0">
-                                <h4 className="text-sm font-black text-slate-800 truncate">{customer.fullName || 'Ẩn danh'}</h4>
-                                <p className="text-xs text-slate-400 truncate mt-0.5">{customer.email || 'Không có email'}</p>
-                                {customer.phoneNumber && (
-                                  <a
-                                    href={`tel:${customer.phoneNumber}`}
-                                    className="inline-flex items-center gap-1.5 text-xs text-emerald-600 hover:text-emerald-700 font-bold mt-1.5 transition-colors"
-                                  >
-                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 00.099.281l-.675.675a10.024 10.024 0 003.81 3.81l.675-.675a1 1 0 01.24-.1c.325.077.671.077.997.098l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                                    </svg>
-                                    {customer.phoneNumber}
-                                  </a>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Booking Details Column */}
-                            <div className="flex-1 flex flex-col justify-between gap-3 text-left">
-                              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                                <div>
-                                  <span className="text-slate-400 font-semibold">Số lượng chỗ:</span>
-                                  <strong className="text-slate-800 font-bold block mt-0.5">{booking.quantity} người/ghế</strong>
-                                </div>
-                                <div>
-                                  <span className="text-slate-400 font-semibold">Tổng tiền:</span>
-                                  <strong className="text-emerald-600 font-black block mt-0.5">{formatPrice(booking.totalPrice)}</strong>
-                                </div>
-                              </div>
-
-                              {/* Route point names */}
-                              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 text-xs">
-                                <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-slate-800 font-bold">{startPt}</span>
-                                  <span>➔</span>
-                                  <span className="text-slate-800 font-bold">{endPt}</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Status and Action Buttons */}
-                            <div className="flex md:flex-col justify-end items-end gap-2 md:w-36 shrink-0 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-4">
-                              <span className={`inline-block px-3 py-1 rounded-full text-xs font-extrabold border text-center w-full ${bookingStatusClass}`}>
-                                {bookingStatusLabel}
-                              </span>
-
-                              {(booking.status === 1 || booking.status === 'Pending') && (
-                                <div className="flex gap-2 w-full mt-2">
-                                  <button
-                                    onClick={() => handleApprove(booking.bookingId)}
-                                    disabled={isProcessing || processingId !== null}
-                                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black py-1.5 px-2 rounded-lg cursor-pointer transition-colors duration-200 disabled:opacity-50"
-                                  >
-                                    Duyệt
-                                  </button>
-                                  <button
-                                    onClick={() => handleReject(booking.bookingId)}
-                                    disabled={isProcessing || processingId !== null}
-                                    className="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-600 text-[10px] font-black py-1.5 px-2 rounded-lg cursor-pointer border border-rose-200 transition-colors duration-200 disabled:opacity-50"
-                                  >
-                                    Từ chối
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
 
             </div>
           )}

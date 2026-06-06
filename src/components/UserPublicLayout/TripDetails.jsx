@@ -4,6 +4,7 @@ import { getDriverByIdApi } from '@/services/driverService';
 import { getBusRouteDetailByIdApi } from '@/services/busRouteService';
 import { getCompanyDriverByIdApi } from '@/services/companyDriverService';
 import { getSharedRideDetailApi, getShipmentDetailApi } from '@/services/offerService';
+import { getReviewsByRevieweeApi } from '@/services/reviewService';
 import logoGroupCar from '@/assets/logoGroupCar.png';
 
 const TripDetails = ({ trip, onClose }) => {
@@ -21,6 +22,11 @@ const TripDetails = ({ trip, onClose }) => {
   const [routeError, setRouteError] = useState(null);
   const [driverError, setDriverError] = useState(null);
   const [vehicleError, setVehicleError] = useState(null);
+
+  // Reviews state
+  const [reviews, setReviews] = useState([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+  const [reviewsError, setReviewsError] = useState(null);
 
   const isSharedRide = trip.service === 'carpool' || trip.tag === 'XE GHÉP' || trip.serviceType === 1 || trip.rawItem?.serviceType === 1;
   const isTruck = trip.service === 'express' || trip.tag === 'XE TẢI' || trip.serviceType === 3 || trip.rawItem?.serviceType === 3;
@@ -161,6 +167,29 @@ const TripDetails = ({ trip, onClose }) => {
       isMounted = false;
     };
   }, [trip?.id, trip.routeId, trip.rawItem?.routeId, trip.rawItem?.busRouteId, trip?.driverId, isSharedRide, isTruck]);
+
+  // Fetch reviews khi tab reviews active và có revieweeId
+  const revieweeId = trip?.driverId || trip?.rawItem?.driverId || null;
+  useEffect(() => {
+    if (activeTab !== 'reviews' || !revieweeId) return;
+    let isMounted = true;
+    const fetchReviews = async () => {
+      setIsLoadingReviews(true);
+      setReviewsError(null);
+      try {
+        const res = await getReviewsByRevieweeApi(revieweeId);
+        const list = res?.data || res || [];
+        if (isMounted) setReviews(Array.isArray(list) ? list : []);
+      } catch (err) {
+        console.error('Error fetching reviews:', err);
+        if (isMounted) setReviewsError('Không thể tải danh sách đánh giá.');
+      } finally {
+        if (isMounted) setIsLoadingReviews(false);
+      }
+    };
+    fetchReviews();
+    return () => { isMounted = false; };
+  }, [activeTab, revieweeId]);
 
   // Realistic mock data generated based on trip operator
   const getMockDetails = (operator) => {
@@ -606,55 +635,73 @@ const TripDetails = ({ trip, onClose }) => {
 
         {/* TAB 3: REVIEWS & RATINGS */}
         {activeTab === 'reviews' && (
-          <div className="flex flex-col lg:flex-row gap-8">
-            
-            {/* Ratings Summary Card */}
-            <div className="w-full lg:w-72 shrink-0 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col items-center justify-center text-center">
-              <div className="text-4xl font-black text-slate-950">{details.reviews.summary.average}</div>
-              <div className="flex items-center gap-0.5 text-amber-500 text-lg my-1">
-                {'★'.repeat(Math.round(details.reviews.summary.average))}
-              </div>
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                {details.reviews.summary.total} đánh giá khách hàng
-              </div>
-
-              {/* Progress bars */}
-              <div className="w-full flex flex-col gap-2 mt-4 text-xs font-semibold text-slate-600">
-                {details.reviews.summary.stars.map((s) => (
-                  <div key={s.count} className="flex items-center gap-2">
-                    <span className="w-3 text-right">{s.count}★</span>
-                    <div className="flex-grow h-2 bg-slate-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-500" style={{ width: `${s.percentage}%` }} />
-                    </div>
-                    <span className="w-8 text-left text-slate-400">{s.percentage}%</span>
+          <div className="flex flex-col gap-6">
+            {/* Summary header */}
+            {trip.rating != null && (
+              <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm flex items-center gap-5">
+                <div className="text-center">
+                  <div className="text-4xl font-black text-slate-950">{trip.rating?.toFixed(1)}</div>
+                  <div className="flex items-center justify-center gap-0.5 text-amber-400 text-lg my-1">
+                    {[1,2,3,4,5].map(s => (
+                      <span key={s} className={s <= Math.round(trip.rating) ? 'text-amber-400' : 'text-slate-200'}>★</span>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Reviews List */}
-            <div className="flex-1 flex flex-col gap-4">
-              {details.reviews.list.map((rev) => (
-                <div key={rev.id} className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm flex gap-4">
-                  <img 
-                    src={rev.avatar} 
-                    alt={rev.author} 
-                    className="w-10 h-10 rounded-full object-cover shrink-0 border border-slate-100"
-                  />
-                  <div className="flex-1 flex flex-col gap-1 text-sm">
-                    <div className="flex justify-between items-center flex-wrap gap-2">
-                      <h4 className="font-bold text-slate-900">{rev.author}</h4>
-                      <span className="text-xs text-slate-400 font-semibold">{rev.date}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-amber-500 font-bold">
-                      {'★'.repeat(rev.rating)}
-                    </div>
-                    <p className="text-slate-600 leading-relaxed mt-1 font-medium">{rev.comment}</p>
-                  </div>
+                  <div className="text-xs font-semibold text-slate-500">{trip.reviewsCount} đánh giá</div>
                 </div>
-              ))}
-            </div>
+                <div className="w-px h-16 bg-slate-100" />
+                <div className="text-sm font-semibold text-slate-500">
+                  Đánh giá từ người dùng thực tế trên hệ thống
+                </div>
+              </div>
+            )}
 
+            {/* Reviews list */}
+            {isLoadingReviews ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                <span className="ml-3 text-slate-500 font-semibold">Đang tải đánh giá...</span>
+              </div>
+            ) : reviewsError ? (
+              <div className="bg-red-50 text-red-700 text-sm font-semibold p-5 rounded-3xl border border-red-200">
+                {reviewsError}
+              </div>
+            ) : reviews.length === 0 ? (
+              <div className="bg-slate-50 border border-dashed border-slate-300 rounded-3xl p-10 text-center">
+                <span className="text-3xl block mb-3">💬</span>
+                <p className="text-slate-500 font-semibold text-sm">Chưa có đánh giá nào cho tài xế này.</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {reviews.map((rev) => {
+                  const dateStr = rev.createdAt
+                    ? new Date(rev.createdAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                    : '--';
+                  const initials = (rev.reviewerName || 'U').charAt(0).toUpperCase();
+                  return (
+                    <div key={rev.reviewId} className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm flex gap-4">
+                      {/* Avatar initials */}
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-white font-black text-base flex items-center justify-center shrink-0">
+                        {initials}
+                      </div>
+                      <div className="flex-1 flex flex-col gap-1 text-sm">
+                        <div className="flex justify-between items-center flex-wrap gap-2">
+                          <h4 className="font-bold text-slate-900">{rev.reviewerName || 'Người dùng'}</h4>
+                          <span className="text-xs text-slate-400 font-semibold">{dateStr}</span>
+                        </div>
+                        <div className="flex items-center gap-0.5">
+                          {[1,2,3,4,5].map(s => (
+                            <span key={s} className={`text-base ${s <= rev.rating ? 'text-amber-400' : 'text-slate-200'}`}>★</span>
+                          ))}
+                        </div>
+                        {rev.comment && (
+                          <p className="text-slate-600 leading-relaxed mt-1 font-medium">{rev.comment}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

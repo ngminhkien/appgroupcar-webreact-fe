@@ -60,9 +60,15 @@ const TripCard = ({ trip }) => {
             <div>
               <h3 className="text-lg font-bold text-slate-900 leading-tight">{trip.operator}</h3>
               <div className="flex items-center gap-1 mt-1 text-sm text-slate-500">
-                <span className="text-amber-500 font-bold text-base">★</span>
-                <span className="font-bold text-slate-700">{trip.rating}</span>
-                <span className="text-slate-400">({trip.reviewsCount} đánh giá)</span>
+                {trip.rating != null ? (
+                  <>
+                    <span className="text-amber-500 font-bold text-base">★</span>
+                    <span className="font-bold text-slate-700">{trip.rating.toFixed(1)}</span>
+                    <span className="text-slate-400">({trip.reviewsCount} đánh giá)</span>
+                  </>
+                ) : (
+                  <span className="text-slate-400 italic">Chưa có đánh giá</span>
+                )}
               </div>
             </div>
 

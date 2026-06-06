@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/store/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { getUserProfileApi } from '@/services/userService';
+import logoGroupCar from '@/assets/logoGroupCar.png';
 
 const Header = () => {
   const { isAuthenticated, logout, user } = useAuth();
@@ -47,14 +48,14 @@ const Header = () => {
     }
 
     const params = new URLSearchParams(location.search);
-    
+
     if (path === '/booking') {
       params.delete('type');
       if (!params.has('service')) {
         params.set('service', 'bus');
       }
     }
-    
+
     const searchString = params.toString();
     return searchString ? `${path}?${searchString}` : path;
   };
@@ -72,7 +73,7 @@ const Header = () => {
     { name: 'Trang chủ', path: '/' },
     { name: 'Đặt vé', path: '/booking' },
     ...(isDriver ? [
-      { name: 'Tạo yêu cầu', path: '/create-request' },
+      { name: 'Yêu cầu khách hàng', path: '/create-request' },
       { name: 'Chuyến đi của tôi', path: '/driver/trips' }
     ] : []),
     { name: 'Lịch sử', path: '/history' },
@@ -89,7 +90,7 @@ const Header = () => {
   return (
     <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${scrolled ? 'bg-white/80 backdrop-blur-lg shadow-md border-b border-slate-200/50 py-3' : 'bg-white/95 border-b border-slate-100 py-4'}`}>
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-        
+
         {/* Logo */}
         <Link to={getPathWithQuery('/')} className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-1.5 hover:opacity-90">
           <span className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white font-black text-base shadow-md shadow-emerald-500/20">N</span>
@@ -104,10 +105,9 @@ const Header = () => {
               key={item.name}
               to={getPathWithQuery(item.path)}
               className={({ isActive }) =>
-                `text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 ${
-                  isActive
-                    ? 'text-emerald-600 border-b-2 border-emerald-500 pb-1'
-                    : 'text-slate-600 hover:text-slate-900 pb-1'
+                `text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 ${isActive
+                  ? 'text-emerald-600 border-b-2 border-emerald-500 pb-1'
+                  : 'text-slate-600 hover:text-slate-900 pb-1'
                 }`
               }
             >
@@ -129,15 +129,15 @@ const Header = () => {
             </>
           ) : (
             <div className="relative">
-              <button 
+              <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className="flex items-center gap-2.5 focus:outline-none cursor-pointer group py-1.5 px-2 rounded-xl hover:bg-slate-50 transition-colors"
               >
-                <img 
-                  src={getFullImageUrl(profileInfo?.avatarUrl)} 
-                  alt="User Avatar" 
+                <img
+                  src={getFullImageUrl(profileInfo?.avatarUrl)}
+                  alt="User Avatar"
                   className="w-8.5 h-8.5 rounded-full object-cover border border-slate-200 shadow-sm"
-                  onError={(e) => { e.target.src = 'https://a.storyblok.com/f/191576/1200x800/215e59568f/round_profil_picture_after_.webp'; }}
+                  onError={(e) => { e.target.src = logoGroupCar; }}
                 />
                 <span className="text-sm font-bold text-slate-700 max-w-[120px] truncate group-hover:text-slate-900">
                   {profileInfo?.fullName || user?.fullName || 'Tài khoản'}
@@ -151,14 +151,14 @@ const Header = () => {
                 <>
                   {/* Backdrop to close dropdown */}
                   <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
-                  
+
                   <div className="absolute right-0 mt-2.5 w-60 bg-white rounded-2xl shadow-xl border border-slate-100 py-2.5 z-20 animate-in fade-in slide-in-from-top-2 duration-150">
                     <div className="px-4.5 py-3 border-b border-slate-100 mb-1">
                       <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Đăng nhập bằng</p>
                       <p className="text-sm font-extrabold text-slate-800 truncate mt-0.5">{profileInfo?.email || user?.email || ''}</p>
                     </div>
-                    
-                    <Link 
+
+                    <Link
                       to={getPathWithQuery(getProfilePath())}
                       onClick={() => setDropdownOpen(false)}
                       className="flex items-center gap-3 px-4.5 py-2.5 text-sm text-slate-700 font-medium hover:bg-slate-50 hover:text-emerald-600 transition-all"
@@ -168,10 +168,10 @@ const Header = () => {
                       </svg>
                       Hồ sơ cá nhân
                     </Link>
-                    
+
                     <hr className="border-slate-100 my-1" />
-                    
-                    <button 
+
+                    <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-3 px-4.5 py-2.5 text-sm text-red-600 font-semibold hover:bg-red-50 transition-colors text-left cursor-pointer"
                     >
@@ -214,19 +214,18 @@ const Header = () => {
               to={getPathWithQuery(item.path)}
               onClick={() => setMobileMenuOpen(false)}
               className={({ isActive }) =>
-                `text-base font-semibold py-2 px-3 rounded-lg transition-colors ${
-                  isActive
-                    ? 'bg-emerald-50 text-emerald-600'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                `text-base font-semibold py-2 px-3 rounded-lg transition-colors ${isActive
+                  ? 'bg-emerald-50 text-emerald-600'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 }`
               }
             >
               {item.name}
             </NavLink>
           ))}
-          
+
           {isAuthenticated && <hr className="border-slate-100 my-2" />}
-          
+
           <div className="flex flex-col gap-3">
             {!isAuthenticated ? (
               <>
@@ -248,18 +247,18 @@ const Header = () => {
             ) : (
               <>
                 <div className="flex items-center gap-3 px-3 py-2">
-                  <img 
-                    src={getFullImageUrl(profileInfo?.avatarUrl)} 
-                    alt="User Avatar" 
+                  <img
+                    src={getFullImageUrl(profileInfo?.avatarUrl)}
+                    alt="User Avatar"
                     className="w-11 h-11 rounded-full object-cover border border-slate-200 shadow-sm"
-                    onError={(e) => { e.target.src = 'https://a.storyblok.com/f/191576/1200x800/215e59568f/round_profil_picture_after_.webp'; }}
+                    onError={(e) => { e.target.src = logoGroupCar; }}
                   />
                   <div className="flex flex-col min-w-0">
                     <span className="text-sm font-bold text-slate-800 truncate">{profileInfo?.fullName || user?.fullName || 'Tài khoản'}</span>
                     <span className="text-xs text-slate-400 truncate">{profileInfo?.email || user?.email || ''}</span>
                   </div>
                 </div>
-                
+
                 <Link
                   to={getPathWithQuery(getProfilePath())}
                   onClick={() => setMobileMenuOpen(false)}
@@ -270,7 +269,7 @@ const Header = () => {
                   </svg>
                   Hồ sơ cá nhân
                 </Link>
-                
+
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);

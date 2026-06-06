@@ -355,7 +355,7 @@ const TripBooking = ({ trip, onClose }) => {
   const handleSeatContinue = () => {
     if (trip.service === 'express') {
       if (!deliveryDate) {
-        setErrorMessage('Vui lòng nhập ngày giao hàng (Delivery Date).');
+        setErrorMessage('Vui lòng nhập ngày giao hàng.');
         return;
       }
       if (!weight || isNaN(weight) || parseFloat(weight) <= 0) {
@@ -801,7 +801,7 @@ const TripBooking = ({ trip, onClose }) => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* DeliveryDate */}
                 <div className="flex flex-col gap-1.5 text-xs text-left">
-                  <label className="font-extrabold text-slate-500">Ngày giao hàng (Delivery Date) <span className="text-red-500">*</span></label>
+                  <label className="font-extrabold text-slate-500">Ngày giao hàng  <span className="text-red-500">*</span></label>
                   <input
                     type="datetime-local"
                     value={deliveryDate}
@@ -890,7 +890,7 @@ const TripBooking = ({ trip, onClose }) => {
                     onChange={(e) => { setIsFragile(e.target.checked); setErrorMessage(''); }}
                     className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
                   />
-                  <label htmlFor="isFragile" className="font-extrabold text-slate-700 cursor-pointer select-none">Hàng dễ vỡ (Is Fragile)</label>
+                  <label htmlFor="isFragile" className="font-extrabold text-slate-700 cursor-pointer select-none">Hàng dễ vỡ </label>
                 </div>
               </div>
 
@@ -908,7 +908,7 @@ const TripBooking = ({ trip, onClose }) => {
 
               {/* HandlingNote */}
               <div className="flex flex-col gap-1.5 text-xs text-left">
-                <label className="font-extrabold text-slate-500">Ghi chú bốc xếp (Handling Note)</label>
+                <label className="font-extrabold text-slate-500">Ghi chú bốc xếp </label>
                 <textarea
                   value={handlingNote}
                   onChange={(e) => { setHandlingNote(e.target.value); setErrorMessage(''); }}
