@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { getUserProfileApi } from '@/services/userService';
+import { getMarketDriverMeApi } from '@/services/driverService';
 import EditProfileModal from '@/features/system-admin/EditProfileModal';
 
 const ProfilePage = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const navigate = useNavigate();
   
   const { data: profileInfo, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['userProfile'],
@@ -14,6 +17,18 @@ const ProfilePage = () => {
       return response?.data || response;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes cache
+  });
+
+  const isDriver = profileInfo?.roles?.some(role => role.toLowerCase() === 'driver');
+
+  const { data: driverInfo, isLoading: isDriverLoading } = useQuery({
+    queryKey: ['driverProfileMe'],
+    queryFn: async () => {
+      const response = await getMarketDriverMeApi();
+      return response?.data || response;
+    },
+    enabled: !!isDriver,
+    staleTime: 5 * 60 * 1000,
   });
 
   React.useEffect(() => {
@@ -38,13 +53,45 @@ const ProfilePage = () => {
     return `${baseUrl}${formattedUrl}`;
   };
 
+  const renderVerificationStatus = (status) => {
+    switch (status) {
+      case 0:
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+            <span className="w-1.5 h-1.5 mr-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+            Chờ duyệt
+          </span>
+        );
+      case 1:
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+            <span className="w-1.5 h-1.5 mr-1.5 rounded-full bg-rose-500"></span>
+            Bị từ chối
+          </span>
+        );
+      case 2:
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span className="w-1.5 h-1.5 mr-1.5 rounded-full bg-emerald-500"></span>
+            Đã xác minh
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200">
+            Chưa xác minh
+          </span>
+        );
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-6 md:p-10 bg-slate-50 min-h-[70vh] flex items-center justify-center">
          <div className="flex flex-col items-center">
             <svg className="animate-spin h-10 w-10 text-emerald-500 mb-4" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
             <span className="text-slate-500 font-medium">Đang tải hồ sơ...</span>
          </div>
@@ -165,6 +212,102 @@ const ProfilePage = () => {
               </div>
            </div>
         </div>
+
+        {/* Card 3: Driver Info or Register Banner */}
+        {isDriver ? (
+          <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center mr-3">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-bold text-slate-800">Thông tin tài xế</h2>
+              </div>
+              {driverInfo && renderVerificationStatus(driverInfo.verificationStatus)}
+            </div>
+
+            {isDriverLoading ? (
+              <div className="flex items-center justify-center py-6">
+                <svg className="animate-spin h-6 w-6 text-emerald-500 mr-2" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                <span className="text-slate-500 font-medium text-sm">Đang tải thông tin tài xế...</span>
+              </div>
+            ) : driverInfo ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+                <div className="flex items-center p-3 rounded-2xl hover:bg-slate-50 transition-colors">
+                  <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center mr-4 shrink-0 text-slate-500">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Số CCCD / Identity Number</p>
+                    <p className="text-slate-700 font-semibold text-sm truncate">{driverInfo.identityNumber || '--'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center p-3 rounded-2xl hover:bg-slate-50 transition-colors">
+                  <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center mr-4 shrink-0 text-slate-500">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Số GPLX / License Number</p>
+                    <p className="text-slate-700 font-semibold text-sm truncate">{driverInfo.licenseNumber || '--'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center p-3 rounded-2xl hover:bg-slate-50 transition-colors">
+                  <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center mr-4 shrink-0 text-slate-500">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Hạng bằng lái / License Class</p>
+                    <p className="text-slate-700 font-semibold text-sm truncate">{driverInfo.licenseClass || '--'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center p-3 rounded-2xl hover:bg-slate-50 transition-colors">
+                  <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center mr-4 shrink-0 text-slate-500">
+                    <svg className="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Đánh giá trung bình / Rating</p>
+                    <p className="text-slate-700 font-semibold text-sm truncate">
+                      {driverInfo.driverRatingAverage || 0} ⭐ ({driverInfo.driverRatingCount || 0} lượt đánh giá)
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-slate-500 text-sm">Không thể tải thông tin chi tiết tài xế.</p>
+            )}
+          </div>
+        ) : (
+          <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-3xl p-8 text-white shadow-lg shadow-emerald-500/15 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="space-y-2 text-center md:text-left">
+              <h3 className="text-2xl font-extrabold tracking-tight">Trở thành đối tác tài xế NexusRide</h3>
+              <p className="text-emerald-100 max-w-lg text-sm font-medium leading-relaxed">
+                Đăng ký tài xế ngay hôm nay để có cơ hội tăng thu nhập ổn định và linh hoạt thời gian làm việc.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/register-driver')}
+              className="px-6 py-3 bg-white text-emerald-600 hover:bg-emerald-50 active:scale-95 transition-all rounded-xl font-bold shadow-md cursor-pointer text-sm shrink-0 whitespace-nowrap"
+            >
+              Đăng ký làm tài xế
+            </button>
+          </div>
+        )}
       </div>
 
       <EditProfileModal
@@ -178,3 +321,4 @@ const ProfilePage = () => {
 };
 
 export default ProfilePage;
+

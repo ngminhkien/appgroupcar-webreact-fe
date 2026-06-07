@@ -14,6 +14,16 @@ export const getMyVehiclesApi = async () => {
   return response.data;
 };
 
+export const createVehicleApi = async (formData) => {
+  const response = await axiosInstance.post('/vehicle/create', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+  return response.data;
+};
+
+
 export const getVehicleByIdApi = async (id) => {
   const response = await axiosInstance.get(`/vehicle/${id}`);
   return response.data;

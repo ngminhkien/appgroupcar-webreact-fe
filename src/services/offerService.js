@@ -40,7 +40,7 @@ export const getMyOffersApi = async () => {
  * Get pending bookings for a specific offer
  */
 export const getPendingBookingsApi = async (offerId) => {
-  const response = await axiosInstance.get(`/booking/offer/${offerId}/pending`);
+  const response = await axiosInstance.get(`/booking/offer/${offerId}`);
   return response.data;
 };
 
@@ -112,7 +112,7 @@ export const completeOfferApi = async (offerId) => {
  * Get pending shipments for a specific offer
  */
 export const getPendingShipmentsApi = async (offerId) => {
-  const response = await axiosInstance.get(`/ShipmentOffer/offer/${offerId}/pending`);
+  const response = await axiosInstance.get(`/ShipmentOffer/offer/${offerId}`);
   return response.data;
 };
 

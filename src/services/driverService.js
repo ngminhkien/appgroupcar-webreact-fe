@@ -61,3 +61,26 @@ export const unlockDriverApi = async (id) => {
   const response = await axiosInstance.put(`/marketDriver/${id}/unlock`);
   return response.data;
 };
+
+/**
+ * Get current logged in driver info.
+ */
+export const getMarketDriverMeApi = async () => {
+  const response = await axiosInstance.get('/marketDriver/me');
+  return response.data;
+};
+
+/**
+ * Register as a new driver.
+ * @param {FormData} formData
+ */
+export const createMarketDriverApi = async (formData) => {
+  const response = await axiosInstance.post('/marketDriver', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+  return response.data;
+};
+
+

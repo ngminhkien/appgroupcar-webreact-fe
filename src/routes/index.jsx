@@ -21,8 +21,8 @@ import BusRoutePointPage from '@/features/company-admin/BusRoutePointPage';
 import BusShowtimePage from '@/features/company-admin/BusShowtimePage';
 import { PublicLayout } from '@/components/PublicLayout';
 import { UserPublicLayout } from '@/components/UserPublicLayout';
-import { BookingPage, CreateRequestPage, HistoryPage, ProfilePage } from '@/features/user';
-import { DriverTripsPage } from '@/features/driver';
+import { BookingPage, CreateRequestPage, HistoryPage, ProfilePage, RegisterDriverPage } from '@/features/user';
+import { DriverTripsPage, DriverVehiclesPage } from '@/features/driver';
 import { AdminSysLayout } from '@/components/AdminSysLayout';
 import { AdminCompanyLayout } from '@/components/AdminCompanyLayout';
 import ProtectedRoute from './ProtectedRoute';
@@ -40,7 +40,9 @@ const AppRoutes = () => {
           <Route element={<ProtectedRoute allowedRoles={['Driver']} />}>
             <Route path="/create-request" element={<CreateRequestPage />} />
             <Route path="/driver/trips" element={<DriverTripsPage />} />
+            <Route path="/driver/vehicles" element={<DriverVehiclesPage />} />
           </Route>
+
 
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/login" element={<LoginPage />} />
@@ -49,8 +51,10 @@ const AppRoutes = () => {
           {/* Protected Profile Page */}
           <Route element={<ProtectedRoute />}>
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/register-driver" element={<RegisterDriverPage />} />
           </Route>
         </Route>
+
 
         {/* Admin System — Protected, role-based */}
         <Route element={<ProtectedRoute allowedRoles={['Admin', 'User']} />}>

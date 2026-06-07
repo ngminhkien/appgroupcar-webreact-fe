@@ -5,9 +5,10 @@ import { getMyBusBookingsApi } from '@/services/busBookingService';
 import { getMyBookingsApi } from '@/services/offerService';
 import { getMyShipmentsApi, getMyShipmentRequestsApi, getShipmentOffersByRequestApi, createShipmentRequestApi } from '@/services/shipmentService';
 import { getMyRideRequestsApi, createRideRequestApi } from '@/services/rideRequestService';
-import { CarpoolBookingStatus } from '@/types/enums';
+import { CarpoolBookingStatus, ServiceType } from '@/types/enums';
 import ReviewModal from '@/components/UserPublicLayout/ReviewModal';
 import { CarpoolRequestModal, ExpressRequestModal } from '@/components/UserPublicLayout';
+import { TripDetailModal } from '@/components/DriverComponents';
 
 // Adapter mappers to transform API response models into local UI formats
 const mapBusBooking = (item) => {
@@ -216,6 +217,9 @@ const HistoryPage = () => {
   const [reviewModal, setReviewModal] = useState({ open: false, booking: null });
   const openReviewModal = (booking) => setReviewModal({ open: true, booking });
   const closeReviewModal = () => setReviewModal({ open: false, booking: null });
+
+  // Selected Trip Detail Modal state
+  const [selectedTripDetail, setSelectedTripDetail] = useState({ open: false, id: null, serviceType: null });
 
   // Request Modals state and submit handler
   const [showRequestModal, setShowRequestModal] = useState(false);
@@ -817,7 +821,15 @@ const HistoryPage = () => {
                       : { label: 'Đang chờ', cls: 'bg-amber-50 text-amber-700 border-amber-200' };
 
                   return (
-                    <div key={offer.id} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-lime-300 hover:bg-lime-50/30 transition-all">
+                    <div
+                      key={offer.id}
+                      onClick={() => setSelectedTripDetail({
+                        open: true,
+                        id: offer.offerId || offer.offer?.id || offer.sharedRideId || offer.id,
+                        serviceType: requestTab === 'carpool' ? ServiceType.Shared : ServiceType.Truck
+                      })}
+                      className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-lime-300 hover:bg-lime-50/30 transition-all cursor-pointer"
+                    >
                       {/* Driver & Vehicle Info */}
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-lime-500 to-emerald-600 text-white font-black text-base flex items-center justify-center shadow-sm shrink-0">
@@ -871,6 +883,15 @@ const HistoryPage = () => {
         bookingType={bookingTab}
         booking={reviewModal.booking}
       />
+
+      {/* ─── Trip Detail Modal ─── */}
+      {selectedTripDetail.open && (
+        <TripDetailModal
+          id={selectedTripDetail.id}
+          serviceType={selectedTripDetail.serviceType}
+          onClose={() => setSelectedTripDetail({ open: false, id: null, serviceType: null })}
+        />
+      )}
 
       {/* ─── Request Modals ─── */}
       {showRequestModal && (
