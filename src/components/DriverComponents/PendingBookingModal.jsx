@@ -109,14 +109,14 @@ const PendingBookingModal = ({ offerId, onClose }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300"
         onClick={onClose}
       />
 
       {/* Modal Container */}
       <div className="relative bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-3xl max-h-[85vh] flex flex-col z-10 animate-in fade-in zoom-in-95 duration-200">
-        
+
         {/* Header */}
         <div className="p-6 border-b border-slate-100 flex items-center justify-between text-left">
           <div>
@@ -128,7 +128,7 @@ const PendingBookingModal = ({ offerId, onClose }) => {
             </h2>
             <p className="text-xs font-semibold text-slate-400 mt-1">Danh sách hành khách đang chờ tài xế duyệt cho mã chuyến #{offerId?.substring(0, 8).toUpperCase()}</p>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors focus:outline-none cursor-pointer"
           >
@@ -152,7 +152,7 @@ const PendingBookingModal = ({ offerId, onClose }) => {
             <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
               <p className="text-red-800 font-extrabold text-sm mb-1">Không thể tải danh sách đặt chuyến</p>
               <p className="text-red-600 text-xs font-semibold">{error?.message || 'Có lỗi xảy ra, vui lòng thử lại.'}</p>
-              <button 
+              <button
                 onClick={() => refetch()}
                 className="mt-3 bg-red-600 hover:bg-red-700 text-white text-xs font-black py-2 px-4 rounded-xl shadow-sm transition-colors cursor-pointer"
               >
@@ -172,20 +172,20 @@ const PendingBookingModal = ({ offerId, onClose }) => {
               {bookingsList.map((booking) => {
                 const customer = booking.customer || {};
                 const isProcessing = processingId === booking.bookingId;
-                
+
                 // Extract points
                 const startPt = booking.routePoints?.find(pt => pt.stopType === 'Start')?.locationName;
                 const endPt = booking.routePoints?.find(pt => pt.stopType === 'End')?.locationName;
 
                 return (
-                  <div 
-                    key={booking.bookingId} 
+                  <div
+                    key={booking.bookingId}
                     className="bg-white border border-slate-200 rounded-2xl p-5 hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col md:flex-row gap-5 items-stretch"
                   >
                     {/* Customer Profile Column */}
                     <div className="flex items-center md:items-start gap-4 md:w-56 shrink-0 text-left border-b md:border-b-0 md:border-r border-slate-100 pb-4 md:pb-0 md:pr-4">
-                      <img 
-                        src={getAvatarUrl(customer.avatarUrl)} 
+                      <img
+                        src={getAvatarUrl(customer.avatarUrl)}
                         alt={customer.fullName || 'Khách hàng'}
                         className="w-12 h-12 rounded-full object-cover border border-slate-200 shadow-sm"
                         onError={(e) => { e.target.style.display = 'none'; }}
@@ -194,8 +194,8 @@ const PendingBookingModal = ({ offerId, onClose }) => {
                         <h4 className="text-sm font-black text-slate-800 truncate">{customer.fullName || 'Ẩn danh'}</h4>
                         <p className="text-xs text-slate-400 truncate mt-0.5">{customer.email || 'Không có email'}</p>
                         {customer.phoneNumber && (
-                          <a 
-                            href={`tel:${customer.phoneNumber}`} 
+                          <a
+                            href={`tel:${customer.phoneNumber}`}
                             className="inline-flex items-center gap-1.5 text-xs text-emerald-600 hover:text-emerald-700 font-bold mt-1.5 transition-colors"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -212,7 +212,7 @@ const PendingBookingModal = ({ offerId, onClose }) => {
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                         <div>
                           <span className="text-slate-400 font-semibold">Số lượng:</span>
-                          <strong className="text-slate-800 font-bold block mt-0.5">{booking.quantity} người/kiện</strong>
+                          <strong className="text-slate-800 font-bold block mt-0.5">{booking.quantity} ghế</strong>
                         </div>
                         <div>
                           <span className="text-slate-400 font-semibold">Thành tiền:</span>
@@ -234,7 +234,7 @@ const PendingBookingModal = ({ offerId, onClose }) => {
                         {/* Cargo items if present */}
                         {booking.items && booking.items.length > 0 && (
                           <div className="flex flex-col gap-1 mt-1 pt-1 border-t border-slate-200/50">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Hành trình chi tiết:</span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Điểm đón/trả mỗi ghế:</span>
                             {booking.items.map((item, idx) => (
                               <div key={item.itemId || idx} className="text-[11px] font-semibold text-slate-600 flex items-center justify-between">
                                 <span className="truncate max-w-[200px]">
@@ -249,31 +249,47 @@ const PendingBookingModal = ({ offerId, onClose }) => {
                     </div>
 
                     {/* Actions Column */}
-                    <div className="flex md:flex-col justify-end items-end gap-2.5 md:w-32 shrink-0 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-4">
-                      {/* Confirm Button */}
-                      <button
-                        onClick={() => handleApprove(booking.bookingId)}
-                        disabled={isProcessing || processingId !== null}
-                        className="flex-1 md:flex-initial w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black py-2.5 px-4 rounded-xl cursor-pointer shadow-sm hover:shadow-emerald-600/10 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isProcessing && processingId === booking.bookingId ? (
-                          <svg className="animate-spin h-4.5 w-4.5 text-white" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                          </svg>
-                        ) : (
-                          'Duyệt'
-                        )}
-                      </button>
+                    <div className="flex md:flex-col justify-end items-center md:items-end gap-2.5 md:w-32 shrink-0 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-4">
+                      {booking.status === 1 ? (
+                        <>
+                          {/* Confirm Button */}
+                          <button
+                            onClick={() => handleApprove(booking.bookingId)}
+                            disabled={isProcessing || processingId !== null}
+                            className="flex-1 md:flex-initial w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black py-2.5 px-4 rounded-xl cursor-pointer shadow-sm hover:shadow-emerald-600/10 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isProcessing && processingId === booking.bookingId ? (
+                              <svg className="animate-spin h-4.5 w-4.5 text-white" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                              </svg>
+                            ) : (
+                              'Duyệt'
+                            )}
+                          </button>
 
-                      {/* Reject Button */}
-                      <button
-                        onClick={() => openRejectConfirm(booking.bookingId)}
-                        disabled={isProcessing || processingId !== null}
-                        className="flex-1 md:flex-initial w-full bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-black py-2.5 px-4 rounded-xl cursor-pointer border border-rose-200 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Từ chối
-                      </button>
+                          {/* Reject Button */}
+                          <button
+                            onClick={() => openRejectConfirm(booking.bookingId)}
+                            disabled={isProcessing || processingId !== null}
+                            className="flex-1 md:flex-initial w-full bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-black py-2.5 px-4 rounded-xl cursor-pointer border border-rose-200 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Từ chối
+                          </button>
+                        </>
+                      ) : booking.status === 4 ? (
+                        <span className="px-3 py-1.5 rounded-xl text-xs font-black border bg-emerald-50 text-emerald-700 border-emerald-200 w-full text-center">
+                          Đã duyệt
+                        </span>
+                      ) : booking.status === 5 ? (
+                        <span className="px-3 py-1.5 rounded-xl text-xs font-black border bg-rose-50 text-rose-700 border-rose-200 w-full text-center">
+                          Đã từ chối
+                        </span>
+                      ) : (
+                        <span className="px-3 py-1.5 rounded-xl text-xs font-black border bg-slate-50 text-slate-700 border-slate-200 w-full text-center">
+                          Trạng thái: {booking.status}
+                        </span>
+                      )}
                     </div>
 
                   </div>
@@ -285,7 +301,7 @@ const PendingBookingModal = ({ offerId, onClose }) => {
 
         {/* Footer */}
         <div className="p-4 bg-slate-50 border-t border-slate-100 rounded-b-3xl flex justify-end">
-          <button 
+          <button
             onClick={onClose}
             className="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-black py-2.5 px-5 rounded-xl transition-colors cursor-pointer"
           >

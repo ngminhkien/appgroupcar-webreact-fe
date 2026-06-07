@@ -15,18 +15,17 @@ const TripDetailModal = ({ id, serviceType, onClose }) => {
   const [processingId, setProcessingId] = useState(null);
   const [processingAction, setProcessingAction] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
   const queryClient = useQueryClient();
 
   const handleCompleteOffer = async () => {
-    if (!window.confirm('Bạn có chắc chắn muốn hoàn thành chuyến đi này?')) {
-      return;
-    }
     setProcessingAction(true);
     try {
       await completeOfferApi(id);
       toast.success('Cập nhật hoàn thành chuyến đi thành công!');
       queryClient.invalidateQueries({ queryKey: ['myOffers'] });
       queryClient.invalidateQueries({ queryKey: ['sharedRideDetail', id] });
+      setShowCompleteConfirm(false);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi hoàn thành chuyến.');
     } finally {
@@ -522,7 +521,7 @@ const TripDetailModal = ({ id, serviceType, onClose }) => {
             {detail.status === OfferStatus.Active && (
               <>
                 <button
-                  onClick={handleCompleteOffer}
+                  onClick={() => setShowCompleteConfirm(true)}
                   disabled={processingAction}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black py-2.5 px-5 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
                 >
@@ -582,6 +581,46 @@ const TripDetailModal = ({ id, serviceType, onClose }) => {
                 className="flex-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
               >
                 {processingAction ? 'Đang hủy...' : 'Xác nhận hủy'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCompleteConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          {/* Confirmation Backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] transition-opacity duration-300"
+            onClick={() => setShowCompleteConfirm(false)}
+          />
+          {/* Confirmation Dialog Box */}
+          <div className="relative bg-white rounded-3xl shadow-xl border border-slate-100 w-full max-w-sm p-6 z-10 animate-in fade-in zoom-in-95 duration-200 text-center space-y-4">
+            <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto text-emerald-500">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-black text-slate-800">Xác nhận hoàn thành chuyến đi</h3>
+              <p className="text-xs text-slate-500 leading-relaxed font-semibold">
+                Bạn có chắc chắn muốn hoàn thành chuyến đi này không? Hành động này sẽ thay đổi trạng thái chuyến đi thành Hoàn thành.
+              </p>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setShowCompleteConfirm(false)}
+                disabled={processingAction}
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Quay lại
+              </button>
+              <button
+                onClick={handleCompleteOffer}
+                disabled={processingAction}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {processingAction ? 'Đang cập nhật...' : 'Xác nhận'}
               </button>
             </div>
           </div>

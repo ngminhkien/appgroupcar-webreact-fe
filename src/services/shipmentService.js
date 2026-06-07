@@ -54,3 +54,17 @@ export const getShipmentOffersByRequestApi = async (shipmentRequestId) => {
   });
   return response.data;
 };
+
+export const getShipmentByIdApi = async (id) => {
+  const response = await axiosInstance.get(`/shipment/offer/${id}`);
+  return response.data;
+};
+
+/**
+ * Update shipment status
+ */
+export const updateShipmentStatusApi = async (data) => {
+  const response = await axiosInstance.patch('/shipment/status', data);
+  return response.data;
+};
+

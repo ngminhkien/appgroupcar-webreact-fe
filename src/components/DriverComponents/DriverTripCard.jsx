@@ -216,14 +216,12 @@ const DriverTripCard = ({ trip }) => {
           >
             Chi tiết
           </button>
-          {status === OfferStatus.Active && (
-            <button 
-              onClick={() => setShowPendingModal(true)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black py-2.5 px-4 rounded-xl cursor-pointer shadow-sm hover:shadow-emerald-600/10 transition-all duration-200"
-            >
-              Duyệt đặt vé
-            </button>
-          )}
+          <button 
+            onClick={() => setShowPendingModal(true)}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black py-2.5 px-4 rounded-xl cursor-pointer shadow-sm hover:shadow-emerald-600/10 transition-all duration-200"
+          >
+            Danh sách khách hàng
+          </button>
         </div>
       </div>
 

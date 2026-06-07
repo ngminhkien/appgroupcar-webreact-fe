@@ -6,3 +6,5 @@ export { default as TripDetails } from './TripDetails';
 export { default as TripBooking } from './TripBooking';
 export { default as RequestCard } from './RequestCard';
 export { CarpoolRequestModal, ExpressRequestModal } from './RequestModals';
+export { default as UserDetailModal } from './UserDetailModal';
+
