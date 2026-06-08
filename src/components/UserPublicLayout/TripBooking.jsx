@@ -511,7 +511,9 @@ const TripBooking = ({ trip, onClose }) => {
         const bookingData = {
           showtimeId: trip.id,
           status: 1,
-          seatNumbers: selectedSeats.map(s => s.code)
+          seatNumbers: selectedSeats.map(s => s.code),
+          pickupLocationId: selectedPickups[0]?.locationId || selectedPickups[0]?.id,
+          dropoffLocationId: selectedDropoffs[0]?.locationId || selectedDropoffs[0]?.id
         };
 
         await createBusBookingApi(bookingData);

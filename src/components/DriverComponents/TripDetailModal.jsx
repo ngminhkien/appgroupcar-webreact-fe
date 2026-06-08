@@ -175,12 +175,12 @@ const TripDetailModal = ({ id, serviceType, onClose }) => {
 
   // Determine start & end locations dynamically from route points
   const startPointName = useMemo(() => {
-    const start = sortedPoints.find(pt => pt.stopType === 1) || sortedPoints[0];
+    const start = sortedPoints[0];
     return start ? start.locationName : 'Chưa rõ';
   }, [sortedPoints]);
 
   const endPointName = useMemo(() => {
-    const end = sortedPoints.find(pt => pt.stopType === 5) || sortedPoints[sortedPoints.length - 1];
+    const end = sortedPoints[sortedPoints.length - 1];
     return end ? end.locationName : 'Chưa rõ';
   }, [sortedPoints]);
 
@@ -282,20 +282,11 @@ const TripDetailModal = ({ id, serviceType, onClose }) => {
                     <div className="bg-slate-50 border border-slate-200/60 rounded-3xl p-6 space-y-4">
                       <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Hành trình chính</h3>
 
-                      <div className="flex items-center gap-4 flex-wrap">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] font-black text-slate-400 uppercase">Điểm đi</span>
-                          <span className="text-sm font-extrabold text-slate-800 mt-1">
-                            {startPointName}
-                          </span>
-                        </div>
-                        <span className="text-slate-400 text-xs font-black select-none">➔</span>
-                        <div className="flex flex-col">
-                          <span className="text-[10px] font-black text-slate-400 uppercase">Điểm đến</span>
-                          <span className="text-sm font-extrabold text-slate-800 mt-1">
-                            {endPointName}
-                          </span>
-                        </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-slate-400 uppercase">Hành trình</span>
+                        <span className="text-sm font-extrabold text-slate-800 mt-1">
+                          {sortedPoints.map(pt => pt.locationName || pt.name).join(' ➔ ') || 'Chưa rõ'}
+                        </span>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4 pt-4 border-t border-dashed border-slate-200">

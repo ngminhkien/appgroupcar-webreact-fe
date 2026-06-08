@@ -284,16 +284,21 @@ const BookingPage = () => {
             typeName = item.vehicleName || 'Limousine';
           }
 
-          const tripFrom = item.startPoint?.displayName || item.startPoint?.locationName || item.startPoint?.name || (item.routeName ? item.routeName.split('-')[0].trim() : pickupLocName);
-          const tripTo = item.endPoint?.displayName || item.endPoint?.locationName || item.endPoint?.name || (item.routeName ? item.routeName.split('-')[1].trim() : dropoffLocName);
+          const getPointName = (point, fallback) => {
+            if (!point) return fallback;
+            if (typeof point === 'string') return point;
+            return point.displayName || point.locationName || point.name || fallback;
+          };
+          const tripFrom = getPointName(item.startPoint, item.routeName ? item.routeName.split('-')[0].trim() : pickupLocName);
+          const tripTo = getPointName(item.endPoint, item.routeName ? item.routeName.split('-')[1].trim() : dropoffLocName);
 
           return {
             id: item.id || Math.random().toString(),
             operator: operatorName,
             service: serviceCode,
             type: typeName,
-            rating: item.driverRatingAverage ?? null,
-            reviewsCount: item.driverRatingCount ?? 0,
+            rating: serviceCode === 'bus' ? (item.ratingCompanyAverage ?? item.driverRatingAverage ?? null) : (item.driverRatingAverage ?? null),
+            reviewsCount: serviceCode === 'bus' ? (item.ratingCompanyCount ?? item.driverRatingCount ?? 0) : (item.driverRatingCount ?? 0),
             price: item.price || item.basePrice || 0,
             departureTime: depTimeStr,
             arrivalTime: arrTimeStr,
@@ -371,6 +376,15 @@ const BookingPage = () => {
   // Filter & Sort trips
   const filteredTrips = useMemo(() => {
     let result = [...allTrips];
+
+    // Filter out trips with 0 available seats
+    result = result.filter(trip => {
+      if (trip.service === 'carpool' || trip.service === 'bus') {
+        const seats = parseInt(trip.availableSeats, 10);
+        return isNaN(seats) || seats > 0;
+      }
+      return true;
+    });
 
     // 1. Time range filter (Handled on API side via startTime)
     /*

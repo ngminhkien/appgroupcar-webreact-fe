@@ -169,7 +169,9 @@ const TripDetails = ({ trip, onClose }) => {
   }, [trip?.id, trip.routeId, trip.rawItem?.routeId, trip.rawItem?.busRouteId, trip?.driverId, isSharedRide, isTruck]);
 
   // Fetch reviews khi tab reviews active và có revieweeId
-  const revieweeId = trip?.driverId || trip?.rawItem?.driverId || null;
+  const revieweeId = (trip.service === 'bus' || trip.tag === 'XE KHÁCH')
+    ? (trip.companyId || trip.rawItem?.companyId || trip.driverId || trip.rawItem?.driverId || null)
+    : (trip.driverId || trip.rawItem?.driverId || null);
   useEffect(() => {
     if (activeTab !== 'reviews' || !revieweeId) return;
     let isMounted = true;

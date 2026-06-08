@@ -1,19 +1,44 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { getMyBusBookingsApi } from '@/services/busBookingService';
+import { getMyBusBookingsApi, getBusBookingByIdApi } from '@/services/busBookingService';
 import { getMyBookingsApi } from '@/services/offerService';
-import { getMyShipmentsApi, getMyShipmentRequestsApi, getShipmentOffersByRequestApi, createShipmentRequestApi } from '@/services/shipmentService';
+import { getMyShipmentsApi, getMyShipmentRequestsApi, getShipmentOffersByRequestApi, createShipmentRequestApi, getShipmentDetailsApi } from '@/services/shipmentService';
 import { getMyRideRequestsApi, createRideRequestApi } from '@/services/rideRequestService';
-import { CarpoolBookingStatus, ServiceType } from '@/types/enums';
+import { CarpoolBookingStatus, ServiceType, BusBookingStatus } from '@/types/enums';
 import ReviewModal from '@/components/UserPublicLayout/ReviewModal';
-import { CarpoolRequestModal, ExpressRequestModal } from '@/components/UserPublicLayout';
+import { CarpoolRequestModal, ExpressRequestModal, BusBookingDetailModal, ShipmentBookingDetailModal } from '@/components/UserPublicLayout';
 import { TripDetailModal } from '@/components/DriverComponents';
 
 // Adapter mappers to transform API response models into local UI formats
 const mapBusBooking = (item) => {
-  const isCancelled = item.status === 3 || item.status === 'Cancelled';
-  const isCompleted = item.status === 2 || item.status === 'Confirmed' || item.status === 'completed';
+  const statusVal = typeof item.status === 'number' ? item.status : parseInt(item.status, 10);
+
+  let uiStatus = 'active';
+  let label = 'Chờ thanh toán';
+
+  if (statusVal === BusBookingStatus.Cash) {
+    uiStatus = 'active';
+    label = 'Thanh toán tiền mặt';
+  } else if (statusVal === BusBookingStatus.Paid) {
+    uiStatus = 'completed';
+    label = 'Đã thanh toán';
+  } else if (statusVal === BusBookingStatus.Cancelled) {
+    uiStatus = 'cancelled';
+    label = 'Đã hủy';
+  } else if (statusVal === BusBookingStatus.Expired) {
+    uiStatus = 'cancelled';
+    label = 'Đã hết hạn';
+  } else {
+    if (item.status === 'Cancelled' || item.status === 3) {
+      uiStatus = 'cancelled';
+      label = 'Đã hủy';
+    } else if (item.status === 'Confirmed' || item.status === 'completed' || item.status === 2) {
+      uiStatus = 'completed';
+      label = 'Hoàn thành';
+    }
+  }
+
   return {
     id: item.bookingId || item.id,
     ticketCode: item.ticketCode || `BUS-${String(item.bookingId || item.id).substring(0, 6).toUpperCase()}`,
@@ -24,8 +49,8 @@ const mapBusBooking = (item) => {
     time: item.departureTime || item.showtime?.departureTime || item.time || '--',
     seat: item.seatCount !== undefined ? item.seatCount : (Array.isArray(item.seatNumbers) ? item.seatNumbers.join(', ') : (item.seat || 'Chưa chọn')),
     price: item.totalPrice || item.price || 0,
-    status: isCancelled ? 'cancelled' : (isCompleted ? 'completed' : 'active'),
-    statusLabel: isCancelled ? 'Đã hủy' : (isCompleted ? 'Hoàn thành' : 'Đang chạy'),
+    status: uiStatus,
+    statusLabel: label,
     duration: item.showtime?.busRoute?.duration || '--',
     vehicleType: item.showtime?.vehicleType || 'Limousine VIP',
     note: item.note || '',
@@ -39,16 +64,16 @@ const mapCarpoolBooking = (item) => {
   const s = item.status;
   const isCompleted = s === CarpoolBookingStatus.Complete;
   const isCancelled = s === CarpoolBookingStatus.Cancelled;
-  const isRejected  = s === CarpoolBookingStatus.Rejected;
-  const isPending   = s === CarpoolBookingStatus.Pending;
-  const isAccepted  = s === CarpoolBookingStatus.Accepted;
+  const isRejected = s === CarpoolBookingStatus.Rejected;
+  const isPending = s === CarpoolBookingStatus.Pending;
+  const isAccepted = s === CarpoolBookingStatus.Accepted;
 
   let uiStatus, statusLabel;
-  if (isCompleted)       { uiStatus = 'completed'; statusLabel = 'Hoàn thành'; }
-  else if (isCancelled)  { uiStatus = 'cancelled'; statusLabel = 'Đã hủy'; }
-  else if (isRejected)   { uiStatus = 'rejected';  statusLabel = 'Bị từ chối'; }
-  else if (isAccepted)   { uiStatus = 'active';    statusLabel = 'Đã nhận'; }
-  else                   { uiStatus = 'active';    statusLabel = 'Chờ xác nhận'; }
+  if (isCompleted) { uiStatus = 'completed'; statusLabel = 'Hoàn thành'; }
+  else if (isCancelled) { uiStatus = 'cancelled'; statusLabel = 'Đã hủy'; }
+  else if (isRejected) { uiStatus = 'rejected'; statusLabel = 'Bị từ chối'; }
+  else if (isAccepted) { uiStatus = 'active'; statusLabel = 'Đã nhận'; }
+  else { uiStatus = 'active'; statusLabel = 'Chờ xác nhận'; }
 
   // Format departureDate e.g. "2026-06-02T15:47:15.694" into date and time
   let dateVal = '--';
@@ -97,22 +122,68 @@ const mapCarpoolBooking = (item) => {
 };
 
 const mapCargoBooking = (item) => {
-  const isCancelled = item.status === 4 || item.status === 'Cancelled';
-  const isCompleted = item.status === 3 || item.status === 'Delivered' || item.status === 'completed';
+  const statusVal = item.shipmentStatus ?? item.status;
+
+  let uiStatus = 'active';
+  let label = 'Đang chạy';
+
+  if (statusVal === 1) {
+    uiStatus = 'active';
+    label = 'Chờ tài xế lấy hàng';
+  } else if (statusVal === 2) {
+    uiStatus = 'active';
+    label = 'Đang giao hàng';
+  } else if (statusVal === 3) {
+    uiStatus = 'completed';
+    label = 'Đã giao hàng';
+  } else if (statusVal === 4 || statusVal === 'Cancelled') {
+    uiStatus = 'cancelled';
+    label = 'Đã hủy';
+  } else if (statusVal === 5) {
+    uiStatus = 'rejected';
+    label = 'Trả lại hàng';
+  } else {
+    if (item.status === 'Cancelled' || item.status === 4) {
+      uiStatus = 'cancelled';
+      label = 'Đã hủy';
+    } else if (item.status === 'Delivered' || item.status === 'completed' || item.status === 3) {
+      uiStatus = 'completed';
+      label = 'Hoàn thành';
+    }
+  }
+
+  let dateVal = '--';
+  let timeVal = '--';
+  const depTime = item.deliveryDate || item.shipmentRequest?.deliveryDate || item.date;
+  if (depTime && depTime.includes('T')) {
+    const parts = depTime.split('T');
+    dateVal = parts[0];
+    if (parts[1]) {
+      timeVal = parts[1].substring(0, 5);
+    }
+  } else {
+    dateVal = depTime || '--';
+  }
+
+  const weightStr = item.weight != null ? `${item.weight} kg` : (item.shipmentRequest?.weight ? `${item.shipmentRequest.weight} kg` : '--');
+  const volumeStr = item.volume != null ? `${item.volume} m³` : (item.shipmentRequest?.volume ? `${item.shipmentRequest.volume} m³` : '--');
+
   return {
     id: item.id,
     cargoCode: item.cargoCode || `EX-CG${String(item.id).substring(0, 6).toUpperCase()}`,
-    from: item.shipmentRequest?.pickupLocation?.name || item.from || 'Chưa xác định',
-    to: item.shipmentRequest?.dropoffLocation?.name || item.to || 'Chưa xác định',
-    date: item.shipmentRequest?.deliveryDate || item.date || '--',
+    from: item.pickupPoint?.locationName || item.shipmentRequest?.pickupLocation?.name || item.from || 'Chưa xác định',
+    to: item.dropoffPoint?.locationName || item.shipmentRequest?.dropoffLocation?.name || item.to || 'Chưa xác định',
+    date: dateVal,
+    timeWindow: timeVal,
     cargoType: item.shipmentRequest?.description || item.cargoType || 'Hàng hóa',
-    weight: item.shipmentRequest?.weight ? `${item.shipmentRequest.weight} kg` : (item.weight || '--'),
+    weight: weightStr,
+    volume: volumeStr,
     dimensions: item.shipmentRequest?.dimensions || item.dimensions || '--',
     budget: item.price || item.budget || 0,
     recipientName: item.shipmentRequest?.recipientName || item.recipientName || 'Người nhận',
     recipientPhone: item.shipmentRequest?.recipientPhone || item.recipientPhone || '',
-    status: isCancelled ? 'cancelled' : (isCompleted ? 'completed' : 'active'),
-    statusLabel: isCancelled ? 'Đã hủy' : (isCompleted ? 'Hoàn thành' : 'Đang chạy'),
+    status: uiStatus,
+    statusLabel: label,
     note: item.shipmentRequest?.handlingNote || item.note || '',
     // Đánh giá: cargo → đánh giá tài xế
     revieweeId: item.driverId || item.driver?.id || null,
@@ -223,6 +294,47 @@ const HistoryPage = () => {
 
   // Request Modals state and submit handler
   const [showRequestModal, setShowRequestModal] = useState(false);
+
+  // Bus booking details modal state
+  const [busBookingDetailModal, setBusBookingDetailModal] = useState({ open: false, data: null, loading: false, error: null });
+
+  // Shipment booking details modal state
+  const [shipmentBookingDetailModal, setShipmentBookingDetailModal] = useState({ open: false, item: null, data: null, loading: false, error: null });
+
+  const handleOpenBusBookingDetail = async (bookingId) => {
+    setBusBookingDetailModal({ open: true, data: null, loading: true, error: null });
+    try {
+      const res = await getBusBookingByIdApi(bookingId);
+      const data = res?.data || res;
+      setBusBookingDetailModal({ open: true, data, loading: false, error: null });
+    } catch (err) {
+      console.error("Error fetching bus booking details:", err);
+      setBusBookingDetailModal({
+        open: true,
+        data: null,
+        loading: false,
+        error: err.response?.data?.message || err.message || "Không thể tải chi tiết vé."
+      });
+    }
+  };
+
+  const handleOpenShipmentDetail = async (bookingItem) => {
+    setShipmentBookingDetailModal({ open: true, item: bookingItem, data: null, loading: true, error: null });
+    try {
+      const res = await getShipmentDetailsApi(bookingItem.id);
+      const data = res?.data || res;
+      setShipmentBookingDetailModal({ open: true, item: bookingItem, data, loading: false, error: null });
+    } catch (err) {
+      console.error("Error fetching shipment details:", err);
+      setShipmentBookingDetailModal({
+        open: true,
+        item: bookingItem,
+        data: null,
+        loading: false,
+        error: err.response?.data?.message || err.message || "Không thể tải chi tiết đơn hàng."
+      });
+    }
+  };
 
   const handleAddRequest = async (newRequest) => {
     try {
@@ -486,7 +598,7 @@ const HistoryPage = () => {
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
                     }`}
                 >
-                  Gửi hàng nhanh
+                  Gửi hàng
                 </button>
               </div>
             )}
@@ -521,11 +633,10 @@ const HistoryPage = () => {
               {mainTab === 'requests' && (
                 <button
                   onClick={() => setShowRequestModal(true)}
-                  className={`flex items-center justify-center gap-1.5 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wide transition-all shadow-md cursor-pointer text-white ${
-                    requestTab === 'carpool'
+                  className={`flex items-center justify-center gap-1.5 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wide transition-all shadow-md cursor-pointer text-white ${requestTab === 'carpool'
                       ? 'bg-green-600 hover:bg-green-700 shadow-green-600/15'
                       : 'bg-lime-600 hover:bg-lime-700 shadow-lime-600/15'
-                  }`}
+                    }`}
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -601,15 +712,14 @@ const HistoryPage = () => {
                           )}
 
                           {/* Glowing Status badge */}
-                          <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${
-                            isCompleted || isMatched
+                          <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${isCompleted || isMatched
                               ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                               : isActive || isOpen
                                 ? 'bg-amber-50 text-amber-700 border-amber-200'
                                 : isRejected
                                   ? 'bg-rose-100 text-rose-800 border-rose-300'
                                   : 'bg-rose-50 text-rose-700 border-rose-200'
-                          }`}>
+                            }`}>
                             {item.statusLabel}
                           </span>
                         </div>
@@ -688,18 +798,27 @@ const HistoryPage = () => {
                                   Đánh giá
                                 </button>
                               ) : !isCancelled ? (
-                                <button className={`text-white text-[10px] font-black py-2 px-3.5 rounded-lg transition-all shadow-sm hover:shadow-md cursor-pointer ${bookingTab === 'bus'
-                                  ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/10'
-                                  : bookingTab === 'carpool'
-                                    ? 'bg-green-600 hover:bg-green-700 shadow-green-600/10'
-                                    : 'bg-lime-600 hover:bg-lime-700 shadow-lime-600/10'
-                                  }`}>
-                                  {bookingTab === 'cargo' ? 'Tra cứu' : 'Đặt lại'}
-                                </button>
+                                bookingTab === 'bus' ? (
+                                  <button
+                                    onClick={() => handleOpenBusBookingDetail(item.id)}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black py-2 px-3.5 rounded-lg transition-all shadow-sm hover:shadow-md cursor-pointer"
+                                  >
+                                    Xem chi tiết
+                                  </button>
+                                ) : bookingTab === 'cargo' ? (
+                                  <button
+                                    onClick={() => handleOpenShipmentDetail(item)}
+                                    className="bg-lime-600 hover:bg-lime-700 text-white text-[10px] font-black py-2 px-3.5 rounded-lg transition-all shadow-sm hover:shadow-md cursor-pointer"
+                                  >
+                                    Xem chi tiết
+                                  </button>
+                                ) : null
                               ) : (
-                                <button className="bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-black py-2 px-3.5 rounded-lg transition-all cursor-pointer">
-                                  Mua lại vé
-                                </button>
+                                bookingTab === 'bus' ? (
+                                  <button className="bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-black py-2 px-3.5 rounded-lg transition-all cursor-pointer">
+                                    Mua lại vé
+                                  </button>
+                                ) : null
                               )}
                             </>
                           ) : (
@@ -732,11 +851,10 @@ const HistoryPage = () => {
                 {mainTab === 'requests' ? (
                   <button
                     onClick={() => setShowRequestModal(true)}
-                    className={`mt-4 inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wide transition-all shadow-md cursor-pointer text-white ${
-                      requestTab === 'carpool'
+                    className={`mt-4 inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wide transition-all shadow-md cursor-pointer text-white ${requestTab === 'carpool'
                         ? 'bg-green-600 hover:bg-green-700 shadow-green-600/15'
                         : 'bg-lime-600 hover:bg-lime-700 shadow-lime-600/15'
-                    }`}
+                      }`}
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -909,6 +1027,23 @@ const HistoryPage = () => {
           />
         )
       )}
+      {/* ─── Bus Booking Detail Modal ─── */}
+      <BusBookingDetailModal
+        isOpen={busBookingDetailModal.open}
+        onClose={() => setBusBookingDetailModal(prev => ({ ...prev, open: false }))}
+        bookingDetails={busBookingDetailModal.data}
+        isLoading={busBookingDetailModal.loading}
+        error={busBookingDetailModal.error}
+      />
+      {/* ─── Shipment Booking Detail Modal ─── */}
+      <ShipmentBookingDetailModal
+        isOpen={shipmentBookingDetailModal.open}
+        onClose={() => setShipmentBookingDetailModal(prev => ({ ...prev, open: false }))}
+        booking={shipmentBookingDetailModal.item}
+        details={shipmentBookingDetailModal.data}
+        isLoading={shipmentBookingDetailModal.loading}
+        error={shipmentBookingDetailModal.error}
+      />
     </div>
   );
 };

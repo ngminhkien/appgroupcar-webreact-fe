@@ -60,6 +60,11 @@ export const getShipmentByIdApi = async (id) => {
   return response.data;
 };
 
+export const getShipmentDetailsApi = async (id) => {
+  const response = await axiosInstance.get(`/shipment/${id}`);
+  return response.data;
+};
+
 /**
  * Update shipment status
  */

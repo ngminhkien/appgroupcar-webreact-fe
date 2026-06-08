@@ -106,3 +106,10 @@ export const RouteStopType = Object.freeze({
   Dropoff: 4,
   End: 5,
 });
+
+export const BusBookingStatus = Object.freeze({
+  Cash: 1,
+  Paid: 2,
+  Cancelled: 3,
+  Expired: 4,
+});
