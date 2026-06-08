@@ -38,7 +38,11 @@ export const loginApi = async (email, password) => {
  * @param {string} refreshToken
  */
 export const logoutApi = async (refreshToken) => {
-  const response = await axiosInstance.post('/auth/logout', { refreshToken });
+  const response = await axiosInstance.post('/auth/logout', `"${refreshToken}"`, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
   return response.data;
 };
 
@@ -48,5 +52,33 @@ export const logoutApi = async (refreshToken) => {
  */
 export const googleLoginApi = async (idToken) => {
   const response = await axiosInstance.post('/Auth/google/callback', { idToken });
+  return response.data;
+};
+
+/**
+ * Forget Password API
+ * @param {string} email
+ */
+export const forgetPasswordApi = async (email) => {
+  const response = await axiosInstance.post('/Auth/forgot-password', `"${email}"`, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  return response.data;
+};
+
+/**
+ * Reset Password API
+ * @param {string} email
+ * @param {string} otp
+ * @param {string} newPassword
+ */
+export const resetPasswordApi = async (email, otp, newPassword) => {
+  const response = await axiosInstance.post('/auth/reset-password', {
+    email,
+    otp,
+    newPassword,
+  });
   return response.data;
 };

@@ -80,6 +80,7 @@ const DriverDetailModal = ({ isOpen, onClose, driver, onUpdated }) => {
 
   const renderStatus = (statusValue) => {
     switch (statusValue) {
+      case 0: return 'Chờ duyệt';
       case 1: return 'Chờ duyệt';
       case 2: return 'Hoạt động';
       case 3: return 'Tạm dừng';
@@ -140,13 +141,16 @@ const DriverDetailModal = ({ isOpen, onClose, driver, onUpdated }) => {
               {/* Avatar Section */}
               <div className="flex flex-col items-center">
                 <div
-                  className="w-32 h-32 rounded-full border-4 border-white shadow-lg ring-2 ring-slate-100 bg-slate-100 flex items-center justify-center text-slate-400"
+                  className="w-32 h-32 rounded-full border-4 border-white shadow-lg ring-2 ring-slate-100 bg-slate-100 flex items-center justify-center text-slate-400 overflow-hidden"
                 >
-                  {/* Tạm thời để trống avatar theo yêu cầu */}
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
+                  {detailData.avatarUrl ? (
+                    <img src={getFullImageUrl(detailData.avatarUrl)} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                  )}
                 </div>
               </div>
 
@@ -155,7 +159,21 @@ const DriverDetailModal = ({ isOpen, onClose, driver, onUpdated }) => {
                 <div className="space-y-1.5 md:col-span-2">
                   <label className="block text-sm font-medium text-slate-500">Tên tài xế</label>
                   <div className="w-full px-4 py-2.5 rounded-xl border border-slate-100 bg-slate-50 text-slate-800 text-sm font-medium">
-                    {detailData.name || "--"}
+                    {detailData.fullName || detailData.name || "--"}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-slate-500">Số điện thoại</label>
+                  <div className="w-full px-4 py-2.5 rounded-xl border border-slate-100 bg-slate-50 text-slate-800 text-sm font-medium">
+                    {detailData.phoneNumber || "--"}
+                  </div>
+                </div>
+                
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-slate-500">Trạng thái hiện tại</label>
+                  <div className="w-full px-4 py-2.5 rounded-xl border border-slate-100 bg-slate-50 text-slate-800 text-sm font-medium">
+                    {renderStatus(detailData.status !== undefined ? detailData.status : detailData.verificationStatus)}
                   </div>
                 </div>
 
@@ -163,13 +181,6 @@ const DriverDetailModal = ({ isOpen, onClose, driver, onUpdated }) => {
                   <label className="block text-sm font-medium text-slate-500">Số CMND/CCCD</label>
                   <div className="w-full px-4 py-2.5 rounded-xl border border-slate-100 bg-slate-50 text-slate-800 text-sm font-medium">
                     {detailData.identityNumber || "--"}
-                  </div>
-                </div>
-                
-                <div className="space-y-1.5">
-                  <label className="block text-sm font-medium text-slate-500">Trạng thái hiện tại</label>
-                  <div className="w-full px-4 py-2.5 rounded-xl border border-slate-100 bg-slate-50 text-slate-800 text-sm font-medium">
-                    {renderStatus(detailData.verificationStatus)}
                   </div>
                 </div>
 
@@ -184,6 +195,13 @@ const DriverDetailModal = ({ isOpen, onClose, driver, onUpdated }) => {
                   <label className="block text-sm font-medium text-slate-500">Hạng bằng lái</label>
                   <div className="w-full px-4 py-2.5 rounded-xl border border-slate-100 bg-slate-50 text-slate-800 text-sm font-medium">
                     {detailData.licenseClass || "Chưa cập nhật"}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-slate-500">Đánh giá trung bình</label>
+                  <div className="w-full px-4 py-2.5 rounded-xl border border-slate-100 bg-slate-50 text-slate-800 text-sm font-medium">
+                    {detailData.driverRatingAverage || 0} ⭐ ({detailData.driverRatingCount || 0} đánh giá)
                   </div>
                 </div>
 
@@ -228,7 +246,7 @@ const DriverDetailModal = ({ isOpen, onClose, driver, onUpdated }) => {
             Đóng
           </button>
           
-          {detailData?.verificationStatus === 1 && (
+          {(detailData?.status === 0 || detailData?.verificationStatus === 1) && (
              <>
                <button
                  type="button"

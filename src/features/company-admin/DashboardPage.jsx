@@ -606,7 +606,7 @@ const CompanyAdminDashboardPage = () => {
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 w-full">
         <div className="flex justify-between items-center mb-8">
           <h3 className="text-lg font-bold text-slate-800 font-sans">Biểu đồ đường doanh thu & số chuyến theo tháng</h3>
-          <button className="text-sm font-semibold text-[#001f3f] hover:text-blue-700 transition-colors font-sans">Xem chi tiết</button>
+          {/* <button className="text-sm font-semibold text-[#001f3f] hover:text-blue-700 transition-colors font-sans">Xem chi tiết</button> */}
         </div>
         <div className="relative w-full mt-4">
           <MonthlyRevenueBookingLineChart

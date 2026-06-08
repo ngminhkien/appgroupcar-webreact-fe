@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LandingPage } from '@/features/landing';
-import { LoginPage, RegisterPage, RegisterCompanyPage } from '@/features/auth';
+import { LoginPage, RegisterPage, RegisterCompanyPage, ForgotPasswordPage } from '@/features/auth';
 import { 
   DashboardPage, 
   CompaniesPage, 
@@ -50,6 +50,7 @@ const AppRoutes = () => {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/register-company" element={<RegisterCompanyPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
           {/* Protected Profile Page */}
           <Route element={<ProtectedRoute />}>
