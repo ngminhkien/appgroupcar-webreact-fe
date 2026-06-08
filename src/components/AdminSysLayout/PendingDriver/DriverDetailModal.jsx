@@ -63,11 +63,11 @@ const DriverDetailModal = ({ isOpen, onClose, driver, onUpdated }) => {
   const getFullImageUrl = (url) => {
     if (!url) return null;
     if (url.startsWith('http') || url.startsWith('data:')) return url;
-    
+
     let baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
     baseUrl = baseUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
     const formattedUrl = url.startsWith('/') ? url : `/${url}`;
-    
+
     return `${baseUrl}${formattedUrl}`;
   };
 
@@ -169,7 +169,7 @@ const DriverDetailModal = ({ isOpen, onClose, driver, onUpdated }) => {
                     {detailData.phoneNumber || "--"}
                   </div>
                 </div>
-                
+
                 <div className="space-y-1.5">
                   <label className="block text-sm font-medium text-slate-500">Trạng thái hiện tại</label>
                   <div className="w-full px-4 py-2.5 rounded-xl border border-slate-100 bg-slate-50 text-slate-800 text-sm font-medium">
@@ -215,17 +215,17 @@ const DriverDetailModal = ({ isOpen, onClose, driver, onUpdated }) => {
 
               {/* License Document Image if exists */}
               {detailData.licenseDocumentUrl && (
-                 <div className="mt-4 border-t border-slate-100 pt-5">
-                    <label className="block text-sm font-medium text-slate-500 mb-3">Ảnh chứng chỉ / Bằng lái</label>
-                    <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-slate-50 flex items-center justify-center p-2 min-h-[150px]">
-                       <img 
-                         src={getFullImageUrl(detailData.licenseDocumentUrl)} 
-                         alt="Bằng lái" 
-                         className="max-w-full h-auto max-h-[400px] object-contain rounded-lg" 
-                         onError={(e) => { e.target.parentElement.innerHTML = '<span class="text-slate-400 text-sm">Hình ảnh bị lỗi hoặc không tồn tại</span>'; }}
-                       />
-                    </div>
-                 </div>
+                <div className="mt-4 border-t border-slate-100 pt-5">
+                  <label className="block text-sm font-medium text-slate-500 mb-3">Ảnh chứng chỉ / Bằng lái</label>
+                  <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-slate-50 flex items-center justify-center p-2 min-h-[150px]">
+                    <img
+                      src={getFullImageUrl(detailData.licenseDocumentUrl)}
+                      alt="Bằng lái"
+                      className="max-w-full h-auto max-h-[400px] object-contain rounded-lg"
+                      onError={(e) => { e.target.parentElement.innerHTML = '<span class="text-slate-400 text-sm">Hình ảnh bị lỗi hoặc không tồn tại</span>'; }}
+                    />
+                  </div>
+                </div>
               )}
             </div>
           ) : (
@@ -245,32 +245,32 @@ const DriverDetailModal = ({ isOpen, onClose, driver, onUpdated }) => {
           >
             Đóng
           </button>
-          
+
           {(detailData?.status === 0 || detailData?.verificationStatus === 1) && (
-             <>
-               <button
-                 type="button"
-                 className="px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-200 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
-                 onClick={handleRefuse}
-                 disabled={isProcessing}
-               >
-                 {isProcessing ? 'Đang xử lý...' : 'Từ chối'}
-               </button>
-               <button
-                 type="button"
-                 className="px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
-                 onClick={handleApprove}
-                 disabled={isProcessing}
-               >
-                 {isProcessing && (
-                   <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
-                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                   </svg>
-                 )}
-                 {isProcessing ? 'Đang xử lý...' : 'Xác nhận Phê duyệt'}
-               </button>
-             </>
+            <>
+              <button
+                type="button"
+                className="px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-200 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                onClick={handleRefuse}
+                disabled={isProcessing}
+              >
+                {isProcessing ? 'Đang xử lý...' : 'Từ chối'}
+              </button>
+              <button
+                type="button"
+                className="px-5 py-2.5 rounded-xl text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                onClick={handleApprove}
+                disabled={isProcessing}
+              >
+                {isProcessing && (
+                  <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                )}
+                {isProcessing ? 'Đang xử lý...' : 'Xác nhận Phê duyệt'}
+              </button>
+            </>
           )}
         </div>
       </div>
