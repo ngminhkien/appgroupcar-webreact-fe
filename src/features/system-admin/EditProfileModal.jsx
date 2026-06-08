@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { updateUserApi } from '@/services/userService';
+import logoGroupCar from '@/assets/logoGroupCar.png';
 
 const EditProfileModal = ({ isOpen, onClose, profileInfo, onSuccess }) => {
   const [fullName, setFullName] = useState('');
@@ -26,7 +27,7 @@ const EditProfileModal = ({ isOpen, onClose, profileInfo, onSuccess }) => {
           setPreviewUrl(`${baseUrl}${formattedUrl}`);
         }
       } else {
-        setPreviewUrl('https://a.storyblok.com/f/191576/1200x800/215e59568f/round_profil_picture_after_.webp');
+        setPreviewUrl(logoGroupCar);
       }
     }
   }, [isOpen, profileInfo]);
@@ -123,7 +124,7 @@ const EditProfileModal = ({ isOpen, onClose, profileInfo, onSuccess }) => {
                   src={previewUrl} 
                   alt="Preview Avatar" 
                   className="w-28 h-28 rounded-full object-cover border-2 border-slate-100 shadow-inner"
-                  onError={(e) => { e.target.src = 'https://a.storyblok.com/f/191576/1200x800/215e59568f/round_profil_picture_after_.webp'; }}
+                  onError={(e) => { e.target.src = logoGroupCar; }}
                 />
                 <label 
                   htmlFor="avatar-upload" 

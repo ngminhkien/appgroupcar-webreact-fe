@@ -73,3 +73,11 @@ export const updateShipmentStatusApi = async (data) => {
   return response.data;
 };
 
+/**
+ * User cancels their own shipment
+ */
+export const cancelShipmentByUserApi = async (shipmentId) => {
+  const response = await axiosInstance.post(`/shipment/${shipmentId}/cancel`);
+  return response.data;
+};
+

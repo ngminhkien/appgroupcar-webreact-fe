@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { getUserProfileApi } from '@/services/userService';
 import { getMarketDriverMeApi } from '@/services/driverService';
 import EditProfileModal from '@/features/system-admin/EditProfileModal';
+import logoGroupCar from '@/assets/logoGroupCar.png';
 
 const ProfilePage = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -45,7 +46,7 @@ const ProfilePage = () => {
   };
 
   const getFullImageUrl = (url) => {
-    if (!url) return 'https://a.storyblok.com/f/191576/1200x800/215e59568f/round_profil_picture_after_.webp';
+    if (!url) return logoGroupCar;
     if (url.startsWith('http') || url.startsWith('data:')) return url;
     let baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
     baseUrl = baseUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
@@ -127,7 +128,7 @@ const ProfilePage = () => {
                src={getFullImageUrl(profileInfo?.avatarUrl)} 
                alt="User Avatar" 
                className="w-32 h-32 rounded-full object-cover shadow-sm"
-               onError={(e) => { e.target.src = 'https://a.storyblok.com/f/191576/1200x800/215e59568f/round_profil_picture_after_.webp'; }}
+               onError={(e) => { e.target.src = logoGroupCar; }}
              />
              <div className="absolute bottom-2 right-2 w-8 h-8 bg-[#52F091] border-2 border-white rounded-full flex items-center justify-center shadow-sm">
                 <svg className="w-5 h-5 text-emerald-900" fill="currentColor" viewBox="0 0 20 20">

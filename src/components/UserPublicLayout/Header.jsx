@@ -33,7 +33,7 @@ const Header = () => {
   });
 
   const getFullImageUrl = (url) => {
-    if (!url) return 'https://a.storyblok.com/f/191576/1200x800/215e59568f/round_profil_picture_after_.webp';
+    if (!url) return logoGroupCar;
     if (url.startsWith('http') || url.startsWith('data:')) return url;
     let baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
     baseUrl = baseUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');

@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }) => {
    * Called after successful login.
    * Stores tokens and updates user state from JWT payload.
    */
-  const login = useCallback((tokens) => {
+  const login = useCallback(async (tokens) => {
     const { accessToken, refreshToken } = tokens;
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
@@ -72,6 +72,14 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('companyId', companyId);
       }
     }
+
+    try {
+      const { getUserProfileApi } = await import('../services/userService');
+      await getUserProfileApi();
+    } catch (error) {
+      console.error('Failed to fetch user profile during login:', error);
+    }
+
     setUser(decoded);
   }, []);
 

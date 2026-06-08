@@ -334,10 +334,10 @@ const TripDetailModal = ({ id, serviceType, onClose }) => {
                       <div className="bg-slate-50 border border-slate-200/60 rounded-3xl p-6 flex flex-col sm:flex-row gap-6">
                         <div className="w-16 h-16 rounded-full overflow-hidden shrink-0 border border-slate-200 bg-white">
                           <img
-                            src={driver.avatarUrl ? getFullImageUrl(driver.avatarUrl) : 'https://a.storyblok.com/f/191576/1200x800/215e59568f/round_profil_picture_after_.webp'}
+                            src={driver.avatarUrl ? getFullImageUrl(driver.avatarUrl) : logoGroupCar}
                             alt={driver.name}
                             className="w-full h-full object-cover"
-                            onError={(e) => { e.target.src = 'https://a.storyblok.com/f/191576/1200x800/215e59568f/round_profil_picture_after_.webp'; }}
+                            onError={(e) => { e.target.src = logoGroupCar; }}
                           />
                         </div>
                         <div className="flex-1 space-y-1">

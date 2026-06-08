@@ -2,10 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { getMyBusBookingsApi, getBusBookingByIdApi } from '@/services/busBookingService';
-import { getMyBookingsApi } from '@/services/offerService';
-import { getMyShipmentsApi, getMyShipmentRequestsApi, getShipmentOffersByRequestApi, createShipmentRequestApi, getShipmentDetailsApi } from '@/services/shipmentService';
+import { getMyBookingsApi, cancelBookingByUserApi } from '@/services/offerService';
+import { getMyShipmentsApi, getMyShipmentRequestsApi, getShipmentOffersByRequestApi, createShipmentRequestApi, getShipmentDetailsApi, cancelShipmentByUserApi } from '@/services/shipmentService';
 import { getMyRideRequestsApi, createRideRequestApi } from '@/services/rideRequestService';
-import { CarpoolBookingStatus, ServiceType, BusBookingStatus } from '@/types/enums';
+import { CarpoolBookingStatus, ServiceType, BusBookingStatus, ShipmentStatus } from '@/types/enums';
 import ReviewModal from '@/components/UserPublicLayout/ReviewModal';
 import { CarpoolRequestModal, ExpressRequestModal, BusBookingDetailModal, ShipmentBookingDetailModal } from '@/components/UserPublicLayout';
 import { TripDetailModal } from '@/components/DriverComponents';
@@ -114,6 +114,7 @@ const mapCarpoolBooking = (item) => {
     budget: item.totalPrice || item.price || item.budget || 0,
     status: uiStatus,
     statusLabel: statusLabel,
+    rawStatus: s,
     note: item.note || '',
     // Đánh giá: carpool → đánh giá tài xế
     revieweeId: item.DriverId || item.driverId || item.driver?.id || item.marketDriverId || null,
@@ -184,6 +185,7 @@ const mapCargoBooking = (item) => {
     recipientPhone: item.shipmentRequest?.recipientPhone || item.recipientPhone || '',
     status: uiStatus,
     statusLabel: label,
+    rawStatus: statusVal,
     note: item.shipmentRequest?.handlingNote || item.note || '',
     // Đánh giá: cargo → đánh giá tài xế
     revieweeId: item.driverId || item.driver?.id || null,
@@ -371,6 +373,40 @@ const HistoryPage = () => {
     } catch (err) {
       console.error('Error creating request:', err);
       toast.error(err.response?.data?.message || err.message || 'Không thể tạo yêu cầu. Vui lòng thử lại.');
+    }
+  };
+
+  // Cancel confirm modal
+  const [cancelConfirmModal, setCancelConfirmModal] = useState({ open: false, type: null, id: null, label: '' });
+  const [cancellingId, setCancellingId] = useState(null);
+
+  const openCancelConfirm = (type, id, label) => {
+    setCancelConfirmModal({ open: true, type, id, label });
+  };
+
+  const closeCancelConfirm = () => {
+    setCancelConfirmModal({ open: false, type: null, id: null, label: '' });
+  };
+
+  const handleConfirmCancel = async () => {
+    const { type, id } = cancelConfirmModal;
+    closeCancelConfirm();
+    setCancellingId(id);
+    try {
+      if (type === 'carpool') {
+        await cancelBookingByUserApi(id);
+        toast.success('Đã hủy chuyến xe ghép thành công!');
+        queryClient.invalidateQueries({ queryKey: ['myCarpoolBookings'] });
+      } else if (type === 'shipment') {
+        await cancelShipmentByUserApi(id);
+        toast.success('Đã hủy chuyến gửi hàng thành công!');
+        queryClient.invalidateQueries({ queryKey: ['myShipmentBookings'] });
+      }
+    } catch (err) {
+      console.error('Error cancelling trip:', err);
+      toast.error(err.response?.data?.message || 'Không thể hủy chuyến. Vui lòng thử lại.');
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -634,8 +670,8 @@ const HistoryPage = () => {
                 <button
                   onClick={() => setShowRequestModal(true)}
                   className={`flex items-center justify-center gap-1.5 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wide transition-all shadow-md cursor-pointer text-white ${requestTab === 'carpool'
-                      ? 'bg-green-600 hover:bg-green-700 shadow-green-600/15'
-                      : 'bg-lime-600 hover:bg-lime-700 shadow-lime-600/15'
+                    ? 'bg-green-600 hover:bg-green-700 shadow-green-600/15'
+                    : 'bg-lime-600 hover:bg-lime-700 shadow-lime-600/15'
                     }`}
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
@@ -713,12 +749,12 @@ const HistoryPage = () => {
 
                           {/* Glowing Status badge */}
                           <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${isCompleted || isMatched
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : isActive || isOpen
-                                ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                : isRejected
-                                  ? 'bg-rose-100 text-rose-800 border-rose-300'
-                                  : 'bg-rose-50 text-rose-700 border-rose-200'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : isActive || isOpen
+                              ? 'bg-amber-50 text-amber-700 border-amber-200'
+                              : isRejected
+                                ? 'bg-rose-100 text-rose-800 border-rose-300'
+                                : 'bg-rose-50 text-rose-700 border-rose-200'
                             }`}>
                             {item.statusLabel}
                           </span>
@@ -797,22 +833,50 @@ const HistoryPage = () => {
                                   </svg>
                                   Đánh giá
                                 </button>
-                              ) : !isCancelled ? (
-                                bookingTab === 'bus' ? (
-                                  <button
-                                    onClick={() => handleOpenBusBookingDetail(item.id)}
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black py-2 px-3.5 rounded-lg transition-all shadow-sm hover:shadow-md cursor-pointer"
-                                  >
-                                    Xem chi tiết
-                                  </button>
-                                ) : bookingTab === 'cargo' ? (
-                                  <button
-                                    onClick={() => handleOpenShipmentDetail(item)}
-                                    className="bg-lime-600 hover:bg-lime-700 text-white text-[10px] font-black py-2 px-3.5 rounded-lg transition-all shadow-sm hover:shadow-md cursor-pointer"
-                                  >
-                                    Xem chi tiết
-                                  </button>
-                                ) : null
+                              ) : !isCancelled && !isRejected ? (
+                                <>
+                                  {bookingTab === 'bus' && (
+                                    <button
+                                      onClick={() => handleOpenBusBookingDetail(item.id)}
+                                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black py-2 px-3.5 w-32 rounded-lg transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center justify-center gap-1.5"                                    >
+                                      Xem chi tiết
+                                    </button>
+                                  )}
+                                  {bookingTab === 'cargo' && (
+                                    <button
+                                      onClick={() => handleOpenShipmentDetail(item)}
+                                      className="bg-lime-600 hover:bg-lime-700 text-white text-[10px] font-black py-2 px-3.5 rounded-lg transition-all shadow-sm hover:shadow-md cursor-pointer"
+                                    >
+                                      Xem chi tiết
+                                    </button>
+                                  )}
+                                  {/* Nút hủy chuyến xe ghép - chỉ hiển thị khi Pending hoặc Accepted */}
+                                  {bookingTab === 'carpool' && (item.rawStatus === CarpoolBookingStatus.Pending || item.rawStatus === CarpoolBookingStatus.Accepted) && (
+                                    <button
+                                      onClick={() => openCancelConfirm('carpool', item.id, `${item.from} → ${item.to}`)}
+                                      disabled={cancellingId === item.id}
+                                      className="bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white text-[10px] font-black py-2 px-3.5 rounded-lg transition-all shadow-sm hover:shadow-md cursor-pointer disabled:cursor-not-allowed flex items-center gap-1.5"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                      {cancellingId === item.id ? 'Đang hủy...' : 'Hủy chuyến'}
+                                    </button>
+                                  )}
+                                  {/* Nút hủy chuyến gửi hàng - chỉ hiển thị khi Created */}
+                                  {bookingTab === 'cargo' && item.rawStatus === ShipmentStatus.Created && (
+                                    <button
+                                      onClick={() => openCancelConfirm('shipment', item.id, `${item.from} → ${item.to}`)}
+                                      disabled={cancellingId === item.id}
+                                      className="bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white text-[10px] font-black py-2 px-3.5 rounded-lg transition-all shadow-sm hover:shadow-md cursor-pointer disabled:cursor-not-allowed flex items-center gap-1.5"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                      {cancellingId === item.id ? 'Đang hủy...' : 'Hủy chuyến'}
+                                    </button>
+                                  )}
+                                </>
                               ) : (
                                 bookingTab === 'bus' ? (
                                   <button className="bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-black py-2 px-3.5 rounded-lg transition-all cursor-pointer">
@@ -852,8 +916,8 @@ const HistoryPage = () => {
                   <button
                     onClick={() => setShowRequestModal(true)}
                     className={`mt-4 inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wide transition-all shadow-md cursor-pointer text-white ${requestTab === 'carpool'
-                        ? 'bg-green-600 hover:bg-green-700 shadow-green-600/15'
-                        : 'bg-lime-600 hover:bg-lime-700 shadow-lime-600/15'
+                      ? 'bg-green-600 hover:bg-green-700 shadow-green-600/15'
+                      : 'bg-lime-600 hover:bg-lime-700 shadow-lime-600/15'
                       }`}
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
@@ -1044,6 +1108,50 @@ const HistoryPage = () => {
         isLoading={shipmentBookingDetailModal.loading}
         error={shipmentBookingDetailModal.error}
       />
+
+      {/* ─── Cancel Confirm Modal ─── */}
+      {cancelConfirmModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={closeCancelConfirm}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-5"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Icon */}
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-rose-100 mx-auto">
+              <svg className="w-6 h-6 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+            </div>
+            {/* Content */}
+            <div className="text-center">
+              <h3 className="text-base font-black text-slate-900 mb-1">Xác nhận hủy chuyến</h3>
+              <p className="text-sm text-slate-500 font-medium">
+                Bạn có chắc muốn hủy chuyến
+              </p>
+              {cancelConfirmModal.label && (
+                <p className="text-sm font-black text-slate-800 mt-1">{cancelConfirmModal.label}</p>
+              )}
+              <p className="text-xs text-rose-500 font-semibold mt-2">Hành động này không thể hoàn tác.</p>
+            </div>
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={closeCancelConfirm}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Giữ lại
+              </button>
+              <button
+                onClick={handleConfirmCancel}
+                className="flex-1 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-sm font-black transition-colors cursor-pointer shadow-sm shadow-rose-500/20"
+              >
+                Hủy chuyến
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

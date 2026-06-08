@@ -48,7 +48,7 @@ const LoginPage = () => {
       const response = await googleLoginApi(idToken);
 
       if (response.code === 200 && response.data) {
-        login(response.data);
+        await login(response.data);
         await redirectByRole(response.data.accessToken);
       } else {
         setApiError(response.message || 'Đăng nhập với Google thất bại.');
@@ -180,7 +180,7 @@ const LoginPage = () => {
       const response = await loginApi(formData.email, formData.password);
 
       if (response.code === 200 && response.data) {
-        login(response.data);
+        await login(response.data);
         await redirectByRole(response.data.accessToken);
       } else {
         setApiError(response.message || 'Đăng nhập thất bại');

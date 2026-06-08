@@ -61,6 +61,14 @@ export const cancelBookingApi = async (bookingId) => {
 };
 
 /**
+ * User cancels their own booking
+ */
+export const cancelBookingByUserApi = async (bookingId) => {
+  const response = await axiosInstance.post(`/booking/${bookingId}/cancel`);
+  return response.data;
+};
+
+/**
  * Create a shared ride offer (Carpool)
  */
 export const createSharedRideOfferApi = async (data) => {

@@ -61,6 +61,8 @@ export const BookingStatus = Object.freeze({
   Pending: 1,
   Confirmed: 2,
   Cancelled: 3,
+  Accepted: 4,
+  Rejected: 5
 });
 
 // Enum riêng cho vé xe ghép (carpool booking)
