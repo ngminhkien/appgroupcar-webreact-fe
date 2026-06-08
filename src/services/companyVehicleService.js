@@ -36,3 +36,21 @@ export const deleteCompanyVehicleApi = async (id) => {
   const response = await axiosInstance.delete(`/company-vehicles/${id}`);
   return response.data;
 };
+
+export const getCompanyVehiclesByCompanyIdApi = async (companyId, params) => {
+  const response = await axiosInstance.get(`/company-vehicles/companyId`, {
+    params: { ...params, companyId }
+  });
+  return response.data;
+};
+
+export const updateCompanyVehicleStatusApi = async (id, companyId, status) => {
+  const formData = new FormData();
+  formData.append('Status', status);
+
+  const response = await axiosInstance.put(`/company-vehicles/${id}/status`, formData, {
+    params: { companyId },
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+  return response.data;
+};

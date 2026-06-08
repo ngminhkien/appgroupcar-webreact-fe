@@ -7,3 +7,6 @@ export { default as PendingVehiclesPage } from './PendingVehiclesPage';
 export { default as AdminProfilePage } from './AdminProfilePage';
 export { default as DriversPage } from './DriversPage';
 export { default as VehiclesPage } from './VehiclesPage';
+export { default as CompanyDriversPage } from './CompanyDriversPage';
+export { default as CompanyVehiclesPage } from './CompanyVehiclesPage';
+

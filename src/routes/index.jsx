@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LandingPage } from '@/features/landing';
-import { LoginPage, RegisterPage } from '@/features/auth';
+import { LoginPage, RegisterPage, RegisterCompanyPage } from '@/features/auth';
 import { 
   DashboardPage, 
   CompaniesPage, 
@@ -11,7 +11,9 @@ import {
   PendingVehiclesPage,
   AdminProfilePage,
   DriversPage,
-  VehiclesPage
+  VehiclesPage,
+  CompanyDriversPage,
+  CompanyVehiclesPage
 } from '@/features/system-admin';
 import CompanyAdminDashboardPage from '@/features/company-admin/DashboardPage';
 import CompanyAdminAccountsPage from '@/features/company-admin/AccountsPage';
@@ -47,6 +49,7 @@ const AppRoutes = () => {
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/register-company" element={<RegisterCompanyPage />} />
 
           {/* Protected Profile Page */}
           <Route element={<ProtectedRoute />}>
@@ -65,8 +68,10 @@ const AppRoutes = () => {
             <Route path="/admin/users" element={<UsersPage />} />
             <Route path="/admin/drivers" element={<DriversPage />} />
             <Route path="/admin/drivers/pending" element={<PendingDriversPage />} />
+            <Route path="/admin/company-drivers" element={<CompanyDriversPage />} />
             <Route path="/admin/vehicles" element={<VehiclesPage />} />
             <Route path="/admin/vehicles/pending" element={<PendingVehiclesPage />} />
+            <Route path="/admin/company-vehicles" element={<CompanyVehiclesPage />} />
             <Route path="/admin/profile" element={<AdminProfilePage />} />
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
           </Route>

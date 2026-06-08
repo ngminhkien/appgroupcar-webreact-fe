@@ -131,7 +131,7 @@
 }
 
 .sidebar-nav-item-wrapper[aria-expanded="true"] > .sidebar-nav-sub {
-  max-height: 150px; /* Thích ứng với số lượng menu con */
+  max-height: 250px; /* Thích ứng với số lượng menu con */
 }
 
 .sidebar-nav-sub-item {

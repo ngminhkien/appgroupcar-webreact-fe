@@ -63,3 +63,12 @@ export const unlockCompanyApi = async (companyId) => {
   return response.data;
 };
 
+export const createCompanyApi = async (formData) => {
+  const response = await axiosInstance.post('/companies', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+

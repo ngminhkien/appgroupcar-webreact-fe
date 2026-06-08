@@ -305,13 +305,21 @@ const RegisterPage = () => {
           </button>
         </form>
 
-        {/* Login Redirect */}
-        <p className="text-center text-sm text-slate-600 mt-8 font-semibold">
-          Đã có tài khoản?{' '}
-          <Link to="/login" className="text-emerald-600 hover:text-emerald-500 font-extrabold transition-colors">
-            Đăng nhập ngay
-          </Link>
-        </p>
+        {/* Redirects */}
+        <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm font-semibold text-slate-600">
+          <p>
+            Đã có tài khoản?{' '}
+            <Link to="/login" className="text-emerald-600 hover:text-emerald-500 font-extrabold transition-colors">
+              Đăng nhập ngay
+            </Link>
+          </p>
+          <p>
+            Bạn là doanh nghiệp?{' '}
+            <Link to="/register-company" className="text-blue-600 hover:text-blue-500 font-extrabold transition-colors">
+              Đăng ký công ty
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

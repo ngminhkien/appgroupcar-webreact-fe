@@ -22,6 +22,8 @@ const navItems = [
     subMenus: [
       { path: '/admin/companies/pending', label: 'Danh sách chờ duyệt' },
       { path: '/admin/companies', label: 'Quản lý', end: true },
+      { path: '/admin/company-drivers', label: 'Tài xế công ty' },
+      { path: '/admin/company-vehicles', label: 'Phương tiện công ty' },
     ],
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
