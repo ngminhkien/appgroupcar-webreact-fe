@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/store/AuthContext';
 import { AcceptShipmentModal } from '@/components/DriverComponents';
+import BookingOfferModal from './BookingOfferModal';
 
 const RequestCard = ({ request }) => {
   const { user } = useAuth();
   const [hasContacted, setHasContacted] = useState(false);
   const [showAcceptModal, setShowAcceptModal] = useState(false);
-  
+  const [showCarpoolModal, setShowCarpoolModal] = useState(false);
+
   const currentUserId = localStorage.getItem('userId');
   const isMyRequest = request.customerId && currentUserId && request.customerId === currentUserId;
 
@@ -15,14 +17,14 @@ const RequestCard = ({ request }) => {
   const isDriver = Array.isArray(userRole) ? userRole.includes('Driver') : userRole === 'Driver';
 
   const handleAcceptClick = () => {
+    if (!isDriver) {
+      toast.error('Chỉ tài xế mới được phép nhận yêu cầu!');
+      return;
+    }
     if (request.type === 'express') {
-      if (!isDriver) {
-        toast.error('Chỉ tài xế mới được phép nhận chuyến vận chuyển hàng!');
-        return;
-      }
       setShowAcceptModal(true);
     } else {
-      setHasContacted(true);
+      setShowCarpoolModal(true);
     }
   };
 
@@ -69,8 +71,8 @@ const RequestCard = ({ request }) => {
 
             {/* Service Badge */}
             <span className={`text-[10px] font-black tracking-wide uppercase px-2.5 py-0.5 rounded-full w-max mt-2 border ${isCarpool
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                : 'bg-lime-50 text-lime-700 border-lime-100'
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+              : 'bg-lime-50 text-lime-700 border-lime-100'
               }`}>
               {request.serviceLabel}
             </span>
@@ -141,7 +143,7 @@ const RequestCard = ({ request }) => {
                 onClick={handleAcceptClick}
                 className="w-full bg-slate-900 hover:bg-black text-white text-xs font-extrabold py-3 px-5 rounded-xl cursor-pointer shadow-md hover:shadow-slate-950/15 transition-all duration-300 text-center"
               >
-                Nhận chuyến
+                Nhận yêu cầu
               </button>
             )}
           </div>
@@ -171,6 +173,12 @@ const RequestCard = ({ request }) => {
         isOpen={showAcceptModal}
         onClose={() => setShowAcceptModal(false)}
         requestId={request.id}
+        onSuccess={handleAcceptSuccess}
+      />
+      <BookingOfferModal
+        isOpen={showCarpoolModal}
+        onClose={() => setShowCarpoolModal(false)}
+        request={request}
         onSuccess={handleAcceptSuccess}
       />
 

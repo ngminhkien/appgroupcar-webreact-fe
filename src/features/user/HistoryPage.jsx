@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { getMyBusBookingsApi, getBusBookingByIdApi } from '@/services/busBookingService';
-import { getMyBookingsApi, cancelBookingByUserApi } from '@/services/offerService';
+import { getMyBookingsApi, cancelBookingByUserApi, getBookingOffersByRideRequestApi, acceptBookingOfferApi, rejectBookingOfferApi } from '@/services/offerService';
 import { getMyShipmentsApi, getMyShipmentRequestsApi, getShipmentOffersByRequestApi, createShipmentRequestApi, getShipmentDetailsApi, cancelShipmentByUserApi } from '@/services/shipmentService';
 import { getMyRideRequestsApi, createRideRequestApi } from '@/services/rideRequestService';
 import { CarpoolBookingStatus, ServiceType, BusBookingStatus, ShipmentStatus } from '@/types/enums';
@@ -413,12 +413,40 @@ const HistoryPage = () => {
   const openOffersModal = async (item) => {
     setOffersModal({ open: true, item, offers: [], loading: true, error: null });
     try {
-      const res = await getShipmentOffersByRequestApi(item.id);
+      let res;
+      if (requestTab === 'carpool') {
+        res = await getBookingOffersByRideRequestApi(item.id);
+      } else {
+        res = await getShipmentOffersByRequestApi(item.id);
+      }
       const offers = res?.data || res || [];
       setOffersModal(prev => ({ ...prev, offers: Array.isArray(offers) ? offers : [], loading: false }));
     } catch (err) {
-      console.error('Failed to fetch shipment offers', err);
+      console.error('Failed to fetch offers', err);
       setOffersModal(prev => ({ ...prev, loading: false, error: 'Không thể tải danh sách đề nghị.' }));
+    }
+  };
+
+  const handleAcceptBookingOffer = async (e, offerId) => {
+    e.stopPropagation();
+    try {
+      await acceptBookingOfferApi(offerId);
+      toast.success('Đã duyệt đề nghị thành công!');
+      openOffersModal(offersModal.item);
+      queryClient.invalidateQueries({ queryKey: ['myRideRequests'] });
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Có lỗi xảy ra');
+    }
+  };
+
+  const handleRejectBookingOffer = async (e, offerId) => {
+    e.stopPropagation();
+    try {
+      await rejectBookingOfferApi(offerId);
+      toast.success('Đã từ chối đề nghị!');
+      openOffersModal(offersModal.item);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Có lỗi xảy ra');
     }
   };
 
@@ -996,11 +1024,19 @@ const HistoryPage = () => {
                 </div>
               ) : (
                 offersModal.offers.map((offer) => {
+                  const isCarpoolOffer = requestTab === 'carpool';
+                  
                   const offerStatus = offer.status === 2
-                    ? { label: 'Đã chấp nhận', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+                    ? { label: 'Đã duyệt', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
                     : offer.status === 3
-                      ? { label: 'Đã hủy', cls: 'bg-rose-50 text-rose-700 border-rose-200' }
+                      ? { label: 'Đã từ chối', cls: 'bg-rose-50 text-rose-700 border-rose-200' }
                       : { label: 'Đang chờ', cls: 'bg-amber-50 text-amber-700 border-amber-200' };
+
+                  const driverName = isCarpoolOffer ? offer.driver?.fullName || 'Tài xế' : offer.driver?.driverName || 'Tài xế';
+                  const vehicleName = isCarpoolOffer ? offer.offer?.vehicleName : offer.vehicle?.vehicleBrand?.trim() || 'Phương tiện chưa rõ';
+                  const priceStr = isCarpoolOffer 
+                    ? (offer.offer?.basePrice ? Number(offer.offer.basePrice).toLocaleString('vi-VN') + 'đ' : 'Thỏa thuận')
+                    : (offer.proposedPrice ? Number(offer.proposedPrice).toLocaleString('vi-VN') + 'đ' : 'Thỏa thuận');
 
                   return (
                     <div
@@ -1013,32 +1049,52 @@ const HistoryPage = () => {
                       className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-lime-300 hover:bg-lime-50/30 transition-all cursor-pointer"
                     >
                       {/* Driver & Vehicle Info */}
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-lime-500 to-emerald-600 text-white font-black text-base flex items-center justify-center shadow-sm shrink-0">
-                          {offer.driver?.driverName?.charAt(offer.driver.driverName.lastIndexOf(' ') + 1) || 'T'}
-                        </div>
+                      <div className="flex items-center gap-3 flex-1">
+                        {isCarpoolOffer && offer.driver?.avatarUrl ? (
+                          <img src={offer.driver.avatarUrl} alt="Avatar" className="w-10 h-10 rounded-xl object-cover shadow-sm shrink-0" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-lime-500 to-emerald-600 text-white font-black text-base flex items-center justify-center shadow-sm shrink-0">
+                            {driverName.charAt(driverName.lastIndexOf(' ') + 1) || 'T'}
+                          </div>
+                        )}
                         <div className="flex flex-col gap-0.5 text-left">
-                          <span className="font-extrabold text-slate-800 text-sm">{offer.driver?.driverName || 'Tài xế'}</span>
+                          <span className="font-extrabold text-slate-800 text-sm">{driverName}</span>
                           <span className="text-xs text-slate-500 font-semibold flex items-center gap-1">
                             <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                             </svg>
-                            {offer.vehicle?.vehicleBrand?.trim() || 'Phương tiện chưa rõ'}
+                            {vehicleName} {isCarpoolOffer && offer.offer?.plateNumber ? `(${offer.offer.plateNumber})` : ''}
                           </span>
                         </div>
                       </div>
 
                       {/* Price & Status */}
-                      <div className="flex items-center gap-3 sm:flex-row flex-wrap">
+                      <div className="flex items-center justify-end gap-3 sm:flex-row flex-wrap flex-1 sm:justify-end">
                         <div className="text-left sm:text-right">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Đề nghị giá</span>
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
+                            {isCarpoolOffer ? 'Giá chuyến đi' : 'Đề nghị giá'}
+                          </span>
                           <span className="text-lg font-black text-lime-600">
-                            {offer.proposedPrice ? Number(offer.proposedPrice).toLocaleString('vi-VN') + 'đ' : 'Thỏa thuận'}
+                            {priceStr}
                           </span>
                         </div>
-                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border ${offerStatus.cls}`}>
-                          {offerStatus.label}
-                        </span>
+                        <div className="flex flex-col items-end gap-2">
+                           <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border ${offerStatus.cls}`}>
+                             {offerStatus.label}
+                           </span>
+                           {isCarpoolOffer && offer.status === 1 && (
+                             <div className="flex gap-2">
+                               <button 
+                                 onClick={(e) => handleRejectBookingOffer(e, offer.id)} 
+                                 className="text-[10px] px-2 py-1 bg-rose-100 text-rose-700 hover:bg-rose-200 rounded font-bold transition-colors cursor-pointer"
+                               >Từ chối</button>
+                               <button 
+                                 onClick={(e) => handleAcceptBookingOffer(e, offer.id)} 
+                                 className="text-[10px] px-2 py-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded font-bold transition-colors cursor-pointer"
+                               >Duyệt</button>
+                             </div>
+                           )}
+                        </div>
                       </div>
                     </div>
                   );

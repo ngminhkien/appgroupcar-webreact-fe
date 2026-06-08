@@ -142,3 +142,45 @@ export const driverCancelShipmentApi = async (shipmentOfferId) => {
   return response.data;
 };
 
+/**
+ * Get active shared ride offers for current driver
+ */
+export const getActiveSharedRideOffersApi = async () => {
+  const response = await axiosInstance.get('/offer/me/shared-ride/active');
+  return response.data;
+};
+
+/**
+ * Create a booking offer
+ */
+export const postBookingOfferApi = async (rideRequestId, offerId) => {
+  const response = await axiosInstance.post('/bookingoffer', null, { 
+    params: { rideRequestId, offerId } 
+  });
+  return response.data;
+};
+
+/**
+ * Get booking offers for a specific ride request
+ */
+export const getBookingOffersByRideRequestApi = async (rideRequestId) => {
+  const response = await axiosInstance.get(`/BookingOffer/ride-request/${rideRequestId}`);
+  return response.data;
+};
+
+/**
+ * Accept a booking offer
+ */
+export const acceptBookingOfferApi = async (id) => {
+  const response = await axiosInstance.post(`/bookingoffer/${id}/accept`);
+  return response.data;
+};
+
+/**
+ * Reject a booking offer
+ */
+export const rejectBookingOfferApi = async (id) => {
+  const response = await axiosInstance.post(`/bookingoffer/${id}/reject`);
+  return response.data;
+};
+
