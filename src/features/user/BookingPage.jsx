@@ -31,7 +31,7 @@ const BookingPage = () => {
   const [selectedTimes, setSelectedTimes] = useState([]);
   const [selectedOperators, setSelectedOperators] = useState([]);
   const [selectedTypes, setSelectedTypes] = useState([]);
-  
+
   const defaultMaxPrice = useMemo(() => {
     if (serviceCode === 'bus') return 1000000;
     return 50000000;
@@ -239,7 +239,7 @@ const BookingPage = () => {
               }
             }
           }
-          
+
           // Use estimatedDurationMinutes from API if available, otherwise default to 90 minutes
           const durationMins = (item.estimatedDurationMinutes && item.estimatedDurationMinutes > 0)
             ? item.estimatedDurationMinutes
@@ -265,7 +265,7 @@ const BookingPage = () => {
 
           const driverName = item.driverName && item.driverName !== 'string' ? item.driverName : '';
           const vehicleName = item.vehicleName && item.vehicleName !== 'string' ? item.vehicleName : '';
-          
+
           let operatorName = '';
           if (serviceCode === 'carpool') {
             operatorName = driverName || vehicleName || 'Tài xế Xe ghép';
@@ -309,9 +309,9 @@ const BookingPage = () => {
             to: tripTo,
             availableSeats: serviceCode === 'carpool' ? (item.availableSeats ?? 4) : (serviceCode === 'express' ? '1.5 tấn' : (item.seatCount || 9)),
             tag: serviceCode === 'carpool' ? 'XE GHÉP' : (serviceCode === 'express' ? 'XE TẢI' : 'XE KHÁCH'),
-            image: item.vehicleUrlImage || item.imageUrl || (serviceCode === 'carpool' 
+            image: item.vehicleUrlImage || item.imageUrl || (serviceCode === 'carpool'
               ? 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&q=80'
-              : (serviceCode === 'express' 
+              : (serviceCode === 'express'
                 ? 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=1000&q=80'
                 : 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&q=80')),
             driverId: item.companyDriverId || item.driverId || item.marketDriverId || item.driver?.id || item.marketDriver?.id || item.userId || null,
@@ -480,7 +480,7 @@ const BookingPage = () => {
             </div>
 
             {/* Sort Options */}
-            <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
+            {/* <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
               <span>Sắp xếp:</span>
               <div className="relative">
                 <select
@@ -499,7 +499,7 @@ const BookingPage = () => {
                   </svg>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Cards List */}

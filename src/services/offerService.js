@@ -138,7 +138,7 @@ export const driverAcceptShipmentApi = async (shipmentOfferId, offerId) => {
  * Driver cancels/rejects a pending shipment offer
  */
 export const driverCancelShipmentApi = async (shipmentOfferId) => {
-  const response = await axiosInstance.post(`/ShipmentOffer/${shipmentOfferId}/cancel`);
+  const response = await axiosInstance.post(`/ShipmentOffer/${shipmentOfferId}/driver-reject`);
   return response.data;
 };
 

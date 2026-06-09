@@ -17,10 +17,7 @@ export const createShipmentRequestApi = async (data) => {
  * @param {Object} body - offerId, requestId, proposedPrice
  */
 export const createShipmentOfferApi = async (body) => {
-  const { offerId, requestId, ...rest } = body;
-  const response = await axiosInstance.post('/ShipmentOffer/offer', rest, {
-    params: { offerId, requestId }
-  });
+  const response = await axiosInstance.post('/ShipmentOffer/offer', body);
   return response.data;
 };
 
@@ -81,6 +78,30 @@ export const updateShipmentStatusApi = async (data) => {
  */
 export const cancelShipmentByUserApi = async (shipmentId) => {
   const response = await axiosInstance.post(`/shipment/${shipmentId}/cancel`);
+  return response.data;
+};
+
+/**
+ * Accept a shipment offer
+ */
+export const acceptShipmentOfferApi = async (id) => {
+  const response = await axiosInstance.post(`/ShipmentOffer/${id}/accept`);
+  return response.data;
+};
+
+/**
+ * Reject a shipment offer
+ */
+export const rejectShipmentOfferApi = async (id) => {
+  const response = await axiosInstance.post(`/ShipmentOffer/${id}/driver-reject`);
+  return response.data;
+};
+
+/**
+ * Customer rejects a shipment offer
+ */
+export const customerRejectShipmentOfferApi = async (id) => {
+  const response = await axiosInstance.post(`/ShipmentOffer/${id}/customer-reject`);
   return response.data;
 };
 

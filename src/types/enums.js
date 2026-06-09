@@ -15,6 +15,7 @@ export const ShipmentRequestStatus = Object.freeze({
   Open: 1,
   Cancelled: 2,
   Expired: 3,
+  Accepted: 4,
 });
 
 export const ShipmentOfferStatus = Object.freeze({
@@ -35,6 +36,7 @@ export const RideRequestStatus = Object.freeze({
   Open: 1,
   Matched: 2,
   Cancelled: 3,
+  Accepted: 4,
 });
 
 export const OfferStatus = Object.freeze({

@@ -76,7 +76,7 @@ const TripBooking = ({ trip, onClose }) => {
   const [passengerName, setPassengerName] = useState('');
   const [passengerPhone, setPassengerPhone] = useState('');
   const [passengerEmail, setPassengerEmail] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('transfer'); // 'transfer' or 'cash'
+  const [paymentMethod, setPaymentMethod] = useState('cash'); // 'transfer' or 'cash'
 
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingCode, setBookingCode] = useState('');
@@ -283,13 +283,15 @@ const TripBooking = ({ trip, onClose }) => {
 
   // Default select first item of pickup/dropoff once loaded
   useEffect(() => {
+    if (trip?.service !== 'bus') return;
+    
     if (pickups.length > 0 && selectedPickups.length === 0) {
       setSelectedPickups([pickups[0]]);
     }
     if (dropoffs.length > 0 && selectedDropoffs.length === 0) {
       setSelectedDropoffs([dropoffs[0]]);
     }
-  }, [routePoints, pickups, dropoffs, selectedPickups, selectedDropoffs]);
+  }, [routePoints, pickups, dropoffs, selectedPickups, selectedDropoffs, trip?.service]);
 
   // Generate random booking code once
   useEffect(() => {

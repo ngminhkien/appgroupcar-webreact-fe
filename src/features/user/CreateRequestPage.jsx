@@ -314,7 +314,7 @@ const CreateRequestPage = () => {
 
       setShowModal(false);
       toast.success(`Tạo yêu cầu ${newRequest.serviceLabel.toLowerCase()} thành công!`);
-      
+
       // Auto pre-fill search bar from newly created request values and trigger fetch
       setFromCity(newRequest.from);
       setToCity(newRequest.to);
@@ -322,12 +322,12 @@ const CreateRequestPage = () => {
       setToLocationId(newRequest.toLocationId);
       lastSelectedFromRef.current = newRequest.from;
       lastSelectedToRef.current = newRequest.to;
-      
+
       localStorage.setItem('request_fromCity', newRequest.from);
       localStorage.setItem('request_fromLocationId', newRequest.fromLocationId);
       localStorage.setItem('request_toCity', newRequest.to);
       localStorage.setItem('request_toLocationId', newRequest.toLocationId);
-      
+
       fetchRequests({
         FromCity: newRequest.from,
         ToCity: newRequest.to,
@@ -594,7 +594,7 @@ const CreateRequestPage = () => {
               </button>
 
               {/* Sort Options */}
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-500 shrink-0">
+              {/* <div className="flex items-center gap-2 text-sm font-semibold text-slate-500 shrink-0">
                 <span>Sắp xếp:</span>
                 <div className="relative">
                   <select
@@ -613,7 +613,7 @@ const CreateRequestPage = () => {
                     </svg>
                   </div>
                 </div>
-              </div>
+              </div> */}
 
             </div>
           </div>

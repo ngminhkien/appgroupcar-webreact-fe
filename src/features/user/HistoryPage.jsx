@@ -3,9 +3,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { getMyBusBookingsApi, getBusBookingByIdApi } from '@/services/busBookingService';
 import { getMyBookingsApi, cancelBookingByUserApi, getBookingOffersByRideRequestApi, acceptBookingOfferApi, rejectBookingOfferApi } from '@/services/offerService';
-import { getMyShipmentsApi, getMyShipmentRequestsApi, getShipmentOffersByRequestApi, createShipmentRequestApi, getShipmentDetailsApi, cancelShipmentByUserApi } from '@/services/shipmentService';
+import { getMyShipmentsApi, getMyShipmentRequestsApi, getShipmentOffersByRequestApi, createShipmentRequestApi, getShipmentDetailsApi, cancelShipmentByUserApi, acceptShipmentOfferApi, rejectShipmentOfferApi, customerRejectShipmentOfferApi } from '@/services/shipmentService';
 import { getMyRideRequestsApi, createRideRequestApi } from '@/services/rideRequestService';
-import { CarpoolBookingStatus, ServiceType, BusBookingStatus, ShipmentStatus } from '@/types/enums';
+import { CarpoolBookingStatus, ServiceType, BusBookingStatus, ShipmentStatus, RideRequestStatus, ShipmentRequestStatus } from '@/types/enums';
 import ReviewModal from '@/components/UserPublicLayout/ReviewModal';
 import { CarpoolRequestModal, ExpressRequestModal, BusBookingDetailModal, ShipmentBookingDetailModal } from '@/components/UserPublicLayout';
 import { TripDetailModal } from '@/components/DriverComponents';
@@ -194,8 +194,8 @@ const mapCargoBooking = (item) => {
 };
 
 const mapCarpoolRequest = (item) => {
-  const isCancelled = item.status === 3 || item.status === 'Cancelled';
-  const isMatched = item.status === 2 || item.status === 'Matched' || item.status === 'matched';
+  const isCancelled = item.status === RideRequestStatus.Cancelled;
+  const isMatched = item.status === RideRequestStatus.Matched || item.status === RideRequestStatus.Accepted;
 
   let dateVal = '--';
   let timeVal = '--';
@@ -228,8 +228,9 @@ const mapCarpoolRequest = (item) => {
 };
 
 const mapCargoRequest = (item) => {
-  const isCancelled = item.status === 3 || item.status === 'Cancelled';
-  const isMatched = item.status === 2 || item.status === 'Matched' || item.status === 'matched';
+  const isCancelled = item.status === ShipmentRequestStatus.Cancelled;
+  const isExpired = item.status === ShipmentRequestStatus.Expired;
+  const isMatched = item.status === ShipmentRequestStatus.Accepted;
 
   let dateVal = '--';
   let timeVal = '--';
@@ -261,8 +262,8 @@ const mapCargoRequest = (item) => {
     dimensions: item.dimensions || '--',
     budget: item.proposedPrice || item.budget || 0,
     customerName: item.customer?.fullName || '',
-    status: isCancelled ? 'cancelled' : (isMatched ? 'matched' : 'open'),
-    statusLabel: isCancelled ? 'Đã hủy' : (isMatched ? 'Đã ghép xe' : 'Chờ ghép xe'),
+    status: isCancelled || isExpired ? 'cancelled' : (isMatched ? 'matched' : 'open'),
+    statusLabel: isCancelled ? 'Đã hủy' : (isExpired ? 'Đã hết hạn' : (isMatched ? 'Đã ghép xe' : 'Chờ ghép xe')),
     note: item.handlingNote || item.note || ''
   };
 };
@@ -430,10 +431,15 @@ const HistoryPage = () => {
   const handleAcceptBookingOffer = async (e, offerId) => {
     e.stopPropagation();
     try {
-      await acceptBookingOfferApi(offerId);
+      if (requestTab === 'carpool') {
+        await acceptBookingOfferApi(offerId);
+      } else {
+        await acceptShipmentOfferApi(offerId);
+      }
       toast.success('Đã duyệt đề nghị thành công!');
       openOffersModal(offersModal.item);
       queryClient.invalidateQueries({ queryKey: ['myRideRequests'] });
+      queryClient.invalidateQueries({ queryKey: ['myShipmentRequests'] });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Có lỗi xảy ra');
     }
@@ -442,7 +448,11 @@ const HistoryPage = () => {
   const handleRejectBookingOffer = async (e, offerId) => {
     e.stopPropagation();
     try {
-      await rejectBookingOfferApi(offerId);
+      if (requestTab === 'carpool') {
+        await rejectBookingOfferApi(offerId);
+      } else {
+        await customerRejectShipmentOfferApi(offerId);
+      }
       toast.success('Đã từ chối đề nghị!');
       openOffersModal(offersModal.item);
     } catch (err) {
@@ -923,7 +933,7 @@ const HistoryPage = () => {
                                   }`}
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                Xem đề nghị
+                                Đề nghị
                               </button>
                             </>
                           )}
@@ -1025,7 +1035,7 @@ const HistoryPage = () => {
               ) : (
                 offersModal.offers.map((offer) => {
                   const isCarpoolOffer = requestTab === 'carpool';
-                  
+
                   const offerStatus = offer.status === 2
                     ? { label: 'Đã duyệt', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
                     : offer.status === 3
@@ -1034,7 +1044,7 @@ const HistoryPage = () => {
 
                   const driverName = isCarpoolOffer ? offer.driver?.fullName || 'Tài xế' : offer.driver?.driverName || 'Tài xế';
                   const vehicleName = isCarpoolOffer ? offer.offer?.vehicleName : offer.vehicle?.vehicleBrand?.trim() || 'Phương tiện chưa rõ';
-                  const priceStr = isCarpoolOffer 
+                  const priceStr = isCarpoolOffer
                     ? (offer.offer?.basePrice ? Number(offer.offer.basePrice).toLocaleString('vi-VN') + 'đ' : 'Thỏa thuận')
                     : (offer.proposedPrice ? Number(offer.proposedPrice).toLocaleString('vi-VN') + 'đ' : 'Thỏa thuận');
 
@@ -1079,21 +1089,21 @@ const HistoryPage = () => {
                           </span>
                         </div>
                         <div className="flex flex-col items-end gap-2">
-                           <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border ${offerStatus.cls}`}>
-                             {offerStatus.label}
-                           </span>
-                           {isCarpoolOffer && offer.status === 1 && (
-                             <div className="flex gap-2">
-                               <button 
-                                 onClick={(e) => handleRejectBookingOffer(e, offer.id)} 
-                                 className="text-[10px] px-2 py-1 bg-rose-100 text-rose-700 hover:bg-rose-200 rounded font-bold transition-colors cursor-pointer"
-                               >Từ chối</button>
-                               <button 
-                                 onClick={(e) => handleAcceptBookingOffer(e, offer.id)} 
-                                 className="text-[10px] px-2 py-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded font-bold transition-colors cursor-pointer"
-                               >Duyệt</button>
-                             </div>
-                           )}
+                          <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border ${offerStatus.cls}`}>
+                            {offerStatus.label}
+                          </span>
+                          {offer.status === 1 && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={(e) => handleRejectBookingOffer(e, offer.id)}
+                                className="text-[10px] px-2 py-1 bg-rose-100 text-rose-700 hover:bg-rose-200 rounded font-bold transition-colors cursor-pointer"
+                              >Từ chối</button>
+                              <button
+                                onClick={(e) => handleAcceptBookingOffer(e, offer.id)}
+                                className="text-[10px] px-2 py-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded font-bold transition-colors cursor-pointer"
+                              >Duyệt</button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
