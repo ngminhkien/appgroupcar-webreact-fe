@@ -244,6 +244,7 @@ const DriverTripCard = ({ trip }) => {
           id={id} 
           serviceType={serviceType}
           onClose={() => setShowDetailModal(false)} 
+          showActions={true}
         />
       )}
 

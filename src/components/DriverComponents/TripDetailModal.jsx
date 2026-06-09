@@ -10,7 +10,7 @@ import {
 import logoGroupCar from '@/assets/logoGroupCar.png';
 import { ServiceType, OfferStatus } from '@/types/enums';
 
-const TripDetailModal = ({ id, serviceType, onClose }) => {
+const TripDetailModal = ({ id, serviceType, onClose, showActions = false }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [processingId, setProcessingId] = useState(null);
   const [processingAction, setProcessingAction] = useState(false);
@@ -509,7 +509,7 @@ const TripDetailModal = ({ id, serviceType, onClose }) => {
         {/* Footer */}
         <div className="p-4 bg-slate-50 border-t border-slate-100 rounded-b-3xl flex justify-between items-center flex-wrap gap-3">
           <div className="flex gap-2">
-            {detail.status === OfferStatus.Active && (
+            {showActions && detail.status === OfferStatus.Active && (
               <>
                 <button
                   onClick={() => setShowCompleteConfirm(true)}
